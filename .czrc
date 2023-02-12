@@ -1,0 +1,152 @@
+{
+  "path": "./node_modules/commitizen-emoji",
+  "config": {
+    "commitizenEmoji": {
+      "replaceTypes": true,
+      "conventionalFormat": true,
+      "skipQuestions": [
+        "scope"
+      ],
+      "types": [
+        {
+          "name": "init",
+          "description": "Begin a project.",
+          "code": ":tada:",
+          "emoji": "🎉"
+        },
+        {
+          "name": "feature",
+          "description": "Introduce new features.",
+          "code": ":sparkles:",
+          "emoji": "✨"
+        },
+        {
+          "name": "tests",
+          "description": "Add, update, or pass tests.",
+          "code": ":white_check_mark:",
+          "emoji": "✅"
+        },
+        {
+          "name": "docs",
+          "description": "Add or update documentation.",
+          "code": ":memo:",
+          "emoji": "📝"
+        },
+        {
+          "name": "types",
+          "description": "Add or update types.",
+          "code": ":label:",
+          "emoji": "🏷️"
+        },
+        {
+          "name": "config",
+          "description": "Add or update configuration files.",
+          "code": ":wrench:",
+          "emoji": "🔧"
+        },
+        {
+          "name": "devscripts",
+          "description": "Add or update development scripts.",
+          "code": ":hammer:",
+          "emoji": "🔨"
+        },
+        {
+          "name": "binary",
+          "description": "Add or update compiled files or packages.",
+          "code": ":package:",
+          "emoji": "📦️"
+        },
+        {
+          "name": "assets",
+          "description": "Add or update assets.",
+          "code": ":bento:",
+          "emoji": "🍱"
+        },
+        {
+          "name": "ui",
+          "description": "Add or update the UI and style files.",
+          "code": ":lipstick:",
+          "emoji": "💄"
+        },
+        {
+          "name": "i18n",
+          "description": "Internationalization and localization.",
+          "code": ":globe_with_meridians:",
+          "emoji": "🌐"
+        },
+        {
+          "name": "bugfix",
+          "description": "Fix a bug.",
+          "code": ":bug:",
+          "emoji": "🐛"
+        },
+        {
+          "name": "hotfix",
+          "description": "Critical hotfix.",
+          "code": ":ambulance:",
+          "emoji": "🚑️"
+        },
+        {
+          "name": "fix",
+          "description": "Simple fix for a non-critical issue.",
+          "code": ":adhesive_bandage:",
+          "emoji": "🩹"
+        },
+        {
+          "name": "detect",
+          "description": "Catch errors.",
+          "code": ":goal_net:",
+          "emoji": "🥅"
+        },
+        {
+          "name": "arch",
+          "description": "Make architectural changes.",
+          "code": ":building_construction:",
+          "emoji": "🏗️"
+        },
+        {
+          "name": "codestyle",
+          "description": "Improve structure / format of the code.",
+          "code": ":art:",
+          "emoji": "🎨"
+        },
+        {
+          "name": "refactor",
+          "description": "Refactor code.",
+          "code": ":recycle:",
+          "emoji": "♻️"
+        },
+        {
+          "name": "deploy",
+          "description": "Deploy stuff.",
+          "code": ":rocket:",
+          "emoji": "🚀"
+        },
+        {
+          "name": "fixci",
+          "description": "Fix CI Build.",
+          "code": ":green_heart:",
+          "emoji": "💚"
+        },
+        {
+          "name": "revert",
+          "description": "Revert changes.",
+          "code": ":rewind:",
+          "emoji": "⏪️"
+        },
+        {
+          "name": "merge",
+          "description": "Merge branches.",
+          "code": ":twisted_rightwards_arrows:",
+          "emoji": "🔀"
+        },
+        {
+          "name": "breaking",
+          "description": "Introduce breaking changes.",
+          "code": ":boom:",
+          "emoji": "💥"
+        }
+      ]
+    }
+  }
+}
