@@ -1,6 +1,6 @@
-/*global Logger, PropertiesService, MailApp, UrlFetchApp, Utilities, ICAL, Tasks, Calendar*/
-/*eslint no-undef: "warn"*/
-/*eslint no-unused-vars: "warn"*/
+/*global Logger, PropertiesService, MailApp, UrlFetchApp, Utilities, ICAL, Tasks, Calendar, CONFIGS, CALENDAR, SESSION, TZIDS, TZID_REPLACE */
+/*eslint no-undef: "error"*/
+/*eslint no-unused-vars: "off"*/
 
 function startSync() {
   if (PropertiesService.getUserProperties().getProperty('LastRun') > 0 && new Date().getTime() - PropertiesService.getUserProperties().getProperty('LastRun') < 360000) {
@@ -10,77 +10,79 @@ function startSync() {
 
   PropertiesService.getUserProperties().setProperty('LastRun', new Date().getTime());
 
-  if (onlyFutureEvents) {
-    startUpdateTime = new ICAL.Time.fromJSDate(new Date());
+  if (CONFIGS.getOnlyFutureEvents) {
+    CONFIGS.startUpdateTime = new ICAL.Time.fromJSDate(new Date());
   }
 
-  //Disable email notification if no mail adress is provided
-  emailSummary = emailSummary && email != '';
+  // emailSummary = emailSummary && email != ''; //Disable email notification if no mail adress is provided
 
-  sourceCalendars = condenseCalendarMap(sourceCalendars);
-  for (var calendar of sourceCalendars) {
+  const finalSourceCalendars = condenseCalendarMap(CONFIGS.ticktickCallendars);
+  for (var calendar of finalSourceCalendars) {
     //------------------------ Reset globals ------------------------
-    calendarEvents = [];
-    calendarEventsIds = [];
-    icsEventsIds = [];
-    calendarEventsMD5s = [];
-    recurringEvents = [];
+    CALENDAR.calendarEvents = [];
+    CALENDAR.calendarEventsIds = [];
+    CALENDAR.icsEventsIds = [];
+    CALENDAR.calendarEventsMD5s = [];
+    CALENDAR.recurringEvents = [];
+    CALENDAR.targetCalendarName = calendar[0];
+    CALENDAR.targetCalendarName = '';
 
-    targetCalendarName = calendar[0];
     var sourceCalendarURLs = calendar[1];
     var vevents;
 
     //------------------------ Fetch URL items ------------------------
     var responses = fetchSourceCalendars(sourceCalendarURLs);
-    Logger.log('Syncing ' + responses.length + ' calendars to ' + targetCalendarName);
+    Logger.log('Syncing ' + responses.length + ' calendars to ' + CALENDAR.targetCalendarName);
 
     //------------------------ Get target calendar information------------------------
-    var targetCalendar = setupTargetCalendar(targetCalendarName);
-    targetCalendarId = targetCalendar.id;
-    Logger.log('Working on calendar: ' + targetCalendarId);
+    var targetCalendar = setupTargetCalendar(CALENDAR.targetCalendarName);
+    CALENDAR.targetCalendarId = targetCalendar.id;
+    Logger.log('Working on calendar: ' + CALENDAR.targetCalendarId);
 
     //------------------------ Parse existing events --------------------------
-    if (addEventsToCalendar || modifyExistingEvents || removeEventsFromCalendar) {
+    if (CONFIGS.addEventsToCalendar || CONFIGS.modifyExistingEvents || CONFIGS.removeEventsFromCalendar) {
       var eventList = callWithBackoff(function () {
-        return Calendar.Events.list(targetCalendarId, {
+        return Calendar.Events.list(CALENDAR.targetCalendarId, {
           showDeleted: false,
           privateExtendedProperty: 'fromGAS=true',
           maxResults: 2500
         });
-      }, defaultMaxRetries);
-      calendarEvents = [].concat(calendarEvents, eventList.items);
+      }, CONFIGS.defaultMaxRetries);
+      CALENDAR.calendarEvents = [].concat(CALENDAR.calendarEvents, eventList.items);
       //loop until we received all events
       while (typeof eventList.nextPageToken !== 'undefined') {
         eventList = callWithBackoff(function () {
-          return Calendar.Events.list(targetCalendarId, {
+          return Calendar.Events.list(CALENDAR.targetCalendarId, {
             showDeleted: false,
             privateExtendedProperty: 'fromGAS=true',
             maxResults: 2500,
             pageToken: eventList.nextPageToken
           });
-        }, defaultMaxRetries);
+        }, CONFIGS.defaultMaxRetries);
 
-        if (eventList != null) calendarEvents = [].concat(calendarEvents, eventList.items);
+        if (eventList != null) {
+          CALENDAR.calendarEvents = [].concat(CALENDAR.calendarEvents, eventList.items);
+        }
       }
-      Logger.log('Fetched ' + calendarEvents.length + ' existing events from ' + targetCalendarName);
-      for (var i = 0; i < calendarEvents.length; i++) {
-        if (calendarEvents[i].extendedProperties != null) {
-          calendarEventsIds[i] = calendarEvents[i].extendedProperties.private['rec-id'] || calendarEvents[i].extendedProperties.private['id'];
-          calendarEventsMD5s[i] = calendarEvents[i].extendedProperties.private['MD5'];
+      Logger.log('Fetched ' + CALENDAR.calendarEvents.length + ' existing events from ' + CALENDAR.targetCalendarName);
+      for (var i = 0; i < CALENDAR.calendarEvents.length; i++) {
+        if (CALENDAR.calendarEvents[i].extendedProperties != null) {
+          CALENDAR.calendarEventsIds[i] = CALENDAR.calendarEvents[i].extendedProperties.private['rec-id'] || CALENDAR.calendarEvents[i].extendedProperties.private['id'];
+          CALENDAR.calendarEventsMD5s[i] = CALENDAR.calendarEvents[i].extendedProperties.private['MD5'];
         }
       }
 
       //------------------------ Parse ical events --------------------------
-      vevents = parseResponses(responses, icsEventsIds);
+      vevents = parseResponses(responses, CALENDAR.icsEventsIds);
       Logger.log('Parsed ' + vevents.length + ' events from ical sources');
     }
 
     //------------------------ Process ical events ------------------------
-    if (addEventsToCalendar || modifyExistingEvents) {
+    if (CONFIGS.addEventsToCalendar || CONFIGS.modifyExistingEvents) {
       Logger.log('Processing ' + vevents.length + ' events');
       var calendarTz = callWithBackoff(function () {
         return Calendar.Settings.get('timezone').value;
-      }, defaultMaxRetries);
+      }, CONFIGS.defaultMaxRetries);
 
       vevents.forEach(function (e) {
         processEvent(e, calendarTz);
@@ -90,25 +92,25 @@ function startSync() {
     }
 
     //------------------------ Remove old events from calendar ------------------------
-    if (removeEventsFromCalendar) {
-      Logger.log('Checking ' + calendarEvents.length + ' events for removal');
+    if (CONFIGS.removeEventsFromCalendar) {
+      Logger.log('Checking ' + CALENDAR.calendarEvents.length + ' events for removal');
       processEventCleanup();
       Logger.log('Done checking events for removal');
     }
 
     //------------------------ Process Tasks ------------------------
-    if (addTasks) {
+    if (CONFIGS.addTasks) {
       processTasks(responses);
     }
 
     //------------------------ Add Recurring Event Instances ------------------------
-    Logger.log('Processing ' + recurringEvents.length + ' Recurrence Instances!');
-    for (var recEvent of recurringEvents) {
+    Logger.log('Processing ' + CALENDAR.recurringEvents.length + ' Recurrence Instances!');
+    for (var recEvent of CALENDAR.recurringEvents) {
       processEventInstance(recEvent);
     }
   }
 
-  if (addedEvents.length + modifiedEvents.length + removedEvents.length > 0 && emailSummary) {
+  if (SESSION.addedEvents.length + SESSION.modifiedEvents.length + SESSION.removedEvents.length > 0 && CONFIGS.emailSummary) {
     sendSummary();
   }
   Logger.log('Sync finished!');
@@ -173,7 +175,7 @@ function fetchSourceCalendars(sourceCalendarURLs) {
         //Throw here to make callWithBackoff run again
         throw 'Error: Encountered HTTP error ' + urlResponse.getResponseCode() + ' when accessing ' + url;
       }
-    }, defaultMaxRetries);
+    }, CONFIGS.defaultMaxRetries);
   }
 
   return result;
@@ -243,7 +245,7 @@ function parseResponses(responses) {
     result = [].concat(allEvents, result);
   }
 
-  if (onlyFutureEvents) {
+  if (CONFIGS.getOnlyFutureEvents) {
     result = result.filter(function (event) {
       try {
         if (event.hasProperty('recurrence-id') || event.hasProperty('rrule') || event.hasProperty('rdate') || event.hasProperty('exdate')) {
@@ -252,7 +254,7 @@ function parseResponses(responses) {
         }
         var eventEnde;
         eventEnde = new ICAL.Time.fromString(event.getFirstPropertyValue('dtend').toString(), event.getFirstProperty('dtend'));
-        return eventEnde.compare(startUpdateTime) >= 0;
+        return eventEnde.compare(CONFIGS.startUpdateTime) >= 0;
       } catch (e) {
         return true;
       }
@@ -276,9 +278,9 @@ function parseResponses(responses) {
       var recID = new ICAL.Time.fromString(event.getFirstPropertyValue('recurrence-id').toString(), event.getFirstProperty('recurrence-id'));
       var recUTC = recID.convertToZone(ICAL.TimezoneService.get('UTC')).toString();
 
-      icsEventsIds.push(event.getFirstPropertyValue('uid').toString() + '_' + recUTC);
+      CALENDAR.icsEventsIds.push(event.getFirstPropertyValue('uid').toString() + '_' + recUTC);
     } else {
-      icsEventsIds.push(event.getFirstPropertyValue('uid').toString());
+      CALENDAR.icsEventsIds.push(event.getFirstPropertyValue('uid').toString());
     }
   });
 
@@ -293,38 +295,39 @@ function parseResponses(responses) {
  */
 function processEvent(event, calendarTz) {
   //------------------------ Create the event object ------------------------
+  console.log(event);
   var newEvent = createEvent(event, calendarTz);
   if (newEvent == null) return;
 
-  var index = calendarEventsIds.indexOf(newEvent.extendedProperties.private['id']);
+  var index = CALENDAR.calendarEventsIds.indexOf(newEvent.extendedProperties.private['id']);
   var needsUpdate = index > -1;
 
   //------------------------ Save instance overrides ------------------------
   //----------- To make sure the parent event is actually created -----------
   if (event.hasProperty('recurrence-id')) {
     Logger.log('Saving event instance for later: ' + newEvent.recurringEventId);
-    recurringEvents.push(newEvent);
+    CALENDAR.recurringEvents.push(newEvent);
     return;
   } else {
     //------------------------ Send event object to gcal ------------------------
     if (needsUpdate) {
-      if (modifyExistingEvents) {
+      if (CONFIGS.modifyExistingEvents) {
         Logger.log('Updating existing event ' + newEvent.extendedProperties.private['id']);
         newEvent = callWithBackoff(function () {
-          return Calendar.Events.update(newEvent, targetCalendarId, calendarEvents[index].id);
-        }, defaultMaxRetries);
-        if (newEvent != null && emailSummary) {
-          modifiedEvents.push([[newEvent.summary, newEvent.start.date || newEvent.start.dateTime], targetCalendarName]);
+          return Calendar.Events.update(newEvent, CALENDAR.targetCalendarId, CALENDAR.calendarEvents[index].id);
+        }, CONFIGS.defaultMaxRetries);
+        if (newEvent != null && CONFIGS.emailSummary) {
+          SESSION.modifiedEvents.push([[newEvent.summary, newEvent.start.date || newEvent.start.dateTime], CALENDAR.targetCalendarName]);
         }
       }
     } else {
-      if (addEventsToCalendar) {
+      if (CONFIGS.addEventsToCalendar) {
         Logger.log('Adding new event ' + newEvent.extendedProperties.private['id']);
         newEvent = callWithBackoff(function () {
-          return Calendar.Events.insert(newEvent, targetCalendarId);
-        }, defaultMaxRetries);
-        if (newEvent != null && emailSummary) {
-          addedEvents.push([[newEvent.summary, newEvent.start.date || newEvent.start.dateTime], targetCalendarName]);
+          return Calendar.Events.insert(newEvent, CALENDAR.targetCalendarId);
+        }, CONFIGS.defaultMaxRetries);
+        if (newEvent != null && CONFIGS.emailSummary) {
+          SESSION.addedEvents.push([[newEvent.summary, newEvent.start.date || newEvent.start.dateTime], CALENDAR.targetCalendarName]);
         }
       }
     }
@@ -334,7 +337,7 @@ function processEvent(event, calendarTz) {
 /**
  * Creates a Google Calendar Event based on the specified ICALEvent.
  * Will return null if the event has not changed since the last sync.
- * If onlyFutureEvents is set to true:
+ * If CONFIGS.getOnlyFutureEvents is set to true:
  * -It will return null if the event has already taken place.
  * -Past instances of recurring events will be removed
  *
@@ -345,19 +348,19 @@ function processEvent(event, calendarTz) {
 function createEvent(event, calendarTz) {
   event.removeProperty('dtstamp');
   var icalEvent = new ICAL.Event(event, { strictExceptions: true });
-  if (onlyFutureEvents && checkSkipEvent(event, icalEvent)) {
+  if (CONFIGS.getOnlyFutureEvents && checkSkipEvent(event, icalEvent)) {
     return;
   }
 
   var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, icalEvent.toString()).toString();
-  if (calendarEventsMD5s.indexOf(digest) >= 0) {
+  if (CALENDAR.calendarEventsMD5s.indexOf(digest) >= 0) {
     Logger.log('Skipping unchanged Event ' + event.getFirstPropertyValue('uid').toString());
     return;
   }
 
   var newEvent = callWithBackoff(function () {
     return Calendar.newEvent();
-  }, defaultMaxRetries);
+  }, CONFIGS.defaultMaxRetries);
   if (icalEvent.startDate.isDate) {
     //All-day event
     if (icalEvent.startDate.compare(icalEvent.endDate) == 0) {
@@ -372,10 +375,10 @@ function createEvent(event, calendarTz) {
   } else {
     //Normal (not all-day) event
     var tzid = icalEvent.startDate.timezone;
-    if (tzids.indexOf(tzid) == -1) {
+    if (TZIDS.indexOf(tzid) == -1) {
       var oldTzid = tzid;
-      if (tzid in tzidreplace) {
-        tzid = tzidreplace[tzid];
+      if (tzid in TZID_REPLACE) {
+        tzid = TZID_REPLACE[tzid];
       } else {
         //floating time
         tzid = calendarTz;
@@ -396,7 +399,7 @@ function createEvent(event, calendarTz) {
     };
   }
 
-  if (addAttendees && event.hasProperty('attendee')) {
+  if (CONFIGS.addAttendees && event.hasProperty('attendee')) {
     newEvent.attendees = [];
     for (var att of icalEvent.attendees) {
       var mail = parseAttendeeMail(att.toICALString());
@@ -422,7 +425,7 @@ function createEvent(event, calendarTz) {
   if (event.hasProperty('url') && event.getFirstPropertyValue('url').toString().substring(0, 4) == 'http') {
     newEvent.source = callWithBackoff(function () {
       return Calendar.newEventSource();
-    }, defaultMaxRetries);
+    }, CONFIGS.defaultMaxRetries);
     newEvent.source.url = event.getFirstPropertyValue('url').toString();
     newEvent.source.title = 'link';
   }
@@ -431,15 +434,15 @@ function createEvent(event, calendarTz) {
     //newEvent.sequence = icalEvent.sequence; Currently disabled as it is causing issues with recurrence exceptions
   }
 
-  if (descriptionAsTitles && event.hasProperty('description')) newEvent.summary = icalEvent.description;
+  if (CONFIGS.descriptionAsTitles && event.hasProperty('description')) newEvent.summary = icalEvent.description;
   else if (event.hasProperty('summary')) newEvent.summary = icalEvent.summary;
 
-  if (addOrganizerToTitle && event.hasProperty('organizer')) {
+  if (CONFIGS.addOrganizerToTitle && event.hasProperty('organizer')) {
     var organizer = event.getFirstProperty('organizer').getParameter('cn').toString();
     if (organizer != null) newEvent.summary = organizer + ': ' + newEvent.summary;
   }
 
-  if (addCalToTitle && event.hasProperty('parentCal')) {
+  if (CONFIGS.addCalToTitle && event.hasProperty('parentCal')) {
     var calName = event.getFirstPropertyValue('parentCal');
     newEvent.summary = '(' + calName + ') ' + newEvent.summary;
   }
@@ -449,8 +452,8 @@ function createEvent(event, calendarTz) {
   if (event.hasProperty('location')) newEvent.location = icalEvent.location;
 
   var validVisibilityValues = ['default', 'public', 'private', 'confidential'];
-  if (validVisibilityValues.includes(overrideVisibility.toLowerCase())) {
-    newEvent.visibility = overrideVisibility.toLowerCase();
+  if (validVisibilityValues.includes(CONFIGS.overrideVisibility.toLowerCase())) {
+    newEvent.visibility = CONFIGS.overrideVisibility.toLowerCase();
   } else if (event.hasProperty('class')) {
     var classString = event.getFirstPropertyValue('class').toString().toLowerCase();
     if (validVisibilityValues.includes(classString)) newEvent.visibility = classString;
@@ -462,10 +465,10 @@ function createEvent(event, calendarTz) {
   }
 
   if (icalEvent.startDate.isDate) {
-    if (0 <= defaultAllDayReminder && defaultAllDayReminder <= 40320) {
+    if (0 <= CONFIGS.defaultAllDayReminder && CONFIGS.defaultAllDayReminder <= 40320) {
       newEvent.reminders = {
         useDefault: false,
-        overrides: [{ method: 'popup', minutes: defaultAllDayReminder }]
+        overrides: [{ method: 'popup', minutes: CONFIGS.defaultAllDayReminder }]
       }; //reminder as defined by the user
     } else {
       newEvent.reminders = { useDefault: false, overrides: [] }; //no reminder
@@ -474,7 +477,7 @@ function createEvent(event, calendarTz) {
     newEvent.reminders = { useDefault: true, overrides: [] }; //will set the default reminders as set at calendar.google.com
   }
 
-  switch (addAlerts) {
+  switch (CONFIGS.addAlerts) {
     case 'yes':
       var valarms = event.getAllSubcomponents('valarm');
       if (valarms.length > 0) {
@@ -554,13 +557,13 @@ function createEvent(event, calendarTz) {
  */
 function checkSkipEvent(event, icalEvent) {
   if (icalEvent.isRecurrenceException()) {
-    if (icalEvent.startDate.compare(startUpdateTime) < 0 && icalEvent.recurrenceId.compare(startUpdateTime) < 0) {
+    if (icalEvent.startDate.compare(CONFIGS.startUpdateTime) < 0 && icalEvent.recurrenceId.compare(CONFIGS.startUpdateTime) < 0) {
       Logger.log('Skipping past recurrence exception');
       return true;
     }
   } else if (icalEvent.isRecurring()) {
     var skip = false; //Indicates if the recurring event and all its instances are in the past
-    if (icalEvent.endDate.compare(startUpdateTime) < 0) {
+    if (icalEvent.endDate.compare(CONFIGS.startUpdateTime) < 0) {
       //Parenting recurring event is in the past
       var dtstart = event.getFirstPropertyValue('dtstart');
       var expand = new ICAL.RecurExpansion({
@@ -574,7 +577,7 @@ function checkSkipEvent(event, icalEvent) {
         const diff = next.subtractDate(icalEvent.startDate);
         var tempEnd = icalEvent.endDate.clone();
         tempEnd.addDuration(diff);
-        if (tempEnd.compare(startUpdateTime) < 0) {
+        if (tempEnd.compare(CONFIGS.startUpdateTime) < 0) {
           countskipped++;
           continue;
         }
@@ -612,7 +615,7 @@ function checkSkipEvent(event, icalEvent) {
           var vals = r.getValues();
           vals = vals.filter(function (v) {
             var valTime = new ICAL.Time.fromString(v.toString(), r);
-            return valTime.compare(startUpdateTime) >= 0 && valTime.compare(icalEvent.startDate) > 0;
+            return valTime.compare(CONFIGS.startUpdateTime) >= 0 && valTime.compare(icalEvent.startDate) > 0;
           });
           if (vals.length == 0) {
             event.removeProperty(r);
@@ -630,13 +633,13 @@ function checkSkipEvent(event, icalEvent) {
     }
 
     //Check and filter recurrence-exceptions
-    for (i = 0; i < icalEvent.except.length; i++) {
+    for (let i = 0; i < icalEvent.except.length; i++) {
       //Exclude the instance if it was moved from future to past
-      if (icalEvent.except[i].startDate.compare(startUpdateTime) < 0 && icalEvent.except[i].recurrenceId.compare(startUpdateTime) >= 0) {
+      if (icalEvent.except[i].startDate.compare(CONFIGS.startUpdateTime) < 0 && icalEvent.except[i].recurrenceId.compare(CONFIGS.startUpdateTime) >= 0) {
         Logger.log('Creating EXDATE for exception at ' + icalEvent.except[i].recurrenceId.toString());
         icalEvent.component.addPropertyWithValue('exdate', icalEvent.except[i].recurrenceId.toString());
       } //Re-add the instance if it is moved from past to future
-      else if (icalEvent.except[i].startDate.compare(startUpdateTime) >= 0 && icalEvent.except[i].recurrenceId.compare(startUpdateTime) < 0) {
+      else if (icalEvent.except[i].startDate.compare(CONFIGS.startUpdateTime) >= 0 && icalEvent.except[i].recurrenceId.compare(CONFIGS.startUpdateTime) < 0) {
         Logger.log('Creating RDATE for exception at ' + icalEvent.except[i].recurrenceId.toString());
         icalEvent.component.addPropertyWithValue('rdate', icalEvent.except[i].recurrenceId.toString());
         skip = false;
@@ -645,14 +648,14 @@ function checkSkipEvent(event, icalEvent) {
 
     if (skip) {
       //Completely remove the event as all instances of it are in the past
-      icsEventsIds.splice(icsEventsIds.indexOf(event.getFirstPropertyValue('uid').toString()), 1);
+      CALENDAR.icsEventsIds.splice(CALENDAR.icsEventsIds.indexOf(event.getFirstPropertyValue('uid').toString()), 1);
       Logger.log('Skipping past recurring event ' + event.getFirstPropertyValue('uid').toString());
       return true;
     }
   } else {
     //normal events
-    if (icalEvent.endDate.compare(startUpdateTime) < 0) {
-      icsEventsIds.splice(icsEventsIds.indexOf(event.getFirstPropertyValue('uid').toString()), 1);
+    if (icalEvent.endDate.compare(CONFIGS.startUpdateTime) < 0) {
+      CALENDAR.icsEventsIds.splice(CALENDAR.icsEventsIds.indexOf(event.getFirstPropertyValue('uid').toString()), 1);
       Logger.log('Skipping previous event ' + event.getFirstPropertyValue('uid').toString());
       return true;
     }
@@ -670,12 +673,12 @@ function processEventInstance(recEvent) {
   Logger.log('ID: ' + recEvent.extendedProperties.private['id'] + ' | Date: ' + recEvent.recurringEventId);
 
   var eventInstanceToPatch = callWithBackoff(function () {
-    return Calendar.Events.list(targetCalendarId, {
+    return Calendar.Events.list(CALENDAR.targetCalendarId, {
       singleEvents: true,
       // privateExtendedProperty: 'fromGAS=true',
       privateExtendedProperty: 'rec-id=' + recEvent.extendedProperties.private['id'] + '_' + recEvent.recurringEventId
     }).items;
-  }, defaultMaxRetries);
+  }, CONFIGS.defaultMaxRetries);
 
   if (eventInstanceToPatch == null || eventInstanceToPatch.length == 0) {
     if (recEvent.recurringEventId.length == 10) {
@@ -684,7 +687,7 @@ function processEventInstance(recEvent) {
       recEvent.recurringEventId += 'Z';
     }
     eventInstanceToPatch = callWithBackoff(function () {
-      return Calendar.Events.list(targetCalendarId, {
+      return Calendar.Events.list(CALENDAR.targetCalendarId, {
         singleEvents: true,
         orderBy: 'startTime',
         maxResults: 1,
@@ -692,39 +695,39 @@ function processEventInstance(recEvent) {
         // privateExtendedProperty: 'fromGAS=true',
         privateExtendedProperty: 'id=' + recEvent.extendedProperties.private['id']
       }).items;
-    }, defaultMaxRetries);
+    }, CONFIGS.defaultMaxRetries);
   }
 
   if (eventInstanceToPatch !== null && eventInstanceToPatch.length == 1) {
     Logger.log('Updating existing event instance');
     callWithBackoff(function () {
-      Calendar.Events.update(recEvent, targetCalendarId, eventInstanceToPatch[0].id);
-    }, defaultMaxRetries);
+      Calendar.Events.update(recEvent, CALENDAR.targetCalendarId, eventInstanceToPatch[0].id);
+    }, CONFIGS.defaultMaxRetries);
   } else {
     Logger.log('No Instance matched, adding as new event!');
     callWithBackoff(function () {
-      Calendar.Events.insert(recEvent, targetCalendarId);
-    }, defaultMaxRetries);
+      Calendar.Events.insert(recEvent, CALENDAR.targetCalendarId);
+    }, CONFIGS.defaultMaxRetries);
   }
 }
 
 /**
  * Deletes all events from the target calendar that no longer exist in the source calendars.
- * If onlyFutureEvents is set to true, events that have taken place since the last sync are also removed.
+ * If CONFIGS.getOnlyFutureEvents is set to true, events that have taken place since the last sync are also removed.
  */
 function processEventCleanup() {
-  for (var i = 0; i < calendarEvents.length; i++) {
-    var currentID = calendarEventsIds[i];
-    var feedIndex = icsEventsIds.indexOf(currentID);
+  for (var i = 0; i < CALENDAR.calendarEvents.length; i++) {
+    var currentID = CALENDAR.calendarEventsIds[i];
+    var feedIndex = CALENDAR.icsEventsIds.indexOf(currentID);
 
-    if (feedIndex == -1 && calendarEvents[i].recurringEventId == null) {
+    if (feedIndex == -1 && CALENDAR.calendarEvents[i].recurringEventId == null) {
       Logger.log('Deleting old event ' + currentID);
       callWithBackoff(function () {
-        Calendar.Events.remove(targetCalendarId, calendarEvents[i].id);
-      }, defaultMaxRetries);
+        Calendar.Events.remove(CALENDAR.targetCalendarId, CALENDAR.calendarEvents[i].id);
+      }, CONFIGS.defaultMaxRetries);
 
-      if (emailSummary) {
-        removedEvents.push([[calendarEvents[i].summary, calendarEvents[i].start.date || calendarEvents[i].start.dateTime], targetCalendarName]);
+      if (CONFIGS.emailSummary) {
+        SESSION.removedEvents.push([[CALENDAR.calendarEvents[i].summary, CALENDAR.calendarEvents[i].start.date || CALENDAR.calendarEvents[i].start.dateTime], CALENDAR.targetCalendarName]);
       }
     }
   }
@@ -792,7 +795,7 @@ function processTasks(responses) {
 
   //-------------- Remove old Tasks -----------
   // ID can't be used as identifier as the API reassignes a random id at task creation
-  if (removeEventsFromCalendar) {
+  if (CONFIGS.removeEventsFromCalendar) {
     Logger.log('Checking ' + existingTasksIds.length + ' tasks for removal');
     for (let i = 0; i < existingTasksIds.length; i++) {
       var currentID = existingTasks[i].id;
@@ -948,13 +951,13 @@ function sendSummary() {
   let subject = '';
   let body = '';
 
-  subject = `GAS-ICS-Sync Execution Summary: ${addedEvents.length} new, ${modifiedEvents.length} modified, ${removedEvents.length} deleted`;
-  addedEvents = condenseCalendarMap(addedEvents);
-  modifiedEvents = condenseCalendarMap(modifiedEvents);
-  removedEvents = condenseCalendarMap(removedEvents);
+  subject = `GAS-ICS-Sync Execution Summary: ${SESSION.addedEvents.length} new, ${SESSION.modifiedEvents.length} modified, ${SESSION.removedEvents.length} deleted`;
+  SESSION.addedEvents = condenseCalendarMap(SESSION.addedEvents);
+  SESSION.modifiedEvents = condenseCalendarMap(SESSION.modifiedEvents);
+  SESSION.removedEvents = condenseCalendarMap(SESSION.removedEvents);
 
   body = 'GAS-ICS-Sync made the following changes to your calendar:<br/>';
-  for (var tgtCal of addedEvents) {
+  for (var tgtCal of SESSION.addedEvents) {
     body += `<br/>${tgtCal[0]}: ${tgtCal[1].length} added events<br/><ul>`;
     for (var addedEvent of tgtCal[1]) {
       body += '<li>' + addedEvent[0] + ' at ' + addedEvent[1] + '</li>';
@@ -962,7 +965,7 @@ function sendSummary() {
     body += '</ul>';
   }
 
-  for (const tgtCal of modifiedEvents) {
+  for (const tgtCal of SESSION.modifiedEvents) {
     body += `<br/>${tgtCal[0]}: ${tgtCal[1].length} modified events<br/><ul>`;
     for (const addedEvent of tgtCal[1]) {
       body += '<li>' + addedEvent[0] + ' at ' + addedEvent[1] + '</li>';
@@ -970,7 +973,7 @@ function sendSummary() {
     body += '</ul>';
   }
 
-  for (const tgtCal of removedEvents) {
+  for (const tgtCal of SESSION.removedEvents) {
     body += `<br/>${tgtCal[0]}: ${tgtCal[1].length} removed events<br/><ul>`;
     for (const addedEvent of tgtCal[1]) {
       body += '<li>' + addedEvent[0] + ' at ' + addedEvent[1] + '</li>';
@@ -980,7 +983,7 @@ function sendSummary() {
 
   body += "<br/><br/>Do you have any problems or suggestions? Contact us at <a href='https://github.com/derekantrican/GAS-ICS-Sync/'>github</a>.";
   var message = {
-    to: email,
+    to: CONFIGS.email,
     subject: subject,
     htmlBody: body,
     name: 'GAS-ICS-Sync'

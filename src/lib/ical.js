@@ -1,12 +1,14 @@
-if (typeof module === "object") {
+/* eslint-disable */
+
+if (typeof module === 'object') {
   ICAL = module.exports;
-} else if (typeof ICAL !== "object") {
+} else if (typeof ICAL !== 'object') {
   this.ICAL = {};
 }
 
 ICAL.foldLength = 75;
 
-ICAL.newLineChar = "\r\n";
+ICAL.newLineChar = '\r\n';
 
 /**
  * Helper functions used in various places within ical.js
@@ -25,7 +27,7 @@ ICAL.helpers = {
   updateTimezones: function (vcal) {
     var allsubs, properties, vtimezones, reqTzid, i, tzid;
 
-    if (!vcal || vcal.name !== "vcalendar") {
+    if (!vcal || vcal.name !== 'vcalendar') {
       //not a top-level vcalendar component
       return vcal;
     }
@@ -36,8 +38,8 @@ ICAL.helpers = {
     properties = [];
     vtimezones = {};
     for (i = 0; i < allsubs.length; i++) {
-      if (allsubs[i].name === "vtimezone") {
-        tzid = allsubs[i].getFirstProperty("tzid").getFirstValue();
+      if (allsubs[i].name === 'vtimezone') {
+        tzid = allsubs[i].getFirstProperty('tzid').getFirstValue();
         vtimezones[tzid] = allsubs[i];
       } else {
         properties = properties.concat(allsubs[i].getAllProperties());
@@ -47,7 +49,7 @@ ICAL.helpers = {
     //create an object with one entry for each required tz
     reqTzid = {};
     for (i = 0; i < properties.length; i++) {
-      if ((tzid = properties[i].getParameter("tzid"))) {
+      if ((tzid = properties[i].getParameter('tzid'))) {
         reqTzid[tzid] = true;
       }
     }
@@ -61,12 +63,7 @@ ICAL.helpers = {
 
     //create any missing, but registered timezones
     for (i in reqTzid) {
-      if (
-        reqTzid.hasOwnProperty(i) &&
-        !vtimezones[i] &&
-        ICAL.TimezoneService.has(i) &&
-        ICAL.TimezoneService.get(i).component
-      ) {
+      if (reqTzid.hasOwnProperty(i) && !vtimezones[i] && ICAL.TimezoneService.has(i) && ICAL.TimezoneService.get(i).component) {
         vcal.addSubcomponent(ICAL.TimezoneService.get(i).component);
       }
     }
@@ -81,7 +78,7 @@ ICAL.helpers = {
    * @return {Boolean}          True, if the number is strictly NaN
    */
   isStrictlyNaN: function (number) {
-    return typeof number === "number" && isNaN(number);
+    return typeof number === 'number' && isNaN(number);
   },
 
   /**
@@ -122,7 +119,7 @@ ICAL.helpers = {
    * @return {?}                An instance of the found type.
    */
   formatClassType: function formatClassType(data, type) {
-    if (typeof data === "undefined") {
+    if (typeof data === 'undefined') {
       return undefined;
     }
 
@@ -143,7 +140,7 @@ ICAL.helpers = {
    */
   unescapedIndexOf: function (buffer, search, pos) {
     while ((pos = buffer.indexOf(search, pos)) !== -1) {
-      if (pos > 0 && buffer[pos - 1] === "\\") {
+      if (pos > 0 && buffer[pos - 1] === '\\') {
         pos += 1;
       } else {
         return pos;
@@ -192,13 +189,13 @@ ICAL.helpers = {
       return;
     }
 
-    if (typeof console !== "undefined" && "log" in console) {
+    if (typeof console !== 'undefined' && 'log' in console) {
       ICAL.helpers.dumpn = function consoleDumpn(input) {
         console.log(input);
       };
     } else {
       ICAL.helpers.dumpn = function geckoDumpn(input) {
-        dump(input + "\n");
+        dump(input + '\n');
       };
     }
 
@@ -214,11 +211,11 @@ ICAL.helpers = {
    * @return {*}                The copy of the thing
    */
   clone: function (aSrc, aDeep) {
-    if (!aSrc || typeof aSrc != "object") {
+    if (!aSrc || typeof aSrc != 'object') {
       return aSrc;
     } else if (aSrc instanceof Date) {
       return new Date(aSrc.getTime());
-    } else if ("clone" in aSrc) {
+    } else if ('clone' in aSrc) {
       return aSrc.clone();
     } else if (Array.isArray(aSrc)) {
       var arr = [];
@@ -255,11 +252,11 @@ ICAL.helpers = {
    * @return {String}           The folded line
    */
   foldline: function foldline(aLine) {
-    var result = "";
-    var line = aLine || "";
+    var result = '';
+    var line = aLine || '';
 
     while (line.length) {
-      result += ICAL.newLineChar + " " + line.substr(0, ICAL.foldLength);
+      result += ICAL.newLineChar + ' ' + line.substr(0, ICAL.foldLength);
       line = line.substr(ICAL.foldLength);
     }
     return result.substr(ICAL.newLineChar.length + 1);
@@ -273,9 +270,9 @@ ICAL.helpers = {
    * @return {String}               The number padded as a string
    */
   pad2: function pad(data) {
-    if (typeof data !== "string") {
+    if (typeof data !== 'string') {
       // handle fractions.
-      if (typeof data === "number") {
+      if (typeof data === 'number') {
         data = parseInt(data);
       }
       data = String(data);
@@ -285,9 +282,9 @@ ICAL.helpers = {
 
     switch (len) {
       case 0:
-        return "00";
+        return '00';
       case 1:
-        return "0" + data;
+        return '0' + data;
       default:
         return data;
     }
@@ -354,7 +351,7 @@ ICAL.helpers = {
  * @ignore
  */
 ICAL.design = (function () {
-  "use strict";
+  'use strict';
 
   var FROM_ICAL_NEWLINE = /\\\\|\\;|\\,|\\[Nn]/g;
   var TO_ICAL_NEWLINE = /\\|;|,|\n/g;
@@ -371,18 +368,17 @@ ICAL.design = (function () {
 
       toICAL: function (aValue, structuredEscape) {
         var regEx = toNewline;
-        if (structuredEscape)
-          regEx = new RegExp(regEx.source + "|" + structuredEscape);
+        if (structuredEscape) regEx = new RegExp(regEx.source + '|' + structuredEscape);
         return aValue.replace(regEx, function (str) {
           switch (str) {
-            case "\\":
-              return "\\\\";
-            case ";":
-              return "\\;";
-            case ",":
-              return "\\,";
-            case "\n":
-              return "\\n";
+            case '\\':
+              return '\\\\';
+            case ';':
+              return '\\;';
+            case ',':
+              return '\\,';
+            case '\n':
+              return '\\n';
 
             default:
               return str;
@@ -394,37 +390,37 @@ ICAL.design = (function () {
   }
 
   // default types used multiple times
-  var DEFAULT_TYPE_TEXT = {defaultType: "text"};
-  var DEFAULT_TYPE_TEXT_MULTI = {defaultType: "text", multiValue: ","};
+  var DEFAULT_TYPE_TEXT = { defaultType: 'text' };
+  var DEFAULT_TYPE_TEXT_MULTI = { defaultType: 'text', multiValue: ',' };
   var DEFAULT_TYPE_TEXT_STRUCTURED = {
-    defaultType: "text",
-    structuredValue: ";"
+    defaultType: 'text',
+    structuredValue: ';'
   };
-  var DEFAULT_TYPE_INTEGER = {defaultType: "integer"};
+  var DEFAULT_TYPE_INTEGER = { defaultType: 'integer' };
   var DEFAULT_TYPE_DATETIME_DATE = {
-    defaultType: "date-time",
-    allowedTypes: ["date-time", "date"]
+    defaultType: 'date-time',
+    allowedTypes: ['date-time', 'date']
   };
-  var DEFAULT_TYPE_DATETIME = {defaultType: "date-time"};
-  var DEFAULT_TYPE_URI = {defaultType: "uri"};
-  var DEFAULT_TYPE_UTCOFFSET = {defaultType: "utc-offset"};
-  var DEFAULT_TYPE_RECUR = {defaultType: "recur"};
+  var DEFAULT_TYPE_DATETIME = { defaultType: 'date-time' };
+  var DEFAULT_TYPE_URI = { defaultType: 'uri' };
+  var DEFAULT_TYPE_UTCOFFSET = { defaultType: 'utc-offset' };
+  var DEFAULT_TYPE_RECUR = { defaultType: 'recur' };
   var DEFAULT_TYPE_DATE_ANDOR_TIME = {
-    defaultType: "date-and-or-time",
-    allowedTypes: ["date-time", "date", "text"]
+    defaultType: 'date-and-or-time',
+    allowedTypes: ['date-time', 'date', 'text']
   };
 
   function replaceNewlineReplace(string) {
     switch (string) {
-      case "\\\\":
-        return "\\";
-      case "\\;":
-        return ";";
-      case "\\,":
-        return ",";
-      case "\\n":
-      case "\\N":
-        return "\n";
+      case '\\\\':
+        return '\\';
+      case '\\;':
+        return ';';
+      case '\\,':
+        return ',';
+      case '\\n':
+      case '\\N':
+        return '\n';
 
       default:
         return string;
@@ -433,11 +429,10 @@ ICAL.design = (function () {
 
   function replaceNewline(value, newline, structuredEscape) {
     // avoid regex when possible.
-    if (value.indexOf("\\") === -1) {
+    if (value.indexOf('\\') === -1) {
       return value;
     }
-    if (structuredEscape)
-      newline = new RegExp(newline.source + "|\\\\" + structuredEscape);
+    if (structuredEscape) newline = new RegExp(newline.source + '|\\\\' + structuredEscape);
     return value.replace(newline, replaceNewlineReplace);
   }
 
@@ -450,13 +445,13 @@ ICAL.design = (function () {
 
   var commonValues = {
     boolean: {
-      values: ["TRUE", "FALSE"],
+      values: ['TRUE', 'FALSE'],
 
       fromICAL: function (aValue) {
         switch (aValue) {
-          case "TRUE":
+          case 'TRUE':
             return true;
-          case "FALSE":
+          case 'FALSE':
             return false;
           default:
             //TODO: parser warning
@@ -466,9 +461,9 @@ ICAL.design = (function () {
 
       toICAL: function (aValue) {
         if (aValue) {
-          return "TRUE";
+          return 'TRUE';
         }
-        return "FALSE";
+        return 'FALSE';
       }
     },
     float: {
@@ -500,7 +495,7 @@ ICAL.design = (function () {
         return String(aValue);
       }
     },
-    "utc-offset": {
+    'utc-offset': {
       toICAL: function (aValue) {
         if (aValue.length < 7) {
           // no seconds
@@ -509,9 +504,7 @@ ICAL.design = (function () {
         } else {
           // seconds
           // -050000
-          return (
-            aValue.substr(0, 3) + aValue.substr(4, 2) + aValue.substr(7, 2)
-          );
+          return aValue.substr(0, 3) + aValue.substr(4, 2) + aValue.substr(7, 2);
         }
       },
 
@@ -519,17 +512,11 @@ ICAL.design = (function () {
         if (aValue.length < 6) {
           // no seconds
           // -05:00
-          return aValue.substr(0, 3) + ":" + aValue.substr(3, 2);
+          return aValue.substr(0, 3) + ':' + aValue.substr(3, 2);
         } else {
           // seconds
           // -05:00:00
-          return (
-            aValue.substr(0, 3) +
-            ":" +
-            aValue.substr(3, 2) +
-            ":" +
-            aValue.substr(5, 2)
-          );
+          return aValue.substr(0, 3) + ':' + aValue.substr(3, 2) + ':' + aValue.substr(5, 2);
         }
       },
 
@@ -558,99 +545,71 @@ ICAL.design = (function () {
     // "CN": { ... }
 
     cutype: {
-      values: ["INDIVIDUAL", "GROUP", "RESOURCE", "ROOM", "UNKNOWN"],
+      values: ['INDIVIDUAL', 'GROUP', 'RESOURCE', 'ROOM', 'UNKNOWN'],
       allowXName: true,
       allowIanaToken: true
     },
 
-    "delegated-from": {
-      valueType: "cal-address",
-      multiValue: ",",
+    'delegated-from': {
+      valueType: 'cal-address',
+      multiValue: ',',
       multiValueSeparateDQuote: true
     },
-    "delegated-to": {
-      valueType: "cal-address",
-      multiValue: ",",
+    'delegated-to': {
+      valueType: 'cal-address',
+      multiValue: ',',
       multiValueSeparateDQuote: true
     },
     // "DIR": { ... }, // See ALTREP
     encoding: {
-      values: ["8BIT", "BASE64"]
+      values: ['8BIT', 'BASE64']
     },
     // "FMTTYPE": { ... }, // See ALTREP
     fbtype: {
-      values: ["FREE", "BUSY", "BUSY-UNAVAILABLE", "BUSY-TENTATIVE"],
+      values: ['FREE', 'BUSY', 'BUSY-UNAVAILABLE', 'BUSY-TENTATIVE'],
       allowXName: true,
       allowIanaToken: true
     },
     // "LANGUAGE": { ... }, // See ALTREP
     member: {
-      valueType: "cal-address",
-      multiValue: ",",
+      valueType: 'cal-address',
+      multiValue: ',',
       multiValueSeparateDQuote: true
     },
     partstat: {
       // TODO These values are actually different per-component
-      values: [
-        "NEEDS-ACTION",
-        "ACCEPTED",
-        "DECLINED",
-        "TENTATIVE",
-        "DELEGATED",
-        "COMPLETED",
-        "IN-PROCESS"
-      ],
+      values: ['NEEDS-ACTION', 'ACCEPTED', 'DECLINED', 'TENTATIVE', 'DELEGATED', 'COMPLETED', 'IN-PROCESS'],
       allowXName: true,
       allowIanaToken: true
     },
     range: {
-      values: ["THISLANDFUTURE"]
+      values: ['THISLANDFUTURE']
     },
     related: {
-      values: ["START", "END"]
+      values: ['START', 'END']
     },
     reltype: {
-      values: ["PARENT", "CHILD", "SIBLING"],
+      values: ['PARENT', 'CHILD', 'SIBLING'],
       allowXName: true,
       allowIanaToken: true
     },
     role: {
-      values: [
-        "REQ-PARTICIPANT",
-        "CHAIR",
-        "OPT-PARTICIPANT",
-        "NON-PARTICIPANT"
-      ],
+      values: ['REQ-PARTICIPANT', 'CHAIR', 'OPT-PARTICIPANT', 'NON-PARTICIPANT'],
       allowXName: true,
       allowIanaToken: true
     },
     rsvp: {
-      values: ["TRUE", "FALSE"]
+      values: ['TRUE', 'FALSE']
     },
-    "sent-by": {
-      valueType: "cal-address"
+    'sent-by': {
+      valueType: 'cal-address'
     },
     tzid: {
       matches: /^\//
     },
     value: {
       // since the value here is a 'type' lowercase is used.
-      values: [
-        "binary",
-        "boolean",
-        "cal-address",
-        "date",
-        "date-time",
-        "duration",
-        "float",
-        "integer",
-        "period",
-        "recur",
-        "text",
-        "time",
-        "uri",
-        "utc-offset"
-      ],
+      values: ['binary', 'boolean', 'cal-address', 'date', 'date-time', 'duration', 'float', 'integer', 'period', 'recur', 'text', 'time', 'uri', 'utc-offset'],
       allowXName: true,
       allowIanaToken: true
     }
@@ -673,7 +632,7 @@ ICAL.design = (function () {
         return aBinary.toString();
       }
     },
-    "cal-address": {
+    'cal-address': {
       // needs to be an uri
     },
     date: {
@@ -697,15 +656,9 @@ ICAL.design = (function () {
         // to: 2012-09-01
         if (!design.strict && aValue.length >= 15) {
           // This is probably a date-time, e.g. 20120901T130000Z
-          return icalValues["date-time"].fromICAL(aValue);
+          return icalValues['date-time'].fromICAL(aValue);
         } else {
-          return (
-            aValue.substr(0, 4) +
-            "-" +
-            aValue.substr(4, 2) +
-            "-" +
-            aValue.substr(6, 2)
-          );
+          return aValue.substr(0, 4) + '-' + aValue.substr(4, 2) + '-' + aValue.substr(6, 2);
         }
       },
 
@@ -715,18 +668,16 @@ ICAL.design = (function () {
         var len = aValue.length;
 
         if (len == 10) {
-          return (
-            aValue.substr(0, 4) + aValue.substr(5, 2) + aValue.substr(8, 2)
-          );
+          return aValue.substr(0, 4) + aValue.substr(5, 2) + aValue.substr(8, 2);
         } else if (len >= 19) {
-          return icalValues["date-time"].toICAL(aValue);
+          return icalValues['date-time'].toICAL(aValue);
         } else {
           //TODO: serialize warning?
           return aValue;
         }
       }
     },
-    "date-time": {
+    'date-time': {
       fromICAL: function (aValue) {
         // from: 20120901T130000
         // to: 2012-09-01T13:00:00
@@ -734,21 +685,10 @@ ICAL.design = (function () {
           // This is probably a date, e.g. 20120901
           return icalValues.date.fromICAL(aValue);
         } else {
-          var result =
-            aValue.substr(0, 4) +
-            "-" +
-            aValue.substr(4, 2) +
-            "-" +
-            aValue.substr(6, 2) +
-            "T" +
-            aValue.substr(9, 2) +
-            ":" +
-            aValue.substr(11, 2) +
-            ":" +
-            aValue.substr(13, 2);
+          var result = aValue.substr(0, 4) + '-' + aValue.substr(4, 2) + '-' + aValue.substr(6, 2) + 'T' + aValue.substr(9, 2) + ':' + aValue.substr(11, 2) + ':' + aValue.substr(13, 2);
 
-          if (aValue[15] && aValue[15] === "Z") {
-            result += "Z";
+          if (aValue[15] && aValue[15] === 'Z') {
+            result += 'Z';
           }
 
           return result;
@@ -773,8 +713,8 @@ ICAL.design = (function () {
             // SS
             aValue.substr(17, 2);
 
-          if (aValue[19] && aValue[19] === "Z") {
-            result += "Z";
+          if (aValue[19] && aValue[19] === 'Z') {
+            result += 'Z';
           }
           return result;
         } else {
@@ -805,11 +745,11 @@ ICAL.design = (function () {
     },
     period: {
       fromICAL: function (string) {
-        var parts = string.split("/");
-        parts[0] = icalValues["date-time"].fromICAL(parts[0]);
+        var parts = string.split('/');
+        parts[0] = icalValues['date-time'].fromICAL(parts[0]);
 
         if (!ICAL.Duration.isValueString(parts[1])) {
-          parts[1] = icalValues["date-time"].fromICAL(parts[1]);
+          parts[1] = icalValues['date-time'].fromICAL(parts[1]);
         }
 
         return parts;
@@ -819,18 +759,18 @@ ICAL.design = (function () {
         if (!design.strict && parts[0].length == 10) {
           parts[0] = icalValues.date.toICAL(parts[0]);
         } else {
-          parts[0] = icalValues["date-time"].toICAL(parts[0]);
+          parts[0] = icalValues['date-time'].toICAL(parts[0]);
         }
 
         if (!ICAL.Duration.isValueString(parts[1])) {
           if (!design.strict && parts[1].length == 10) {
             parts[1] = icalValues.date.toICAL(parts[1]);
           } else {
-            parts[1] = icalValues["date-time"].toICAL(parts[1]);
+            parts[1] = icalValues['date-time'].toICAL(parts[1]);
           }
         }
 
-        return parts.join("/");
+        return parts.join('/');
       },
 
       decorate: function (aValue, aProp) {
@@ -847,26 +787,26 @@ ICAL.design = (function () {
       },
 
       toICAL: function (data) {
-        var str = "";
+        var str = '';
         for (var k in data) {
           if (!Object.prototype.hasOwnProperty.call(data, k)) {
             continue;
           }
           var val = data[k];
-          if (k == "until") {
+          if (k == 'until') {
             if (val.length > 10) {
-              val = icalValues["date-time"].toICAL(val);
+              val = icalValues['date-time'].toICAL(val);
             } else {
               val = icalValues.date.toICAL(val);
             }
-          } else if (k == "wkst") {
-            if (typeof val === "number") {
+          } else if (k == 'wkst') {
+            if (typeof val === 'number') {
               val = ICAL.Recur.numericDayToIcalDay(val);
             }
           } else if (Array.isArray(val)) {
-            val = val.join(",");
+            val = val.join(',');
           }
-          str += k.toUpperCase() + "=" + val + ";";
+          str += k.toUpperCase() + '=' + val + ';';
         }
         return str.substr(0, str.length - 1);
       },
@@ -890,15 +830,10 @@ ICAL.design = (function () {
         }
 
         // HH::MM::SSZ?
-        var result =
-          aValue.substr(0, 2) +
-          ":" +
-          aValue.substr(2, 2) +
-          ":" +
-          aValue.substr(4, 2);
+        var result = aValue.substr(0, 2) + ':' + aValue.substr(2, 2) + ':' + aValue.substr(4, 2);
 
-        if (aValue[6] === "Z") {
-          result += "Z";
+        if (aValue[6] === 'Z') {
+          result += 'Z';
         }
 
         return result;
@@ -912,11 +847,10 @@ ICAL.design = (function () {
           return aValue;
         }
 
-        var result =
-          aValue.substr(0, 2) + aValue.substr(3, 2) + aValue.substr(6, 2);
+        var result = aValue.substr(0, 2) + aValue.substr(3, 2) + aValue.substr(6, 2);
 
-        if (aValue[8] === "Z") {
-          result += "Z";
+        if (aValue[8] === 'Z') {
+          result += 'Z';
         }
 
         return result;
@@ -926,8 +860,8 @@ ICAL.design = (function () {
 
   var icalProperties = ICAL.helpers.extend(commonProperties, {
     action: DEFAULT_TYPE_TEXT,
-    attach: {defaultType: "uri"},
-    attendee: {defaultType: "cal-address"},
+    attach: { defaultType: 'uri' },
+    attendee: { defaultType: 'cal-address' },
     calscale: DEFAULT_TYPE_TEXT,
     class: DEFAULT_TYPE_TEXT,
     comment: DEFAULT_TYPE_TEXT,
@@ -939,44 +873,44 @@ ICAL.design = (function () {
     dtstamp: DEFAULT_TYPE_DATETIME,
     dtstart: DEFAULT_TYPE_DATETIME_DATE,
     due: DEFAULT_TYPE_DATETIME_DATE,
-    duration: {defaultType: "duration"},
+    duration: { defaultType: 'duration' },
     exdate: {
-      defaultType: "date-time",
-      allowedTypes: ["date-time", "date"],
-      multiValue: ","
+      defaultType: 'date-time',
+      allowedTypes: ['date-time', 'date'],
+      multiValue: ','
     },
     exrule: DEFAULT_TYPE_RECUR,
-    freebusy: {defaultType: "period", multiValue: ","},
-    geo: {defaultType: "float", structuredValue: ";"},
-    "last-modified": DEFAULT_TYPE_DATETIME,
+    freebusy: { defaultType: 'period', multiValue: ',' },
+    geo: { defaultType: 'float', structuredValue: ';' },
+    'last-modified': DEFAULT_TYPE_DATETIME,
     location: DEFAULT_TYPE_TEXT,
     method: DEFAULT_TYPE_TEXT,
-    organizer: {defaultType: "cal-address"},
-    "percent-complete": DEFAULT_TYPE_INTEGER,
+    organizer: { defaultType: 'cal-address' },
+    'percent-complete': DEFAULT_TYPE_INTEGER,
     priority: DEFAULT_TYPE_INTEGER,
     prodid: DEFAULT_TYPE_TEXT,
-    "related-to": DEFAULT_TYPE_TEXT,
+    'related-to': DEFAULT_TYPE_TEXT,
     repeat: DEFAULT_TYPE_INTEGER,
     rdate: {
-      defaultType: "date-time",
-      allowedTypes: ["date-time", "date", "period"],
-      multiValue: ",",
+      defaultType: 'date-time',
+      allowedTypes: ['date-time', 'date', 'period'],
+      multiValue: ',',
       detectType: function (string) {
-        if (string.indexOf("/") !== -1) {
-          return "period";
+        if (string.indexOf('/') !== -1) {
+          return 'period';
         }
-        return string.indexOf("T") === -1 ? "date" : "date-time";
+        return string.indexOf('T') === -1 ? 'date' : 'date-time';
       }
     },
-    "recurrence-id": DEFAULT_TYPE_DATETIME_DATE,
+    'recurrence-id': DEFAULT_TYPE_DATETIME_DATE,
     resources: DEFAULT_TYPE_TEXT_MULTI,
-    "request-status": DEFAULT_TYPE_TEXT_STRUCTURED,
+    'request-status': DEFAULT_TYPE_TEXT_STRUCTURED,
     rrule: DEFAULT_TYPE_RECUR,
     sequence: DEFAULT_TYPE_INTEGER,
     status: DEFAULT_TYPE_TEXT,
     summary: DEFAULT_TYPE_TEXT,
     transp: DEFAULT_TYPE_TEXT,
-    trigger: {defaultType: "duration", allowedTypes: ["duration", "date-time"]},
+    trigger: { defaultType: 'duration', allowedTypes: ['duration', 'date-time'] },
     tzoffsetfrom: DEFAULT_TYPE_UTCOFFSET,
     tzoffsetto: DEFAULT_TYPE_UTCOFFSET,
     tzurl: DEFAULT_TYPE_URI,
@@ -991,7 +925,7 @@ ICAL.design = (function () {
 
     date: {
       decorate: function (aValue) {
-        return ICAL.VCardTime.fromDateAndOrTimeString(aValue, "date");
+        return ICAL.VCardTime.fromDateAndOrTimeString(aValue, 'date');
       },
       undecorate: function (aValue) {
         return aValue.toString();
@@ -999,8 +933,8 @@ ICAL.design = (function () {
       fromICAL: function (aValue) {
         if (aValue.length == 8) {
           return icalValues.date.fromICAL(aValue);
-        } else if (aValue[0] == "-" && aValue.length == 6) {
-          return aValue.substr(0, 4) + "-" + aValue.substr(4);
+        } else if (aValue[0] == '-' && aValue.length == 6) {
+          return aValue.substr(0, 4) + '-' + aValue.substr(4);
         } else {
           return aValue;
         }
@@ -1008,7 +942,7 @@ ICAL.design = (function () {
       toICAL: function (aValue) {
         if (aValue.length == 10) {
           return icalValues.date.toICAL(aValue);
-        } else if (aValue[0] == "-" && aValue.length == 7) {
+        } else if (aValue[0] == '-' && aValue.length == 7) {
           return aValue.substr(0, 4) + aValue.substr(5);
         } else {
           return aValue;
@@ -1018,7 +952,7 @@ ICAL.design = (function () {
 
     time: {
       decorate: function (aValue) {
-        return ICAL.VCardTime.fromDateAndOrTimeString("T" + aValue, "time");
+        return ICAL.VCardTime.fromDateAndOrTimeString('T' + aValue, 'time');
       },
       undecorate: function (aValue) {
         return aValue.toString();
@@ -1031,20 +965,15 @@ ICAL.design = (function () {
         //console.log("SPLIT: ",splitzone);
 
         if (value.length == 6) {
-          value =
-            value.substr(0, 2) +
-            ":" +
-            value.substr(2, 2) +
-            ":" +
-            value.substr(4, 2);
-        } else if (value.length == 4 && value[0] != "-") {
-          value = value.substr(0, 2) + ":" + value.substr(2, 2);
+          value = value.substr(0, 2) + ':' + value.substr(2, 2) + ':' + value.substr(4, 2);
+        } else if (value.length == 4 && value[0] != '-') {
+          value = value.substr(0, 2) + ':' + value.substr(2, 2);
         } else if (value.length == 5) {
-          value = value.substr(0, 3) + ":" + value.substr(3, 2);
+          value = value.substr(0, 3) + ':' + value.substr(3, 2);
         }
 
-        if (zone.length == 5 && (zone[0] == "-" || zone[0] == "+")) {
-          zone = zone.substr(0, 3) + ":" + zone.substr(3);
+        if (zone.length == 5 && (zone[0] == '-' || zone[0] == '+')) {
+          zone = zone.substr(0, 3) + ':' + zone.substr(3);
         }
 
         return value + zone;
@@ -1057,13 +986,13 @@ ICAL.design = (function () {
 
         if (value.length == 8) {
           value = value.substr(0, 2) + value.substr(3, 2) + value.substr(6, 2);
-        } else if (value.length == 5 && value[0] != "-") {
+        } else if (value.length == 5 && value[0] != '-') {
           value = value.substr(0, 2) + value.substr(3, 2);
         } else if (value.length == 6) {
           value = value.substr(0, 3) + value.substr(4, 2);
         }
 
-        if (zone.length == 6 && (zone[0] == "-" || zone[0] == "+")) {
+        if (zone.length == 6 && (zone[0] == '-' || zone[0] == '+')) {
           zone = zone.substr(0, 3) + zone.substr(4);
         }
 
@@ -1076,14 +1005,14 @@ ICAL.design = (function () {
         var sign = aValue[signChar];
         var zone, value;
 
-        if (aValue[lastChar] == "Z") {
+        if (aValue[lastChar] == 'Z') {
           zone = aValue[lastChar];
           value = aValue.substr(0, lastChar);
-        } else if (aValue.length > 6 && (sign == "-" || sign == "+")) {
+        } else if (aValue.length > 6 && (sign == '-' || sign == '+')) {
           zone = aValue.substr(signChar);
           value = aValue.substr(0, signChar);
         } else {
-          zone = "";
+          zone = '';
           value = aValue;
         }
 
@@ -1091,9 +1020,9 @@ ICAL.design = (function () {
       }
     },
 
-    "date-time": {
+    'date-time': {
       decorate: function (aValue) {
-        return ICAL.VCardTime.fromDateAndOrTimeString(aValue, "date-time");
+        return ICAL.VCardTime.fromDateAndOrTimeString(aValue, 'date-time');
       },
 
       undecorate: function (aValue) {
@@ -1101,20 +1030,17 @@ ICAL.design = (function () {
       },
 
       fromICAL: function (aValue) {
-        return vcardValues["date-and-or-time"].fromICAL(aValue);
+        return vcardValues['date-and-or-time'].fromICAL(aValue);
       },
 
       toICAL: function (aValue) {
-        return vcardValues["date-and-or-time"].toICAL(aValue);
+        return vcardValues['date-and-or-time'].toICAL(aValue);
       }
     },
 
-    "date-and-or-time": {
+    'date-and-or-time': {
       decorate: function (aValue) {
-        return ICAL.VCardTime.fromDateAndOrTimeString(
-          aValue,
-          "date-and-or-time"
-        );
+        return ICAL.VCardTime.fromDateAndOrTimeString(aValue, 'date-and-or-time');
       },
 
       undecorate: function (aValue) {
@@ -1122,55 +1048,36 @@ ICAL.design = (function () {
       },
 
       fromICAL: function (aValue) {
-        var parts = aValue.split("T");
-        return (
-          (parts[0] ? vcardValues.date.fromICAL(parts[0]) : "") +
-          (parts[1] ? "T" + vcardValues.time.fromICAL(parts[1]) : "")
-        );
+        var parts = aValue.split('T');
+        return (parts[0] ? vcardValues.date.fromICAL(parts[0]) : '') + (parts[1] ? 'T' + vcardValues.time.fromICAL(parts[1]) : '');
       },
 
       toICAL: function (aValue) {
-        var parts = aValue.split("T");
-        return (
-          vcardValues.date.toICAL(parts[0]) +
-          (parts[1] ? "T" + vcardValues.time.toICAL(parts[1]) : "")
-        );
+        var parts = aValue.split('T');
+        return vcardValues.date.toICAL(parts[0]) + (parts[1] ? 'T' + vcardValues.time.toICAL(parts[1]) : '');
       }
     },
-    timestamp: icalValues["date-time"],
-    "language-tag": {
+    timestamp: icalValues['date-time'],
+    'language-tag': {
       matches: /^[a-zA-Z0-9-]+$/ // Could go with a more strict regex here
     }
   });
 
   var vcardParams = {
     type: {
-      valueType: "text",
-      multiValue: ","
+      valueType: 'text',
+      multiValue: ','
     },
     value: {
       // since the value here is a 'type' lowercase is used.
-      values: [
-        "text",
-        "uri",
-        "date",
-        "time",
-        "date-time",
-        "date-and-or-time",
-        "timestamp",
-        "boolean",
-        "integer",
-        "float",
-        "utc-offset",
-        "language-tag"
-      ],
+      values: ['text', 'uri', 'date', 'time', 'date-time', 'date-and-or-time', 'timestamp', 'boolean', 'integer', 'float', 'utc-offset', 'language-tag'],
       allowXName: true,
       allowIanaToken: true
     }
   };
 
   var vcardProperties = ICAL.helpers.extend(commonProperties, {
-    adr: {defaultType: "text", structuredValue: ";", multiValue: ","},
+    adr: { defaultType: 'text', structuredValue: ';', multiValue: ',' },
     anniversary: DEFAULT_TYPE_DATE_ANDOR_TIME,
     bday: DEFAULT_TYPE_DATE_ANDOR_TIME,
     caladruri: DEFAULT_TYPE_URI,
@@ -1184,37 +1091,37 @@ ICAL.design = (function () {
     impp: DEFAULT_TYPE_URI,
     key: DEFAULT_TYPE_URI,
     kind: DEFAULT_TYPE_TEXT,
-    lang: {defaultType: "language-tag"},
+    lang: { defaultType: 'language-tag' },
     logo: DEFAULT_TYPE_URI,
     member: DEFAULT_TYPE_URI,
-    n: {defaultType: "text", structuredValue: ";", multiValue: ","},
+    n: { defaultType: 'text', structuredValue: ';', multiValue: ',' },
     nickname: DEFAULT_TYPE_TEXT_MULTI,
     note: DEFAULT_TYPE_TEXT,
-    org: {defaultType: "text", structuredValue: ";"},
+    org: { defaultType: 'text', structuredValue: ';' },
     photo: DEFAULT_TYPE_URI,
     related: DEFAULT_TYPE_URI,
-    rev: {defaultType: "timestamp"},
+    rev: { defaultType: 'timestamp' },
     role: DEFAULT_TYPE_TEXT,
     sound: DEFAULT_TYPE_URI,
     source: DEFAULT_TYPE_URI,
-    tel: {defaultType: "uri", allowedTypes: ["uri", "text"]},
+    tel: { defaultType: 'uri', allowedTypes: ['uri', 'text'] },
     title: DEFAULT_TYPE_TEXT,
-    tz: {defaultType: "text", allowedTypes: ["text", "utc-offset", "uri"]},
+    tz: { defaultType: 'text', allowedTypes: ['text', 'utc-offset', 'uri'] },
     xml: DEFAULT_TYPE_TEXT
   });
 
   var vcard3Values = ICAL.helpers.extend(commonValues, {
     binary: icalValues.binary,
     date: vcardValues.date,
-    "date-time": vcardValues["date-time"],
-    "phone-number": {
+    'date-time': vcardValues['date-time'],
+    'phone-number': {
       // TODO
     },
     uri: icalValues.uri,
     text: icalValues.text,
     time: icalValues.time,
     vcard: icalValues.text,
-    "utc-offset": {
+    'utc-offset': {
       toICAL: function (aValue) {
         return aValue.substr(0, 7);
       },
@@ -1235,25 +1142,12 @@ ICAL.design = (function () {
 
   var vcard3Params = {
     type: {
-      valueType: "text",
-      multiValue: ","
+      valueType: 'text',
+      multiValue: ','
     },
     value: {
       // since the value here is a 'type' lowercase is used.
-      values: [
-        "text",
-        "uri",
-        "date",
-        "date-time",
-        "phone-number",
-        "time",
-        "boolean",
-        "integer",
-        "float",
-        "utc-offset",
-        "vcard",
-        "binary"
-      ],
+      values: ['text', 'uri', 'date', 'date-time', 'phone-number', 'time', 'boolean', 'integer', 'float', 'utc-offset', 'vcard', 'binary'],
       allowXName: true,
       allowIanaToken: true
     }
@@ -1261,47 +1155,47 @@ ICAL.design = (function () {
 
   var vcard3Properties = ICAL.helpers.extend(commonProperties, {
     fn: DEFAULT_TYPE_TEXT,
-    n: {defaultType: "text", structuredValue: ";", multiValue: ","},
+    n: { defaultType: 'text', structuredValue: ';', multiValue: ',' },
     nickname: DEFAULT_TYPE_TEXT_MULTI,
-    photo: {defaultType: "binary", allowedTypes: ["binary", "uri"]},
+    photo: { defaultType: 'binary', allowedTypes: ['binary', 'uri'] },
     bday: {
-      defaultType: "date-time",
-      allowedTypes: ["date-time", "date"],
+      defaultType: 'date-time',
+      allowedTypes: ['date-time', 'date'],
       detectType: function (string) {
-        return string.indexOf("T") === -1 ? "date" : "date-time";
+        return string.indexOf('T') === -1 ? 'date' : 'date-time';
       }
     },
 
-    adr: {defaultType: "text", structuredValue: ";", multiValue: ","},
+    adr: { defaultType: 'text', structuredValue: ';', multiValue: ',' },
     label: DEFAULT_TYPE_TEXT,
 
-    tel: {defaultType: "phone-number"},
+    tel: { defaultType: 'phone-number' },
     email: DEFAULT_TYPE_TEXT,
     mailer: DEFAULT_TYPE_TEXT,
 
-    tz: {defaultType: "utc-offset", allowedTypes: ["utc-offset", "text"]},
-    geo: {defaultType: "float", structuredValue: ";"},
+    tz: { defaultType: 'utc-offset', allowedTypes: ['utc-offset', 'text'] },
+    geo: { defaultType: 'float', structuredValue: ';' },
 
     title: DEFAULT_TYPE_TEXT,
     role: DEFAULT_TYPE_TEXT,
-    logo: {defaultType: "binary", allowedTypes: ["binary", "uri"]},
-    agent: {defaultType: "vcard", allowedTypes: ["vcard", "text", "uri"]},
+    logo: { defaultType: 'binary', allowedTypes: ['binary', 'uri'] },
+    agent: { defaultType: 'vcard', allowedTypes: ['vcard', 'text', 'uri'] },
     org: DEFAULT_TYPE_TEXT_STRUCTURED,
 
     note: DEFAULT_TYPE_TEXT_MULTI,
     prodid: DEFAULT_TYPE_TEXT,
     rev: {
-      defaultType: "date-time",
-      allowedTypes: ["date-time", "date"],
+      defaultType: 'date-time',
+      allowedTypes: ['date-time', 'date'],
       detectType: function (string) {
-        return string.indexOf("T") === -1 ? "date" : "date-time";
+        return string.indexOf('T') === -1 ? 'date' : 'date-time';
       }
     },
-    "sort-string": DEFAULT_TYPE_TEXT,
-    sound: {defaultType: "binary", allowedTypes: ["binary", "uri"]},
+    'sort-string': DEFAULT_TYPE_TEXT,
+    sound: { defaultType: 'binary', allowedTypes: ['binary', 'uri'] },
 
     class: DEFAULT_TYPE_TEXT,
-    key: {defaultType: "binary", allowedTypes: ["binary", "text"]}
+    key: { defaultType: 'binary', allowedTypes: ['binary', 'text'] }
   });
 
   /**
@@ -1369,7 +1263,7 @@ ICAL.design = (function () {
      * The default type for unknown properties
      * @type {String}
      */
-    defaultType: "unknown",
+    defaultType: 'unknown',
 
     /**
      * Holds the design set for known top-level components
@@ -1443,10 +1337,10 @@ ICAL.design = (function () {
  * @namespace
  */
 ICAL.stringify = (function () {
-  "use strict";
+  'use strict';
 
-  var LINE_ENDING = "\r\n";
-  var DEFAULT_VALUE_TYPE = "unknown";
+  var LINE_ENDING = '\r\n';
+  var DEFAULT_VALUE_TYPE = 'unknown';
 
   var design = ICAL.design;
   var helpers = ICAL.helpers;
@@ -1460,14 +1354,14 @@ ICAL.stringify = (function () {
    * @return {String}       The stringified iCalendar/vCard document
    */
   function stringify(jCal) {
-    if (typeof jCal[0] == "string") {
+    if (typeof jCal[0] == 'string') {
       // This is a single component
       jCal = [jCal];
     }
 
     var i = 0;
     var len = jCal.length;
-    var result = "";
+    var result = '';
 
     for (; i < len; i++) {
       result += stringify.component(jCal[i]) + LINE_ENDING;
@@ -1492,7 +1386,7 @@ ICAL.stringify = (function () {
    */
   stringify.component = function (component, designSet) {
     var name = component[0].toUpperCase();
-    var result = "BEGIN:" + name + LINE_ENDING;
+    var result = 'BEGIN:' + name + LINE_ENDING;
 
     var props = component[1];
     var propIdx = 0;
@@ -1501,12 +1395,8 @@ ICAL.stringify = (function () {
     var designSetName = component[0];
     // rfc6350 requires that in vCard 4.0 the first component is the VERSION
     // component with as value 4.0, note that 3.0 does not have this requirement.
-    if (
-      designSetName === "vcard" &&
-      component[1].length > 0 &&
-      !(component[1][0][0] === "version" && component[1][0][3] === "4.0")
-    ) {
-      designSetName = "vcard3";
+    if (designSetName === 'vcard' && component[1].length > 0 && !(component[1][0][0] === 'version' && component[1][0][3] === '4.0')) {
+      designSetName = 'vcard3';
     }
     designSet = designSet || design.getDesignSet(designSetName);
 
@@ -1523,7 +1413,7 @@ ICAL.stringify = (function () {
       result += stringify.component(comps[compIdx], designSet) + LINE_ENDING;
     }
 
-    result += "END:" + name;
+    result += 'END:' + name;
     return result;
   };
 
@@ -1551,32 +1441,25 @@ ICAL.stringify = (function () {
       var value = params[paramName];
 
       if (params.hasOwnProperty(paramName)) {
-        var multiValue =
-          paramName in designSet.param && designSet.param[paramName].multiValue;
+        var multiValue = paramName in designSet.param && designSet.param[paramName].multiValue;
         if (multiValue && Array.isArray(value)) {
           if (designSet.param[paramName].multiValueSeparateDQuote) {
             multiValue = '"' + multiValue + '"';
           }
           value = value.map(stringify._rfc6868Unescape);
-          value = stringify.multiValue(
-            value,
-            multiValue,
-            "unknown",
-            null,
-            designSet
-          );
+          value = stringify.multiValue(value, multiValue, 'unknown', null, designSet);
         } else {
           value = stringify._rfc6868Unescape(value);
         }
 
-        line += ";" + paramName.toUpperCase();
-        line += "=" + stringify.propertyValue(value);
+        line += ';' + paramName.toUpperCase();
+        line += '=' + stringify.propertyValue(value);
       }
     }
 
     if (property.length === 3) {
       // If there are no values, we must assume a blank value
-      return line + ":";
+      return line + ':';
     }
 
     var valueType = property[2];
@@ -1593,15 +1476,15 @@ ICAL.stringify = (function () {
     if (jsName in designSet.property) {
       propDetails = designSet.property[jsName];
 
-      if ("multiValue" in propDetails) {
+      if ('multiValue' in propDetails) {
         multiValue = propDetails.multiValue;
       }
 
-      if ("structuredValue" in propDetails && Array.isArray(property[3])) {
+      if ('structuredValue' in propDetails && Array.isArray(property[3])) {
         structuredValue = propDetails.structuredValue;
       }
 
-      if ("defaultType" in propDetails) {
+      if ('defaultType' in propDetails) {
         if (valueType === propDetails.defaultType) {
           isDefault = true;
         }
@@ -1620,38 +1503,17 @@ ICAL.stringify = (function () {
     // for the current property.
     if (!isDefault) {
       // value will never contain ;/:/, so we don't escape it here.
-      line += ";VALUE=" + valueType.toUpperCase();
+      line += ';VALUE=' + valueType.toUpperCase();
     }
 
-    line += ":";
+    line += ':';
 
     if (multiValue && structuredValue) {
-      line += stringify.multiValue(
-        property[3],
-        structuredValue,
-        valueType,
-        multiValue,
-        designSet,
-        structuredValue
-      );
+      line += stringify.multiValue(property[3], structuredValue, valueType, multiValue, designSet, structuredValue);
     } else if (multiValue) {
-      line += stringify.multiValue(
-        property.slice(3),
-        multiValue,
-        valueType,
-        null,
-        designSet,
-        false
-      );
+      line += stringify.multiValue(property.slice(3), multiValue, valueType, null, designSet, false);
     } else if (structuredValue) {
-      line += stringify.multiValue(
-        property[3],
-        structuredValue,
-        valueType,
-        null,
-        designSet,
-        structuredValue
-      );
+      line += stringify.multiValue(property[3], structuredValue, valueType, null, designSet, structuredValue);
     } else {
       line += stringify.value(property[3], valueType, designSet, false);
     }
@@ -1672,11 +1534,7 @@ ICAL.stringify = (function () {
    * @return {String}           Given or escaped value when needed
    */
   stringify.propertyValue = function (value) {
-    if (
-      helpers.unescapedIndexOf(value, ",") === -1 &&
-      helpers.unescapedIndexOf(value, ":") === -1 &&
-      helpers.unescapedIndexOf(value, ";") === -1
-    ) {
+    if (helpers.unescapedIndexOf(value, ',') === -1 && helpers.unescapedIndexOf(value, ':') === -1 && helpers.unescapedIndexOf(value, ';') === -1) {
       return value;
     }
 
@@ -1699,28 +1557,14 @@ ICAL.stringify = (function () {
    *
    * @return {String}           iCalendar/vCard string for value
    */
-  stringify.multiValue = function (
-    values,
-    delim,
-    type,
-    innerMulti,
-    designSet,
-    structuredValue
-  ) {
-    var result = "";
+  stringify.multiValue = function (values, delim, type, innerMulti, designSet, structuredValue) {
+    var result = '';
     var len = values.length;
     var i = 0;
 
     for (; i < len; i++) {
       if (innerMulti && Array.isArray(values[i])) {
-        result += stringify.multiValue(
-          values[i],
-          innerMulti,
-          type,
-          null,
-          designSet,
-          structuredValue
-        );
+        result += stringify.multiValue(values[i], innerMulti, type, null, designSet, structuredValue);
       } else {
         result += stringify.value(values[i], type, designSet, structuredValue);
       }
@@ -1744,7 +1588,7 @@ ICAL.stringify = (function () {
    * @return {String}                   iCalendar/vCard value for single value
    */
   stringify.value = function (value, type, designSet, structuredValue) {
-    if (type in designSet.value && "toICAL" in designSet.value[type]) {
+    if (type in designSet.value && 'toICAL' in designSet.value[type]) {
       return designSet.value[type].toICAL(value, structuredValue);
     }
     return value;
@@ -1762,7 +1606,7 @@ ICAL.stringify = (function () {
       return RFC6868_REPLACE_MAP[x];
     });
   };
-  var RFC6868_REPLACE_MAP = {'"': "^'", "\n": "^n", "^": "^^"};
+  var RFC6868_REPLACE_MAP = { '"': "^'", '\n': '^n', '^': '^^' };
 
   return stringify;
 })();
@@ -1772,15 +1616,15 @@ ICAL.stringify = (function () {
  * @namespace
  */
 ICAL.parse = (function () {
-  "use strict";
+  'use strict';
 
   var CHAR = /[^ \t]/;
-  var MULTIVALUE_DELIMITER = ",";
-  var VALUE_DELIMITER = ":";
-  var PARAM_DELIMITER = ";";
-  var PARAM_NAME_DELIMITER = "=";
-  var DEFAULT_VALUE_TYPE = "unknown";
-  var DEFAULT_PARAM_TYPE = "text";
+  var MULTIVALUE_DELIMITER = ',';
+  var VALUE_DELIMITER = ':';
+  var PARAM_DELIMITER = ';';
+  var PARAM_NAME_DELIMITER = '=';
+  var DEFAULT_VALUE_TYPE = 'unknown';
+  var DEFAULT_PARAM_TYPE = 'text';
 
   var design = ICAL.design;
   var helpers = ICAL.helpers;
@@ -1795,15 +1639,15 @@ ICAL.parse = (function () {
    */
   function ParserError(message) {
     this.message = message;
-    this.name = "ParserError";
+    this.name = 'ParserError';
 
     try {
       throw new Error();
     } catch (e) {
       if (e.stack) {
-        var split = e.stack.split("\n");
+        var split = e.stack.split('\n');
         split.shift();
-        this.stack = split.join("\n");
+        this.stack = split.join('\n');
       }
     }
   }
@@ -1835,9 +1679,7 @@ ICAL.parse = (function () {
     // throw a fatal error, a component was not closed
     // correctly in that case.
     if (state.stack.length > 1) {
-      throw new ParserError(
-        "invalid ical body. component began but did not end"
-      );
+      throw new ParserError('invalid ical body. component began but did not end');
     }
 
     state = null;
@@ -1940,21 +1782,13 @@ ICAL.parse = (function () {
     var parsedParams;
     if (paramPos !== -1) {
       name = line.substring(0, paramPos).toLowerCase();
-      parsedParams = parser._parseParameters(
-        line.substring(paramPos),
-        0,
-        state.designSet
-      );
+      parsedParams = parser._parseParameters(line.substring(paramPos), 0, state.designSet);
       if (parsedParams[2] == -1) {
         throw new ParserError("Invalid parameters in '" + line + "'");
       }
       params = parsedParams[0];
       lastParamIndex = parsedParams[1].length + parsedParams[2] + paramPos;
-      if (
-        (lastValuePos = line
-          .substring(lastParamIndex)
-          .indexOf(VALUE_DELIMITER)) !== -1
-      ) {
+      if ((lastValuePos = line.substring(lastParamIndex).indexOf(VALUE_DELIMITER)) !== -1) {
         value = line.substring(lastParamIndex + lastValuePos + 1);
       } else {
         throw new ParserError("Missing parameter value in '" + line + "'");
@@ -1964,7 +1798,7 @@ ICAL.parse = (function () {
       name = line.substring(0, valuePos).toLowerCase();
       value = line.substring(valuePos + 1);
 
-      if (name === "begin") {
+      if (name === 'begin') {
         var newComponent = [value.toLowerCase(), [], []];
         if (state.stack.length === 1) {
           state.component.push(newComponent);
@@ -1977,7 +1811,7 @@ ICAL.parse = (function () {
           state.designSet = design.getDesignSet(state.component[0]);
         }
         return;
-      } else if (name === "end") {
+      } else if (name === 'end') {
         state.component = state.stack.pop();
         return;
       }
@@ -2003,22 +1837,22 @@ ICAL.parse = (function () {
     if (name in state.designSet.property) {
       propertyDetails = state.designSet.property[name];
 
-      if ("multiValue" in propertyDetails) {
+      if ('multiValue' in propertyDetails) {
         multiValue = propertyDetails.multiValue;
       }
 
-      if ("structuredValue" in propertyDetails) {
+      if ('structuredValue' in propertyDetails) {
         structuredValue = propertyDetails.structuredValue;
       }
 
-      if (value && "detectType" in propertyDetails) {
+      if (value && 'detectType' in propertyDetails) {
         valueType = propertyDetails.detectType(value);
       }
     }
 
     // attempt to determine value
     if (!valueType) {
-      if (!("value" in params)) {
+      if (!('value' in params)) {
         if (propertyDetails) {
           valueType = propertyDetails.defaultType;
         } else {
@@ -2042,37 +1876,13 @@ ICAL.parse = (function () {
 
     var result;
     if (multiValue && structuredValue) {
-      value = parser._parseMultiValue(
-        value,
-        structuredValue,
-        valueType,
-        [],
-        multiValue,
-        state.designSet,
-        structuredValue
-      );
+      value = parser._parseMultiValue(value, structuredValue, valueType, [], multiValue, state.designSet, structuredValue);
       result = [name, params, valueType, value];
     } else if (multiValue) {
       result = [name, params, valueType];
-      parser._parseMultiValue(
-        value,
-        multiValue,
-        valueType,
-        result,
-        null,
-        state.designSet,
-        false
-      );
+      parser._parseMultiValue(value, multiValue, valueType, result, null, state.designSet, false);
     } else if (structuredValue) {
-      value = parser._parseMultiValue(
-        value,
-        structuredValue,
-        valueType,
-        [],
-        null,
-        state.designSet,
-        structuredValue
-      );
+      value = parser._parseMultiValue(value, structuredValue, valueType, [], null, state.designSet, structuredValue);
       result = [name, params, valueType, value];
     } else {
       value = parser._parseValue(value, valueType, state.designSet, false);
@@ -2080,12 +1890,8 @@ ICAL.parse = (function () {
     }
     // rfc6350 requires that in vCard 4.0 the first component is the VERSION
     // component with as value 4.0, note that 3.0 does not have this requirement.
-    if (
-      state.component[0] === "vcard" &&
-      state.component[1].length === 0 &&
-      !(name === "version" && value === "4.0")
-    ) {
-      state.designSet = design.getDesignSet("vcard3");
+    if (state.component[0] === 'vcard' && state.component[1].length === 0 && !(name === 'version' && value === '4.0')) {
+      state.designSet = design.getDesignSet('vcard3');
     }
     state.component[1].push(result);
   };
@@ -2101,7 +1907,7 @@ ICAL.parse = (function () {
    * @return {Object} varies on type
    */
   parser._parseValue = function (value, type, designSet, structuredValue) {
-    if (type in designSet.value && "fromICAL" in designSet.value[type]) {
+    if (type in designSet.value && 'fromICAL' in designSet.value[type]) {
       return designSet.value[type].fromICAL(value, structuredValue);
     }
     return value;
@@ -2132,10 +1938,7 @@ ICAL.parse = (function () {
     // check if " is used if so get value from "->"
     // then increment pos to find next ;
 
-    while (
-      pos !== false &&
-      (pos = helpers.unescapedIndexOf(line, delim, pos + 1)) !== -1
-    ) {
+    while (pos !== false && (pos = helpers.unescapedIndexOf(line, delim, pos + 1)) !== -1) {
       name = line.substr(lastParam + 1, pos - lastParam - 1);
       if (name.length == 0) {
         throw new ParserError("Empty parameter name in '" + line + "'");
@@ -2172,9 +1975,7 @@ ICAL.parse = (function () {
           }
         }
         if (pos === -1) {
-          throw new ParserError(
-            'invalid line (no matching double quote) "' + line + '"'
-          );
+          throw new ParserError('invalid line (no matching double quote) "' + line + '"');
         }
         value = line.substr(valuePos, pos - valuePos);
         lastParam = helpers.unescapedIndexOf(line, PARAM_DELIMITER, pos);
@@ -2186,11 +1987,7 @@ ICAL.parse = (function () {
 
         // move to next ";"
         var nextPos = helpers.unescapedIndexOf(line, PARAM_DELIMITER, valuePos);
-        var propValuePos = helpers.unescapedIndexOf(
-          line,
-          VALUE_DELIMITER,
-          valuePos
-        );
+        var propValuePos = helpers.unescapedIndexOf(line, VALUE_DELIMITER, valuePos);
         if (propValuePos !== -1 && nextPos > propValuePos) {
           // this is a delimiter in the property value, let's stop here
           nextPos = propValuePos;
@@ -2214,14 +2011,7 @@ ICAL.parse = (function () {
       value = parser._rfc6868Escape(value);
       if (multiValue) {
         var delimiter = mvdelim || multiValue;
-        value = parser._parseMultiValue(
-          value,
-          delimiter,
-          type,
-          [],
-          null,
-          designSet
-        );
+        value = parser._parseMultiValue(value, delimiter, type, [], null, designSet);
       } else {
         value = parser._parseValue(value, type, designSet);
       }
@@ -2252,7 +2042,7 @@ ICAL.parse = (function () {
       return RFC6868_REPLACE_MAP[x];
     });
   };
-  var RFC6868_REPLACE_MAP = {"^'": '"', "^n": "\n", "^^": "^"};
+  var RFC6868_REPLACE_MAP = { "^'": '"', '^n': '\n', '^^': '^' };
 
   /**
    * Parse a multi value string. This function is used either for parsing
@@ -2269,15 +2059,7 @@ ICAL.parse = (function () {
    * @param {ICAL.design.designSet} designSet   The design data for this value
    * @return {?|Array.<?>}            Either an array of results, or the first result
    */
-  parser._parseMultiValue = function (
-    buffer,
-    delim,
-    type,
-    result,
-    innerMulti,
-    designSet,
-    structuredValue
-  ) {
+  parser._parseMultiValue = function (buffer, delim, type, result, innerMulti, designSet, structuredValue) {
     var pos = 0;
     var lastPos = 0;
     var value;
@@ -2289,15 +2071,7 @@ ICAL.parse = (function () {
     while ((pos = helpers.unescapedIndexOf(buffer, delim, lastPos)) !== -1) {
       value = buffer.substr(lastPos, pos - lastPos);
       if (innerMulti) {
-        value = parser._parseMultiValue(
-          value,
-          innerMulti,
-          type,
-          [],
-          null,
-          designSet,
-          structuredValue
-        );
+        value = parser._parseMultiValue(value, innerMulti, type, [], null, designSet, structuredValue);
       } else {
         value = parser._parseValue(value, type, designSet, structuredValue);
       }
@@ -2307,15 +2081,7 @@ ICAL.parse = (function () {
 
     value = buffer.substr(lastPos);
     if (innerMulti) {
-      value = parser._parseMultiValue(
-        value,
-        innerMulti,
-        type,
-        [],
-        null,
-        designSet,
-        structuredValue
-      );
+      value = parser._parseMultiValue(value, innerMulti, type, [], null, designSet, structuredValue);
     } else {
       value = parser._parseValue(value, type, designSet, structuredValue);
     }
@@ -2343,9 +2109,9 @@ ICAL.parse = (function () {
     var newlineOffset;
 
     do {
-      pos = buffer.indexOf("\n", lastPos) + 1;
+      pos = buffer.indexOf('\n', lastPos) + 1;
 
-      if (pos > 1 && buffer[pos - 2] === "\r") {
+      if (pos > 1 && buffer[pos - 2] === '\r') {
         newlineOffset = 2;
       } else {
         newlineOffset = 1;
@@ -2358,7 +2124,7 @@ ICAL.parse = (function () {
 
       firstChar = buffer[lastPos];
 
-      if (firstChar === " " || firstChar === "\t") {
+      if (firstChar === ' ' || firstChar === '\t') {
         // add to line
         line += buffer.substr(lastPos + 1, pos - lastPos - (newlineOffset + 1));
       } else {
@@ -2384,7 +2150,7 @@ ICAL.parse = (function () {
  * @ignore
  */
 ICAL.Component = (function () {
-  "use strict";
+  'use strict';
 
   var PROPERTY_INDEX = 1;
   var COMPONENT_INDEX = 2;
@@ -2402,7 +2168,7 @@ ICAL.Component = (function () {
    * @param {ICAL.Component} parent     Parent component to associate
    */
   function Component(jCal, parent) {
-    if (typeof jCal === "string") {
+    if (typeof jCal === 'string') {
       // jCal spec (name, properties, components)
       jCal = [jCal, [], []];
     }
@@ -2643,7 +2409,7 @@ ICAL.Component = (function () {
       // remove cached version
       if (cache[index]) {
         var obj = cache[index];
-        if ("parent" in obj) {
+        if ('parent' in obj) {
           obj.parent = null;
         }
       }
@@ -2660,7 +2426,7 @@ ICAL.Component = (function () {
       var len = objects.length;
       var cached = this[cache];
 
-      if (typeof nameOrObject === "string") {
+      if (typeof nameOrObject === 'string') {
         for (; i < len; i++) {
           if (objects[i][NAME_INDEX] === nameOrObject) {
             this._removeObjectByIndex(jCalIndex, cached, i);
@@ -2727,11 +2493,7 @@ ICAL.Component = (function () {
      * @return {Boolean}                            True when comp is removed
      */
     removeSubcomponent: function (nameOrComp) {
-      var removed = this._removeObject(
-        COMPONENT_INDEX,
-        "_components",
-        nameOrComp
-      );
+      var removed = this._removeObject(COMPONENT_INDEX, '_components', nameOrComp);
       if (removed) {
         this._hydratedComponentCount--;
       }
@@ -2745,11 +2507,7 @@ ICAL.Component = (function () {
      * @param {String=} name            Lowercase component name
      */
     removeAllSubcomponents: function (name) {
-      var removed = this._removeAllObjects(
-        COMPONENT_INDEX,
-        "_components",
-        name
-      );
+      var removed = this._removeAllObjects(COMPONENT_INDEX, '_components', name);
       this._hydratedComponentCount = 0;
       return removed;
     },
@@ -2762,7 +2520,7 @@ ICAL.Component = (function () {
      */
     addProperty: function (property) {
       if (!(property instanceof ICAL.Property)) {
-        throw new TypeError("must instance of ICAL.Property");
+        throw new TypeError('must instance of ICAL.Property');
       }
 
       if (!this._properties) {
@@ -2826,11 +2584,7 @@ ICAL.Component = (function () {
      * @return {Boolean}                            True, when deleted
      */
     removeProperty: function (nameOrProp) {
-      var removed = this._removeObject(
-        PROPERTY_INDEX,
-        "_properties",
-        nameOrProp
-      );
+      var removed = this._removeObject(PROPERTY_INDEX, '_properties', nameOrProp);
       if (removed) {
         this._hydratedPropertyCount--;
       }
@@ -2845,7 +2599,7 @@ ICAL.Component = (function () {
      * @return {Boolean}            True, when deleted
      */
     removeAllProperties: function (name) {
-      var removed = this._removeAllObjects(PROPERTY_INDEX, "_properties", name);
+      var removed = this._removeAllObjects(PROPERTY_INDEX, '_properties', name);
       this._hydratedPropertyCount = 0;
       return removed;
     },
@@ -2885,7 +2639,7 @@ ICAL.Component = (function () {
  * @ignore
  */
 ICAL.Property = (function () {
-  "use strict";
+  'use strict';
 
   var NAME_INDEX = 0;
   var PROP_INDEX = 1;
@@ -2916,7 +2670,7 @@ ICAL.Property = (function () {
   function Property(jCal, parent) {
     this._parent = parent || null;
 
-    if (typeof jCal === "string") {
+    if (typeof jCal === 'string') {
       // We are creating the property by name and need to detect the type
       this.jCal = [jCal, {}, design.defaultType];
       this.jCal[TYPE_INDEX] = this.getDefaultType();
@@ -2956,8 +2710,7 @@ ICAL.Property = (function () {
     set parent(p) {
       // Before setting the parent, check if the design set has changed. If it
       // has, we later need to update the type if it was unknown before.
-      var designSetChanged =
-        !this._parent || (p && p._designSet != this._parent._designSet);
+      var designSetChanged = !this._parent || (p && p._designSet != this._parent._designSet);
 
       this._parent = p;
 
@@ -2990,16 +2743,15 @@ ICAL.Property = (function () {
       if (this.type in designSet.value) {
         var designType = designSet.value[this.type];
 
-        if ("decorate" in designSet.value[this.type]) {
+        if ('decorate' in designSet.value[this.type]) {
           this.isDecorated = true;
         } else {
           this.isDecorated = false;
         }
 
         if (this.name in designSet.property) {
-          this.isMultiValue = "multiValue" in designSet.property[this.name];
-          this.isStructuredValue =
-            "structuredValue" in designSet.property[this.name];
+          this.isMultiValue = 'multiValue' in designSet.property[this.name];
+          this.isStructuredValue = 'structuredValue' in designSet.property[this.name];
         }
       }
     },
@@ -3026,9 +2778,7 @@ ICAL.Property = (function () {
         if (!this._values) {
           this._values = [];
         }
-        return (this._values[index] = this._decorate(
-          this.jCal[VALUE_INDEX + index]
-        ));
+        return (this._values[index] = this._decorate(this.jCal[VALUE_INDEX + index]));
       } else {
         return this.jCal[VALUE_INDEX + index];
       }
@@ -3070,7 +2820,7 @@ ICAL.Property = (function () {
         this._values = [];
       }
 
-      if (typeof value === "object" && "icaltype" in value) {
+      if (typeof value === 'object' && 'icaltype' in value) {
         // decorated value
         this.jCal[VALUE_INDEX + index] = this._undecorate(value);
         this._values[index] = value;
@@ -3119,11 +2869,7 @@ ICAL.Property = (function () {
      */
     setParameter: function (name, value) {
       var lcname = name.toLowerCase();
-      if (
-        typeof value === "string" &&
-        lcname in this._designSet.param &&
-        "multiValue" in this._designSet.param[lcname]
-      ) {
+      if (typeof value === 'string' && lcname in this._designSet.param && 'multiValue' in this._designSet.param[lcname]) {
         value = [value];
       }
       this.jCal[PROP_INDEX][name] = value;
@@ -3149,7 +2895,7 @@ ICAL.Property = (function () {
 
       if (name in designSet.property) {
         var details = designSet.property[name];
-        if ("defaultType" in details) {
+        if ('defaultType' in details) {
           return details.defaultType;
         }
       }
@@ -3220,18 +2966,14 @@ ICAL.Property = (function () {
      */
     setValues: function (values) {
       if (!this.isMultiValue) {
-        throw new Error(
-          this.name +
-            ": does not not support mulitValue.\n" +
-            "override isMultiValue"
-        );
+        throw new Error(this.name + ': does not not support mulitValue.\n' + 'override isMultiValue');
       }
 
       var len = values.length;
       var i = 0;
       this.removeAllValues();
 
-      if (len > 0 && typeof values[0] === "object" && "icaltype" in values[0]) {
+      if (len > 0 && typeof values[0] === 'object' && 'icaltype' in values[0]) {
         this.resetType(values[0].icaltype);
       }
 
@@ -3254,7 +2996,7 @@ ICAL.Property = (function () {
      */
     setValue: function (value) {
       this.removeAllValues();
-      if (typeof value === "object" && "icaltype" in value) {
+      if (typeof value === 'object' && 'icaltype' in value) {
         this.resetType(value.icaltype);
       }
 
@@ -3344,7 +3086,7 @@ ICAL.UtcOffset = (function () {
      * @type {String}
      * @default "utc-offset"
      */
-    icaltype: "utc-offset",
+    icaltype: 'utc-offset',
 
     /**
      * Returns a clone of the utc offset object.
@@ -3439,7 +3181,7 @@ ICAL.UtcOffset = (function () {
      * @return {String}
      */
     toICALString: function () {
-      return ICAL.design.icalendar.value["utc-offset"].toICAL(this.toString());
+      return ICAL.design.icalendar.value['utc-offset'].toICAL(this.toString());
     },
 
     /**
@@ -3447,12 +3189,7 @@ ICAL.UtcOffset = (function () {
      * @return {String}
      */
     toString: function toString() {
-      return (
-        (this.factor == 1 ? "+" : "-") +
-        ICAL.helpers.pad2(this.hours) +
-        ":" +
-        ICAL.helpers.pad2(this.minutes)
-      );
+      return (this.factor == 1 ? '+' : '-') + ICAL.helpers.pad2(this.hours) + ':' + ICAL.helpers.pad2(this.minutes);
     }
   };
 
@@ -3466,7 +3203,7 @@ ICAL.UtcOffset = (function () {
     // -05:00
     var options = {};
     //TODO: support seconds per rfc5545 ?
-    options.factor = aString[0] === "+" ? 1 : -1;
+    options.factor = aString[0] === '+' ? 1 : -1;
     options.hours = ICAL.helpers.strictParseInt(aString.substr(1, 2));
     options.minutes = ICAL.helpers.strictParseInt(aString.substr(4, 2));
 
@@ -3512,7 +3249,7 @@ ICAL.Binary = (function () {
      * @default "binary"
      * @constant
      */
-    icaltype: "binary",
+    icaltype: 'binary',
 
     /**
      * Base64 decode the current value
@@ -3549,9 +3286,7 @@ ICAL.Binary = (function () {
       //if (typeof this.window['atob'] == 'function') {
       //    return atob(data);
       //}
-      var b64 =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-        "abcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 'abcdefghijklmnopqrstuvwxyz0123456789+/=';
       var o1,
         o2,
         o3,
@@ -3562,7 +3297,7 @@ ICAL.Binary = (function () {
         bits,
         i = 0,
         ac = 0,
-        enc = "",
+        enc = '',
         tmp_arr = [];
 
       if (!data) {
@@ -3583,15 +3318,14 @@ ICAL.Binary = (function () {
         h4 = bits & 0x3f;
 
         // use hexets to index into b64, and append result to encoded string
-        tmp_arr[ac++] =
-          b64.charAt(h1) + b64.charAt(h2) + b64.charAt(h3) + b64.charAt(h4);
+        tmp_arr[ac++] = b64.charAt(h1) + b64.charAt(h2) + b64.charAt(h3) + b64.charAt(h4);
       } while (i < data.length);
 
-      enc = tmp_arr.join("");
+      enc = tmp_arr.join('');
 
       var r = data.length % 3;
 
-      return (r ? enc.slice(0, r - 3) : enc) + "===".slice(r || 3);
+      return (r ? enc.slice(0, r - 3) : enc) + '==='.slice(r || 3);
     },
 
     _b64_decode: function base64_decode(data) {
@@ -3612,9 +3346,7 @@ ICAL.Binary = (function () {
       //if (typeof this.window['btoa'] == 'function') {
       //    return btoa(data);
       //}
-      var b64 =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-        "abcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 'abcdefghijklmnopqrstuvwxyz0123456789+/=';
       var o1,
         o2,
         o3,
@@ -3625,14 +3357,14 @@ ICAL.Binary = (function () {
         bits,
         i = 0,
         ac = 0,
-        dec = "",
+        dec = '',
         tmp_arr = [];
 
       if (!data) {
         return data;
       }
 
-      data += "";
+      data += '';
 
       do {
         // unpack four hexets into three octets using index points in b64
@@ -3656,7 +3388,7 @@ ICAL.Binary = (function () {
         }
       } while (i < data.length);
 
-      dec = tmp_arr.join("");
+      dec = tmp_arr.join('');
 
       return dec;
     },
@@ -3701,27 +3433,27 @@ ICAL.Binary = (function () {
   ICAL.Period = function icalperiod(aData) {
     this.wrappedJSObject = this;
 
-    if (aData && "start" in aData) {
+    if (aData && 'start' in aData) {
       if (aData.start && !(aData.start instanceof ICAL.Time)) {
-        throw new TypeError(".start must be an instance of ICAL.Time");
+        throw new TypeError('.start must be an instance of ICAL.Time');
       }
       this.start = aData.start;
     }
 
     if (aData && aData.end && aData.duration) {
-      throw new Error("cannot accept both end and duration");
+      throw new Error('cannot accept both end and duration');
     }
 
-    if (aData && "end" in aData) {
+    if (aData && 'end' in aData) {
       if (aData.end && !(aData.end instanceof ICAL.Time)) {
-        throw new TypeError(".end must be an instance of ICAL.Time");
+        throw new TypeError('.end must be an instance of ICAL.Time');
       }
       this.end = aData.end;
     }
 
-    if (aData && "duration" in aData) {
+    if (aData && 'duration' in aData) {
       if (aData.duration && !(aData.duration instanceof ICAL.Duration)) {
-        throw new TypeError(".duration must be an instance of ICAL.Duration");
+        throw new TypeError('.duration must be an instance of ICAL.Duration');
       }
       this.duration = aData.duration;
     }
@@ -3752,7 +3484,7 @@ ICAL.Binary = (function () {
      * @type {String}
      * @default "icalperiod"
      */
-    icalclass: "icalperiod",
+    icalclass: 'icalperiod',
 
     /**
      * The type name, to be used in the jCal object.
@@ -3760,7 +3492,7 @@ ICAL.Binary = (function () {
      * @type {String}
      * @default "period"
      */
-    icaltype: "period",
+    icaltype: 'period',
 
     /**
      * Returns a clone of the duration object.
@@ -3810,7 +3542,7 @@ ICAL.Binary = (function () {
      * @return {String}
      */
     toString: function toString() {
-      return this.start + "/" + (this.end || this.duration);
+      return this.start + '/' + (this.end || this.duration);
     },
 
     /**
@@ -3826,11 +3558,7 @@ ICAL.Binary = (function () {
      * @return {String}
      */
     toICALString: function () {
-      return (
-        this.start.toICALString() +
-        "/" +
-        (this.end || this.duration).toICALString()
-      );
+      return this.start.toICALString() + '/' + (this.end || this.duration).toICALString();
     }
   };
 
@@ -3842,12 +3570,10 @@ ICAL.Binary = (function () {
    * @return {ICAL.Period}          The created period instance
    */
   ICAL.Period.fromString = function fromString(str, prop) {
-    var parts = str.split("/");
+    var parts = str.split('/');
 
     if (parts.length !== 2) {
-      throw new Error(
-        'Invalid string value: "' + str + '" must contain a "/" char.'
-      );
+      throw new Error('Invalid string value: "' + str + '" must contain a "/" char.');
     }
 
     var options = {
@@ -3984,7 +3710,7 @@ ICAL.Binary = (function () {
      * @type {String}
      * @default "icalduration"
      */
-    icalclass: "icalduration",
+    icalclass: 'icalduration',
 
     /**
      * The type name, to be used in the jCal object.
@@ -3992,7 +3718,7 @@ ICAL.Binary = (function () {
      * @type {String}
      * @default "duration"
      */
-    icaltype: "duration",
+    icaltype: 'duration',
 
     /**
      * Returns a clone of the duration object.
@@ -4009,12 +3735,7 @@ ICAL.Binary = (function () {
      * @return {Number}             The duration value in seconds
      */
     toSeconds: function toSeconds() {
-      var seconds =
-        this.seconds +
-        60 * this.minutes +
-        3600 * this.hours +
-        86400 * this.days +
-        7 * 86400 * this.weeks;
+      var seconds = this.seconds + 60 * this.minutes + 3600 * this.hours + 86400 * this.days + 7 * 86400 * this.weeks;
       return this.isNegative ? -seconds : seconds;
     },
 
@@ -4064,14 +3785,7 @@ ICAL.Binary = (function () {
      * @param {Boolean} aData.isNegative   If true, the duration is negative
      */
     fromData: function fromData(aData) {
-      var propsToCopy = [
-        "weeks",
-        "days",
-        "hours",
-        "minutes",
-        "seconds",
-        "isNegative"
-      ];
+      var propsToCopy = ['weeks', 'days', 'hours', 'minutes', 'seconds', 'isNegative'];
       for (var key in propsToCopy) {
         if (!propsToCopy.hasOwnProperty(key)) {
           continue;
@@ -4123,19 +3837,19 @@ ICAL.Binary = (function () {
      */
     toString: function toString() {
       if (this.toSeconds() == 0) {
-        return "PT0S";
+        return 'PT0S';
       } else {
-        var str = "";
-        if (this.isNegative) str += "-";
-        str += "P";
-        if (this.weeks) str += this.weeks + "W";
-        if (this.days) str += this.days + "D";
+        var str = '';
+        if (this.isNegative) str += '-';
+        str += 'P';
+        if (this.weeks) str += this.weeks + 'W';
+        if (this.days) str += this.days + 'D';
 
         if (this.hours || this.minutes || this.seconds) {
-          str += "T";
-          if (this.hours) str += this.hours + "H";
-          if (this.minutes) str += this.minutes + "M";
-          if (this.seconds) str += this.seconds + "S";
+          str += 'T';
+          if (this.hours) str += this.hours + 'H';
+          if (this.minutes) str += this.minutes + 'M';
+          if (this.seconds) str += this.seconds + 'S';
         }
         return str;
       }
@@ -4170,28 +3884,28 @@ ICAL.Binary = (function () {
   function parseDurationChunk(letter, number, object) {
     var type;
     switch (letter) {
-      case "P":
-        if (number && number === "-") {
+      case 'P':
+        if (number && number === '-') {
           object.isNegative = true;
         } else {
           object.isNegative = false;
         }
         // period
         break;
-      case "D":
-        type = "days";
+      case 'D':
+        type = 'days';
         break;
-      case "W":
-        type = "weeks";
+      case 'W':
+        type = 'weeks';
         break;
-      case "H":
-        type = "hours";
+      case 'H':
+        type = 'hours';
         break;
-      case "M":
-        type = "minutes";
+      case 'M':
+        type = 'minutes';
         break;
-      case "S":
-        type = "seconds";
+      case 'S':
+        type = 'seconds';
         break;
       default:
         // Not a valid chunk
@@ -4200,19 +3914,11 @@ ICAL.Binary = (function () {
 
     if (type) {
       if (!number && number !== 0) {
-        throw new Error(
-          'invalid duration value: Missing number before "' + letter + '"'
-        );
+        throw new Error('invalid duration value: Missing number before "' + letter + '"');
       }
       var num = parseInt(number, 10);
       if (ICAL.helpers.isStrictlyNaN(num)) {
-        throw new Error(
-          'invalid duration value: Invalid number "' +
-            number +
-            '" before "' +
-            letter +
-            '"'
-        );
+        throw new Error('invalid duration value: Invalid number "' + number + '" before "' + letter + '"');
       }
       object[type] = num;
     }
@@ -4228,7 +3934,7 @@ ICAL.Binary = (function () {
    *                              duration ical type
    */
   ICAL.Duration.isValueString = function (string) {
-    return string[0] === "P" || string[1] === "P";
+    return string[0] === 'P' || string[1] === 'P';
   };
 
   /**
@@ -4252,11 +3958,7 @@ ICAL.Binary = (function () {
 
     if (chunks < 2) {
       // There must be at least a chunk with "P" and some unit chunk
-      throw new Error(
-        'invalid duration value: Not enough duration components in "' +
-          aStr +
-          '"'
-      );
+      throw new Error('invalid duration value: Not enough duration components in "' + aStr + '"');
     }
 
     return new ICAL.Duration(dict);
@@ -4280,7 +3982,7 @@ ICAL.Binary = (function () {
 })();
 
 (function () {
-  var OPTIONS = ["tzid", "location", "tznames", "latitude", "longitude"];
+  var OPTIONS = ['tzid', 'location', 'tznames', 'latitude', 'longitude'];
 
   /**
    * @classdesc
@@ -4319,19 +4021,19 @@ ICAL.Binary = (function () {
      * Timezone identifier
      * @type {String}
      */
-    tzid: "",
+    tzid: '',
 
     /**
      * Timezone location
      * @type {String}
      */
-    location: "",
+    location: '',
 
     /**
      * Alternative timezone name, for the string representation
      * @type {String}
      */
-    tznames: "",
+    tznames: '',
 
     /**
      * The primary latitude for the timezone.
@@ -4366,7 +4068,7 @@ ICAL.Binary = (function () {
      * @type {String}
      * @default "icaltimezone"
      */
-    icalclass: "icaltimezone",
+    icalclass: 'icaltimezone',
 
     /**
      * Sets up the current instance using members from the passed data object.
@@ -4392,8 +4094,8 @@ ICAL.Binary = (function () {
         this.component = aData;
       } else {
         // Otherwise the component may be in the data object
-        if (aData && "component" in aData) {
-          if (typeof aData.component == "string") {
+        if (aData && 'component' in aData) {
+          if (typeof aData.component == 'string') {
             // If a string was passed, parse it as a component
             var jCal = ICAL.parse(aData.component);
             this.component = new ICAL.Component(jCal);
@@ -4420,7 +4122,7 @@ ICAL.Binary = (function () {
       // If we have a component but no TZID, attempt to get it from the
       // component's properties.
       if (this.component instanceof ICAL.Component && !this.tzid) {
-        this.tzid = this.component.getFirstPropertyValue("tzid");
+        this.tzid = this.component.getFirstPropertyValue('tzid');
       }
 
       return this;
@@ -4433,10 +4135,7 @@ ICAL.Binary = (function () {
      * @return {Number} utc offset in seconds
      */
     utcOffset: function utcOffset(tt) {
-      if (
-        this == ICAL.Timezone.utcTimezone ||
-        this == ICAL.Timezone.localTimezone
-      ) {
+      if (this == ICAL.Timezone.utcTimezone || this == ICAL.Timezone.localTimezone) {
         return 0;
       }
 
@@ -4496,23 +4195,14 @@ ICAL.Binary = (function () {
 
       if (utcOffset_change < 0 && change_num_to_use > 0) {
         var tmp_change = ICAL.helpers.clone(zone_change, true);
-        ICAL.Timezone.adjust_change(
-          tmp_change,
-          0,
-          0,
-          0,
-          tmp_change.prevUtcOffset
-        );
+        ICAL.Timezone.adjust_change(tmp_change, 0, 0, 0, tmp_change.prevUtcOffset);
 
         if (ICAL.Timezone._compare_change_fn(tt_change, tmp_change) < 0) {
           var prev_zone_change = this.changes[change_num_to_use - 1];
 
           var want_daylight = false; // TODO
 
-          if (
-            zone_change.is_daylight != want_daylight &&
-            prev_zone_change.is_daylight == want_daylight
-          ) {
+          if (zone_change.is_daylight != want_daylight && prev_zone_change.is_daylight == want_daylight) {
             zone_change = prev_zone_change;
           }
         }
@@ -4524,11 +4214,7 @@ ICAL.Binary = (function () {
 
     _findNearbyChange: function icaltimezone_find_nearby_change(change) {
       // find the closest match
-      var idx = ICAL.helpers.binsearchInsert(
-        this.changes,
-        change,
-        ICAL.Timezone._compare_change_fn
-      );
+      var idx = ICAL.helpers.binsearchInsert(this.changes, change, ICAL.Timezone._compare_change_fn);
 
       if (idx >= this.changes.length) {
         return this.changes.length - 1;
@@ -4560,11 +4246,7 @@ ICAL.Binary = (function () {
         var compIdx = 0;
 
         for (; compIdx < compLen; compIdx++) {
-          this._expandComponent(
-            subcomps[compIdx],
-            changesEndYear,
-            this.changes
-          );
+          this._expandComponent(subcomps[compIdx], changesEndYear, this.changes);
         }
 
         this.changes.sort(ICAL.Timezone._compare_change_fn);
@@ -4573,15 +4255,11 @@ ICAL.Binary = (function () {
     },
 
     _expandComponent: function (aComponent, aYear, changes) {
-      if (
-        !aComponent.hasProperty("dtstart") ||
-        !aComponent.hasProperty("tzoffsetto") ||
-        !aComponent.hasProperty("tzoffsetfrom")
-      ) {
+      if (!aComponent.hasProperty('dtstart') || !aComponent.hasProperty('tzoffsetto') || !aComponent.hasProperty('tzoffsetfrom')) {
         return null;
       }
 
-      var dtstart = aComponent.getFirstProperty("dtstart").getFirstValue();
+      var dtstart = aComponent.getFirstProperty('dtstart').getFirstValue();
       var change;
 
       function convert_tzoffset(offset) {
@@ -4590,22 +4268,15 @@ ICAL.Binary = (function () {
 
       function init_changes() {
         var changebase = {};
-        changebase.is_daylight = aComponent.name == "daylight";
-        changebase.utcOffset = convert_tzoffset(
-          aComponent.getFirstProperty("tzoffsetto").getFirstValue()
-        );
+        changebase.is_daylight = aComponent.name == 'daylight';
+        changebase.utcOffset = convert_tzoffset(aComponent.getFirstProperty('tzoffsetto').getFirstValue());
 
-        changebase.prevUtcOffset = convert_tzoffset(
-          aComponent.getFirstProperty("tzoffsetfrom").getFirstValue()
-        );
+        changebase.prevUtcOffset = convert_tzoffset(aComponent.getFirstProperty('tzoffsetfrom').getFirstValue());
 
         return changebase;
       }
 
-      if (
-        !aComponent.hasProperty("rrule") &&
-        !aComponent.hasProperty("rdate")
-      ) {
+      if (!aComponent.hasProperty('rrule') && !aComponent.hasProperty('rdate')) {
         change = init_changes();
         change.year = dtstart.year;
         change.month = dtstart.month;
@@ -4617,7 +4288,7 @@ ICAL.Binary = (function () {
         ICAL.Timezone.adjust_change(change, 0, 0, 0, -change.prevUtcOffset);
         changes.push(change);
       } else {
-        var props = aComponent.getAllProperties("rdate");
+        var props = aComponent.getAllProperties('rdate');
         for (var rdatekey in props) {
           if (!props.hasOwnProperty(rdatekey)) {
             continue;
@@ -4636,13 +4307,7 @@ ICAL.Binary = (function () {
             change.second = dtstart.second;
 
             if (dtstart.zone != ICAL.Timezone.utcTimezone) {
-              ICAL.Timezone.adjust_change(
-                change,
-                0,
-                0,
-                0,
-                -change.prevUtcOffset
-              );
+              ICAL.Timezone.adjust_change(change, 0, 0, 0, -change.prevUtcOffset);
             }
           } else {
             change.hour = time.hour;
@@ -4650,20 +4315,14 @@ ICAL.Binary = (function () {
             change.second = time.second;
 
             if (time.zone != ICAL.Timezone.utcTimezone) {
-              ICAL.Timezone.adjust_change(
-                change,
-                0,
-                0,
-                0,
-                -change.prevUtcOffset
-              );
+              ICAL.Timezone.adjust_change(change, 0, 0, 0, -change.prevUtcOffset);
             }
           }
 
           changes.push(change);
         }
 
-        var rrule = aComponent.getFirstProperty("rrule");
+        var rrule = aComponent.getFirstProperty('rrule');
 
         if (rrule) {
           rrule = rrule.getFirstValue();
@@ -4709,10 +4368,7 @@ ICAL.Binary = (function () {
     }
   };
 
-  ICAL.Timezone._compare_change_fn = function icaltimezone_compare_change_fn(
-    a,
-    b
-  ) {
+  ICAL.Timezone._compare_change_fn = function icaltimezone_compare_change_fn(a, b) {
     if (a.year < b.year) return -1;
     else if (a.year > b.year) return 1;
 
@@ -4742,17 +4398,8 @@ ICAL.Binary = (function () {
    * @param {ICAL.Timezone} to_zone         The target zone to convert to
    * @return {ICAL.Time}                    The converted date/time object
    */
-  ICAL.Timezone.convert_time = function icaltimezone_convert_time(
-    tt,
-    from_zone,
-    to_zone
-  ) {
-    if (
-      tt.isDate ||
-      from_zone.tzid == to_zone.tzid ||
-      from_zone == ICAL.Timezone.localTimezone ||
-      to_zone == ICAL.Timezone.localTimezone
-    ) {
+  ICAL.Timezone.convert_time = function icaltimezone_convert_time(tt, from_zone, to_zone) {
+    if (tt.isDate || from_zone.tzid == to_zone.tzid || from_zone == ICAL.Timezone.localTimezone || to_zone == ICAL.Timezone.localTimezone) {
       tt.zone = to_zone;
       return tt;
     }
@@ -4793,7 +4440,7 @@ ICAL.Binary = (function () {
    * @instance
    */
   ICAL.Timezone.utcTimezone = ICAL.Timezone.fromData({
-    tzid: "UTC"
+    tzid: 'UTC'
   });
 
   /**
@@ -4803,7 +4450,7 @@ ICAL.Binary = (function () {
    * @instance
    */
   ICAL.Timezone.localTimezone = ICAL.Timezone.fromData({
-    tzid: "floating"
+    tzid: 'floating'
   });
 
   /**
@@ -4815,21 +4462,8 @@ ICAL.Binary = (function () {
    * @param {Number} minutes    The extra amount of minutes
    * @param {Number} seconds    The extra amount of seconds
    */
-  ICAL.Timezone.adjust_change = function icaltimezone_adjust_change(
-    change,
-    days,
-    hours,
-    minutes,
-    seconds
-  ) {
-    return ICAL.Time.prototype.adjust.call(
-      change,
-      days,
-      hours,
-      minutes,
-      seconds,
-      change
-    );
+  ICAL.Timezone.adjust_change = function icaltimezone_adjust_change(change, days, hours, minutes, seconds) {
+    return ICAL.Time.prototype.adjust.call(change, days, hours, minutes, seconds, change);
   };
 
   ICAL.Timezone._minimumExpansionYear = -1;
@@ -4898,7 +4532,7 @@ ICAL.TimezoneService = (function () {
      */
     register: function (name, timezone) {
       if (name instanceof ICAL.Component) {
-        if (name.name === "vtimezone") {
+        if (name.name === 'vtimezone') {
           timezone = new ICAL.Timezone(name);
           name = timezone.tzid;
         }
@@ -4907,7 +4541,7 @@ ICAL.TimezoneService = (function () {
       if (timezone instanceof ICAL.Timezone) {
         zones[name] = timezone;
       } else {
-        throw new TypeError("timezone must be ICAL.Timezone or ICAL.Component");
+        throw new TypeError('timezone must be ICAL.Timezone or ICAL.Component');
       }
     },
 
@@ -4984,7 +4618,7 @@ ICAL.TimezoneService = (function () {
      * @type {String}
      * @default "icaltime"
      */
-    icalclass: "icaltime",
+    icalclass: 'icaltime',
     _cachedUnixTime: null,
 
     /**
@@ -4995,7 +4629,7 @@ ICAL.TimezoneService = (function () {
      * @default "date-time"
      */
     get icaltype() {
-      return this.isDate ? "date" : "date-time";
+      return this.isDate ? 'date' : 'date-time';
     },
 
     /**
@@ -5042,15 +4676,7 @@ ICAL.TimezoneService = (function () {
      * @param {Number} second           The second to set
      * @param {ICAL.Timezone} timezone  The timezone to set
      */
-    resetTo: function icaltime_resetTo(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      timezone
-    ) {
+    resetTo: function icaltime_resetTo(year, month, day, hour, minute, second, timezone) {
       this.fromData({
         year: year,
         month: month,
@@ -5113,7 +4739,7 @@ ICAL.TimezoneService = (function () {
         for (var key in aData) {
           if (Object.prototype.hasOwnProperty.call(aData, key)) {
             // ical type cannot be set
-            if (key === "icaltype") continue;
+            if (key === 'icaltype') continue;
             this[key] = aData[key];
           }
         }
@@ -5123,19 +4749,19 @@ ICAL.TimezoneService = (function () {
         this.zone = aZone;
       }
 
-      if (aData && !("isDate" in aData)) {
-        this.isDate = !("hour" in aData);
-      } else if (aData && "isDate" in aData) {
+      if (aData && !('isDate' in aData)) {
+        this.isDate = !('hour' in aData);
+      } else if (aData && 'isDate' in aData) {
         this.isDate = aData.isDate;
       }
 
-      if (aData && "timezone" in aData) {
+      if (aData && 'timezone' in aData) {
         var zone = ICAL.TimezoneService.get(aData.timezone);
 
         this.zone = zone || ICAL.Timezone.localTimezone;
       }
 
-      if (aData && "zone" in aData) {
+      if (aData && 'zone' in aData) {
         this.zone = aData.zone;
       }
 
@@ -5155,8 +4781,7 @@ ICAL.TimezoneService = (function () {
      */
     dayOfWeek: function icaltime_dayOfWeek(aWeekStart) {
       var firstDow = aWeekStart || ICAL.Time.SUNDAY;
-      var dowCacheKey =
-        (this.year << 12) + (this.month << 8) + (this.day << 3) + firstDow;
+      var dowCacheKey = (this.year << 12) + (this.month << 8) + (this.day << 3) + firstDow;
       if (dowCacheKey in ICAL.Time._dowCache) {
         return ICAL.Time._dowCache[dowCacheKey];
       }
@@ -5166,11 +4791,7 @@ ICAL.TimezoneService = (function () {
       var m = this.month + (this.month < 3 ? 12 : 0);
       var Y = this.year - (this.month < 3 ? 1 : 0);
 
-      var h =
-        q +
-        Y +
-        ICAL.helpers.trunc(((m + 1) * 26) / 10) +
-        ICAL.helpers.trunc(Y / 4);
+      var h = q + Y + ICAL.helpers.trunc(((m + 1) * 26) / 10) + ICAL.helpers.trunc(Y / 4);
 
       if (true) {
         h += ICAL.helpers.trunc(Y / 100) * 6 + ICAL.helpers.trunc(Y / 400);
@@ -5456,8 +5077,7 @@ ICAL.TimezoneService = (function () {
      * @return {Number}                             The ISO week number
      */
     weekNumber: function weekNumber(aWeekStart) {
-      var wnCacheKey =
-        (this.year << 12) + (this.month << 8) + (this.day << 3) + aWeekStart;
+      var wnCacheKey = (this.year << 12) + (this.month << 8) + (this.day << 3) + aWeekStart;
       if (wnCacheKey in ICAL.Time._wnCache) {
         return ICAL.Time._wnCache[wnCacheKey];
       }
@@ -5578,9 +5198,9 @@ ICAL.TimezoneService = (function () {
       var b = other.convertToZone(tz);
       var rc = 0;
 
-      if ((rc = cmp("year")) != 0) return rc;
-      if ((rc = cmp("month")) != 0) return rc;
-      if ((rc = cmp("day")) != 0) return rc;
+      if ((rc = cmp('year')) != 0) return rc;
+      if ((rc = cmp('month')) != 0) return rc;
+      if ((rc = cmp('day')) != 0) return rc;
 
       return rc;
     },
@@ -5611,10 +5231,7 @@ ICAL.TimezoneService = (function () {
      * @return {Number}     UTC offset in seconds
      */
     utcOffset: function utc_offset() {
-      if (
-        this.zone == ICAL.Timezone.localTimezone ||
-        this.zone == ICAL.Timezone.utcTimezone
-      ) {
+      if (this.zone == ICAL.Timezone.localTimezone || this.zone == ICAL.Timezone.utcTimezone) {
         return 0;
       } else {
         return this.zone.utcOffset(this);
@@ -5630,7 +5247,7 @@ ICAL.TimezoneService = (function () {
       var string = this.toString();
 
       if (string.length > 10) {
-        return ICAL.design.icalendar.value["date-time"].toICAL(string);
+        return ICAL.design.icalendar.value['date-time'].toICAL(string);
       } else {
         return ICAL.design.icalendar.value.date.toICAL(string);
       }
@@ -5642,24 +5259,13 @@ ICAL.TimezoneService = (function () {
      * @return {String}
      */
     toString: function toString() {
-      var result =
-        this.year +
-        "-" +
-        ICAL.helpers.pad2(this.month) +
-        "-" +
-        ICAL.helpers.pad2(this.day);
+      var result = this.year + '-' + ICAL.helpers.pad2(this.month) + '-' + ICAL.helpers.pad2(this.day);
 
       if (!this.isDate) {
-        result +=
-          "T" +
-          ICAL.helpers.pad2(this.hour) +
-          ":" +
-          ICAL.helpers.pad2(this.minute) +
-          ":" +
-          ICAL.helpers.pad2(this.second);
+        result += 'T' + ICAL.helpers.pad2(this.hour) + ':' + ICAL.helpers.pad2(this.minute) + ':' + ICAL.helpers.pad2(this.second);
 
         if (this.zone === ICAL.Timezone.utcTimezone) {
-          result += "Z";
+          result += 'Z';
         }
       }
 
@@ -5675,15 +5281,7 @@ ICAL.TimezoneService = (function () {
         if (this.isDate) {
           return new Date(this.year, this.month - 1, this.day);
         } else {
-          return new Date(
-            this.year,
-            this.month - 1,
-            this.day,
-            this.hour,
-            this.minute,
-            this.second,
-            0
-          );
+          return new Date(this.year, this.month - 1, this.day, this.hour, this.minute, this.second, 0);
         }
       } else {
         return new Date(this.toUnixTime() * 1000);
@@ -5712,13 +5310,7 @@ ICAL.TimezoneService = (function () {
      * @param {Number=} aTime           The time to adjust, defaults to the
      *                                    current instance.
      */
-    adjust: function icaltime_adjust(
-      aExtraDays,
-      aExtraHours,
-      aExtraMinutes,
-      aExtraSeconds,
-      aTime
-    ) {
+    adjust: function icaltime_adjust(aExtraDays, aExtraHours, aExtraMinutes, aExtraSeconds, aTime) {
       var minutesOverflow,
         hoursOverflow,
         daysOverflow = 0,
@@ -5838,14 +5430,7 @@ ICAL.TimezoneService = (function () {
 
       // we use the offset trick to ensure
       // that we are getting the actual UTC time
-      var ms = Date.UTC(
-        this.year,
-        this.month - 1,
-        this.day,
-        this.hour,
-        this.minute,
-        this.second - offset
-      );
+      var ms = Date.UTC(this.year, this.month - 1, this.day, this.hour, this.minute, this.second - offset);
 
       // seconds
       this._cachedUnixTime = ms / 1000;
@@ -5867,7 +5452,7 @@ ICAL.TimezoneService = (function () {
      * @return {Object}
      */
     toJSON: function () {
-      var copy = ["year", "month", "day", "hour", "minute", "second", "isDate"];
+      var copy = ['year', 'month', 'day', 'hour', 'minute', 'second', 'isDate'];
 
       var result = Object.create(null);
 
@@ -5904,7 +5489,7 @@ ICAL.TimezoneService = (function () {
           // Check if isDate will be set and if was not set to normalize date.
           // This avoids losing days when seconds, minutes and hours are zeroed
           // what normalize will do when time is a date.
-          if (attr === "isDate" && val && !this._time.isDate) {
+          if (attr === 'isDate' && val && !this._time.isDate) {
             this.adjust(0, 0, 0, 0);
           }
           this._cachedUnixTime = null;
@@ -5916,14 +5501,14 @@ ICAL.TimezoneService = (function () {
       });
     }
 
-    if ("defineProperty" in Object) {
-      defineAttr("year");
-      defineAttr("month");
-      defineAttr("day");
-      defineAttr("hour");
-      defineAttr("minute");
-      defineAttr("second");
-      defineAttr("isDate");
+    if ('defineProperty' in Object) {
+      defineAttr('year');
+      defineAttr('month');
+      defineAttr('day');
+      defineAttr('hour');
+      defineAttr('minute');
+      defineAttr('second');
+      defineAttr('isDate');
     }
   })();
 
@@ -6058,10 +5643,10 @@ ICAL.TimezoneService = (function () {
 
     var zone;
 
-    if (aValue[19] && aValue[19] === "Z") {
-      zone = "Z";
+    if (aValue[19] && aValue[19] === 'Z') {
+      zone = 'Z';
     } else if (prop) {
-      zone = prop.getParameter("tzid");
+      zone = prop.getParameter('tzid');
     }
 
     // 2012-10-10T10:10:10(Z)?
@@ -6169,9 +5754,8 @@ ICAL.TimezoneService = (function () {
    * @return {String}             The dominical letter.
    */
   ICAL.Time.getDominicalLetter = function (yr) {
-    var LTRS = "GFEDCBA";
-    var dom =
-      (yr + ((yr / 4) | 0) + ((yr / 400) | 0) - ((yr / 100) | 0) - 1) % 7;
+    var LTRS = 'GFEDCBA';
+    var dom = (yr + ((yr / 4) | 0) + ((yr / 400) | 0) - ((yr / 100) | 0) - 1) % 7;
     var isLeap = ICAL.Time.isLeapYear(yr);
     if (isLeap) {
       return LTRS[(dom + 6) % 7] + LTRS[dom];
@@ -6194,7 +5778,7 @@ ICAL.TimezoneService = (function () {
     minute: 0,
     second: 0,
     isDate: false,
-    timezone: "Z"
+    timezone: 'Z'
   });
 
   ICAL.Time._cmp_attr = function _cmp_attr(a, b, attr) {
@@ -6277,7 +5861,7 @@ ICAL.TimezoneService = (function () {
     time.minute = null;
     time.second = null;
 
-    this.icaltype = icaltype || "date-and-or-time";
+    this.icaltype = icaltype || 'date-and-or-time';
 
     this.fromData(data, zone);
   };
@@ -6291,14 +5875,14 @@ ICAL.TimezoneService = (function () {
        * @type {String}
        * @default "vcardtime"
        */
-      icalclass: "vcardtime",
+      icalclass: 'vcardtime',
 
       /**
        * The type name, to be used in the jCal object.
        * @type {String}
        * @default "date-and-or-time"
        */
-      icaltype: "date-and-or-time",
+      icaltype: 'date-and-or-time',
 
       /**
        * The timezone. This can either be floating, UTC, or an instance of
@@ -6361,43 +5945,30 @@ ICAL.TimezoneService = (function () {
           hasMinute = mm !== null,
           hasSecond = s !== null;
 
-        var datepart =
-          (hasYear
-            ? p2(y) + (hasMonth || hasDay ? "-" : "")
-            : hasMonth || hasDay
-            ? "--"
-            : "") +
-          (hasMonth ? p2(m) : "") +
-          (hasDay ? "-" + p2(d) : "");
-        var timepart =
-          (hasHour ? p2(h) : "-") +
-          (hasHour && hasMinute ? ":" : "") +
-          (hasMinute ? p2(mm) : "") +
-          (!hasHour && !hasMinute ? "-" : "") +
-          (hasMinute && hasSecond ? ":" : "") +
-          (hasSecond ? p2(s) : "");
+        var datepart = (hasYear ? p2(y) + (hasMonth || hasDay ? '-' : '') : hasMonth || hasDay ? '--' : '') + (hasMonth ? p2(m) : '') + (hasDay ? '-' + p2(d) : '');
+        var timepart = (hasHour ? p2(h) : '-') + (hasHour && hasMinute ? ':' : '') + (hasMinute ? p2(mm) : '') + (!hasHour && !hasMinute ? '-' : '') + (hasMinute && hasSecond ? ':' : '') + (hasSecond ? p2(s) : '');
 
         var zone;
         if (this.zone === ICAL.Timezone.utcTimezone) {
-          zone = "Z";
+          zone = 'Z';
         } else if (this.zone instanceof ICAL.UtcOffset) {
           zone = this.zone.toString();
         } else if (this.zone === ICAL.Timezone.localTimezone) {
-          zone = "";
+          zone = '';
         } else if (this.zone instanceof ICAL.Timezone) {
           var offset = ICAL.UtcOffset.fromSeconds(this.zone.utcOffset(this));
           zone = offset.toString();
         } else {
-          zone = "";
+          zone = '';
         }
 
         switch (this.icaltype) {
-          case "time":
+          case 'time':
             return timepart + zone;
-          case "date-and-or-time":
-          case "date-time":
-            return datepart + (timepart == "--" ? "" : "T" + timepart + zone);
-          case "date":
+          case 'date-and-or-time':
+          case 'date-time':
+            return datepart + (timepart == '--' ? '' : 'T' + timepart + zone);
+          case 'date':
             return datepart;
         }
         return null;
@@ -6416,7 +5987,7 @@ ICAL.TimezoneService = (function () {
     function part(v, s, e) {
       return v ? ICAL.helpers.strictParseInt(v.substr(s, e)) : null;
     }
-    var parts = aValue.split("T");
+    var parts = aValue.split('T');
     var dt = parts[0],
       tmz = parts[1];
     var splitzone = tmz ? ICAL.design.vcard.value.time._splitZone(tmz) : [];
@@ -6427,50 +5998,22 @@ ICAL.TimezoneService = (function () {
     var dtlen = dt ? dt.length : 0;
     var tmlen = tm ? tm.length : 0;
 
-    var hasDashDate = dt && dt[0] == "-" && dt[1] == "-";
-    var hasDashTime = tm && tm[0] == "-";
+    var hasDashDate = dt && dt[0] == '-' && dt[1] == '-';
+    var hasDashTime = tm && tm[0] == '-';
 
     var o = {
       year: hasDashDate ? null : part(dt, 0, 4),
-      month:
-        hasDashDate && (dtlen == 4 || dtlen == 7)
-          ? part(dt, 2, 2)
-          : dtlen == 7
-          ? part(dt, 5, 2)
-          : dtlen == 10
-          ? part(dt, 5, 2)
-          : null,
-      day:
-        dtlen == 5
-          ? part(dt, 3, 2)
-          : dtlen == 7 && hasDashDate
-          ? part(dt, 5, 2)
-          : dtlen == 10
-          ? part(dt, 8, 2)
-          : null,
+      month: hasDashDate && (dtlen == 4 || dtlen == 7) ? part(dt, 2, 2) : dtlen == 7 ? part(dt, 5, 2) : dtlen == 10 ? part(dt, 5, 2) : null,
+      day: dtlen == 5 ? part(dt, 3, 2) : dtlen == 7 && hasDashDate ? part(dt, 5, 2) : dtlen == 10 ? part(dt, 8, 2) : null,
 
       hour: hasDashTime ? null : part(tm, 0, 2),
-      minute:
-        hasDashTime && tmlen == 3
-          ? part(tm, 1, 2)
-          : tmlen > 4
-          ? hasDashTime
-            ? part(tm, 1, 2)
-            : part(tm, 3, 2)
-          : null,
-      second:
-        tmlen == 4
-          ? part(tm, 2, 2)
-          : tmlen == 6
-          ? part(tm, 4, 2)
-          : tmlen == 8
-          ? part(tm, 6, 2)
-          : null
+      minute: hasDashTime && tmlen == 3 ? part(tm, 1, 2) : tmlen > 4 ? (hasDashTime ? part(tm, 1, 2) : part(tm, 3, 2)) : null,
+      second: tmlen == 4 ? part(tm, 2, 2) : tmlen == 6 ? part(tm, 4, 2) : tmlen == 8 ? part(tm, 6, 2) : null
     };
 
-    if (zone == "Z") {
+    if (zone == 'Z') {
       zone = ICAL.Timezone.utcTimezone;
-    } else if (zone && zone[3] == ":") {
+    } else if (zone && zone[3] == ':') {
       zone = ICAL.UtcOffset.fromString(zone);
     } else {
       zone = null;
@@ -6498,17 +6041,7 @@ ICAL.TimezoneService = (function () {
     }
   }
 
-  var COPY_PARTS = [
-    "BYSECOND",
-    "BYMINUTE",
-    "BYHOUR",
-    "BYDAY",
-    "BYMONTHDAY",
-    "BYYEARDAY",
-    "BYWEEKNO",
-    "BYMONTH",
-    "BYSETPOS"
-  ];
+  var COPY_PARTS = ['BYSECOND', 'BYMINUTE', 'BYHOUR', 'BYDAY', 'BYMONTHDAY', 'BYYEARDAY', 'BYWEEKNO', 'BYMONTH', 'BYSETPOS'];
 
   /**
    * @classdesc
@@ -6537,7 +6070,7 @@ ICAL.TimezoneService = (function () {
     this.wrappedJSObject = this;
     this.parts = {};
 
-    if (data && typeof data === "object") {
+    if (data && typeof data === 'object') {
       this.fromData(data);
     }
   };
@@ -6587,7 +6120,7 @@ ICAL.TimezoneService = (function () {
      * @type {String}
      * @default "icalrecur"
      */
-    icalclass: "icalrecur",
+    icalclass: 'icalrecur',
 
     /**
      * The type name, to be used in the jCal object.
@@ -6595,7 +6128,7 @@ ICAL.TimezoneService = (function () {
      * @type {String}
      * @default "recur"
      */
-    icaltype: "recur",
+    icaltype: 'recur',
 
     /**
      * Create a new iterator for this recurrence rule. The passed start date
@@ -6752,11 +6285,11 @@ ICAL.TimezoneService = (function () {
         }
       }
 
-      if (this.interval && typeof this.interval != "number") {
+      if (this.interval && typeof this.interval != 'number') {
         optionDesign.INTERVAL(this.interval, this);
       }
 
-      if (this.wkst && typeof this.wkst != "number") {
+      if (this.wkst && typeof this.wkst != 'number') {
         this.wkst = ICAL.Recur.icalDayToNumericDay(this.wkst);
       }
 
@@ -6796,7 +6329,7 @@ ICAL.TimezoneService = (function () {
       if (this.until) {
         res.until = this.until.toString();
       }
-      if ("wkst" in this && this.wkst !== ICAL.Time.DEFAULT_WEEK_START) {
+      if ('wkst' in this && this.wkst !== ICAL.Time.DEFAULT_WEEK_START) {
         res.wkst = ICAL.Recur.numericDayToIcalDay(this.wkst);
       }
       return res;
@@ -6808,23 +6341,23 @@ ICAL.TimezoneService = (function () {
      */
     toString: function icalrecur_toString() {
       // TODO retain order
-      var str = "FREQ=" + this.freq;
+      var str = 'FREQ=' + this.freq;
       if (this.count) {
-        str += ";COUNT=" + this.count;
+        str += ';COUNT=' + this.count;
       }
       if (this.interval > 1) {
-        str += ";INTERVAL=" + this.interval;
+        str += ';INTERVAL=' + this.interval;
       }
       for (var k in this.parts) {
         if (this.parts.hasOwnProperty(k)) {
-          str += ";" + k + "=" + this.parts[k];
+          str += ';' + k + '=' + this.parts[k];
         }
       }
       if (this.until) {
-        str += ";UNTIL=" + this.until.toICALString();
+        str += ';UNTIL=' + this.until.toICALString();
       }
-      if ("wkst" in this && this.wkst !== ICAL.Time.DEFAULT_WEEK_START) {
-        str += ";WKST=" + ICAL.Recur.numericDayToIcalDay(this.wkst);
+      if ('wkst' in this && this.wkst !== ICAL.Time.DEFAULT_WEEK_START) {
+        str += ';WKST=' + ICAL.Recur.numericDayToIcalDay(this.wkst);
       }
       return str;
     }
@@ -6833,22 +6366,18 @@ ICAL.TimezoneService = (function () {
   function parseNumericValue(type, min, max, value) {
     var result = value;
 
-    if (value[0] === "+") {
+    if (value[0] === '+') {
       result = value.substr(1);
     }
 
     result = ICAL.helpers.strictParseInt(result);
 
     if (min !== undefined && value < min) {
-      throw new Error(
-        type + ': invalid value "' + value + '" must be > ' + min
-      );
+      throw new Error(type + ': invalid value "' + value + '" must be > ' + min);
     }
 
     if (max !== undefined && value > max) {
-      throw new Error(
-        type + ': invalid value "' + value + '" must be < ' + min
-      );
+      throw new Error(type + ': invalid value "' + value + '" must be < ' + min);
     }
 
     return result;
@@ -6891,8 +6420,7 @@ ICAL.TimezoneService = (function () {
   };
 
   var VALID_DAY_NAMES = /^(SU|MO|TU|WE|TH|FR|SA)$/;
-  var VALID_BYDAY_PART =
-    /^([+-])?(5[0-3]|[1-4][0-9]|[1-9])?(SU|MO|TU|WE|TH|FR|SA)$/;
+  var VALID_BYDAY_PART = /^([+-])?(5[0-3]|[1-4][0-9]|[1-9])?(SU|MO|TU|WE|TH|FR|SA)$/;
 
   /**
    * Possible frequency values for the FREQ part
@@ -6902,15 +6430,7 @@ ICAL.TimezoneService = (function () {
    * @memberof ICAL.Recur
    */
 
-  var ALLOWED_FREQ = [
-    "SECONDLY",
-    "MINUTELY",
-    "HOURLY",
-    "DAILY",
-    "WEEKLY",
-    "MONTHLY",
-    "YEARLY"
-  ];
+  var ALLOWED_FREQ = ['SECONDLY', 'MINUTELY', 'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
 
   var optionDesign = {
     FREQ: function (value, dict, fmtIcal) {
@@ -6919,13 +6439,7 @@ ICAL.TimezoneService = (function () {
       if (ALLOWED_FREQ.indexOf(value) !== -1) {
         dict.freq = value;
       } else {
-        throw new Error(
-          'invalid frequency "' +
-            value +
-            '" expected: "' +
-            ALLOWED_FREQ.join(", ") +
-            '"'
-        );
+        throw new Error('invalid frequency "' + value + '" expected: "' + ALLOWED_FREQ.join(', ') + '"');
       }
     },
 
@@ -6944,7 +6458,7 @@ ICAL.TimezoneService = (function () {
 
     UNTIL: function (value, dict, fmtIcal) {
       if (value.length > 10) {
-        dict.until = ICAL.design.icalendar.value["date-time"].fromICAL(value);
+        dict.until = ICAL.design.icalendar.value['date-time'].fromICAL(value);
       } else {
         dict.until = ICAL.design.icalendar.value.date.fromICAL(value);
       }
@@ -6963,9 +6477,9 @@ ICAL.TimezoneService = (function () {
   };
 
   var partDesign = {
-    BYSECOND: parseNumericValue.bind(this, "BYSECOND", 0, 60),
-    BYMINUTE: parseNumericValue.bind(this, "BYMINUTE", 0, 59),
-    BYHOUR: parseNumericValue.bind(this, "BYHOUR", 0, 23),
+    BYSECOND: parseNumericValue.bind(this, 'BYSECOND', 0, 60),
+    BYMINUTE: parseNumericValue.bind(this, 'BYMINUTE', 0, 59),
+    BYHOUR: parseNumericValue.bind(this, 'BYHOUR', 0, 23),
     BYDAY: function (value) {
       if (VALID_BYDAY_PART.test(value)) {
         return value;
@@ -6973,11 +6487,11 @@ ICAL.TimezoneService = (function () {
         throw new Error('invalid BYDAY value "' + value + '"');
       }
     },
-    BYMONTHDAY: parseNumericValue.bind(this, "BYMONTHDAY", -31, 31),
-    BYYEARDAY: parseNumericValue.bind(this, "BYYEARDAY", -366, 366),
-    BYWEEKNO: parseNumericValue.bind(this, "BYWEEKNO", -53, 53),
-    BYMONTH: parseNumericValue.bind(this, "BYMONTH", 0, 12),
-    BYSETPOS: parseNumericValue.bind(this, "BYSETPOS", -366, 366)
+    BYMONTHDAY: parseNumericValue.bind(this, 'BYMONTHDAY', -31, 31),
+    BYYEARDAY: parseNumericValue.bind(this, 'BYYEARDAY', -366, 366),
+    BYWEEKNO: parseNumericValue.bind(this, 'BYWEEKNO', -53, 53),
+    BYMONTH: parseNumericValue.bind(this, 'BYMONTH', 0, 12),
+    BYSETPOS: parseNumericValue.bind(this, 'BYSETPOS', -366, 366)
   };
 
   /**
@@ -7029,18 +6543,18 @@ ICAL.TimezoneService = (function () {
 
     // split is slower in FF but fast enough.
     // v8 however this is faster then manual split?
-    var values = string.split(";");
+    var values = string.split(';');
     var len = values.length;
 
     for (var i = 0; i < len; i++) {
-      var parts = values[i].split("=");
+      var parts = values[i].split('=');
       var ucname = parts[0].toUpperCase();
       var lcname = parts[0].toLowerCase();
       var name = fmtIcal ? lcname : ucname;
       var value = parts[1];
 
       if (ucname in partDesign) {
-        var partArr = value.split(",");
+        var partArr = value.split(',');
         var partArrIdx = 0;
         var partArrLen = partArr.length;
 
@@ -7174,13 +6688,13 @@ ICAL.RecurIterator = (function () {
       this.rule = ICAL.helpers.formatClassType(options.rule, ICAL.Recur);
 
       if (!this.rule) {
-        throw new Error("iterator requires a (ICAL.Recur) rule");
+        throw new Error('iterator requires a (ICAL.Recur) rule');
       }
 
       this.dtstart = ICAL.helpers.formatClassType(options.dtstart, ICAL.Time);
 
       if (!this.dtstart) {
-        throw new Error("iterator requires a (ICAL.Time) dtstart");
+        throw new Error('iterator requires a (ICAL.Time) dtstart');
       }
 
       if (options.by_data) {
@@ -7189,8 +6703,7 @@ ICAL.RecurIterator = (function () {
         this.by_data = ICAL.helpers.clone(this.rule.parts, true);
       }
 
-      if (options.occurrence_number)
-        this.occurrence_number = options.occurrence_number;
+      if (options.occurrence_number) this.occurrence_number = options.occurrence_number;
 
       this.days = options.days || [];
       if (options.last) {
@@ -7227,104 +6740,64 @@ ICAL.RecurIterator = (function () {
       this.last = this.dtstart.clone();
       var parts = this.by_data;
 
-      if ("BYDAY" in parts) {
+      if ('BYDAY' in parts) {
         // libical does this earlier when the rule is loaded, but we postpone to
         // now so we can preserve the original order.
         this.sort_byday_rules(parts.BYDAY);
       }
 
       // If the BYYEARDAY appares, no other date rule part may appear
-      if ("BYYEARDAY" in parts) {
-        if (
-          "BYMONTH" in parts ||
-          "BYWEEKNO" in parts ||
-          "BYMONTHDAY" in parts ||
-          "BYDAY" in parts
-        ) {
-          throw new Error("Invalid BYYEARDAY rule");
+      if ('BYYEARDAY' in parts) {
+        if ('BYMONTH' in parts || 'BYWEEKNO' in parts || 'BYMONTHDAY' in parts || 'BYDAY' in parts) {
+          throw new Error('Invalid BYYEARDAY rule');
         }
       }
 
       // BYWEEKNO and BYMONTHDAY rule parts may not both appear
-      if ("BYWEEKNO" in parts && "BYMONTHDAY" in parts) {
-        throw new Error("BYWEEKNO does not fit to BYMONTHDAY");
+      if ('BYWEEKNO' in parts && 'BYMONTHDAY' in parts) {
+        throw new Error('BYWEEKNO does not fit to BYMONTHDAY');
       }
 
       // For MONTHLY recurrences (FREQ=MONTHLY) neither BYYEARDAY nor
       // BYWEEKNO may appear.
-      if (
-        this.rule.freq == "MONTHLY" &&
-        ("BYYEARDAY" in parts || "BYWEEKNO" in parts)
-      ) {
-        throw new Error(
-          "For MONTHLY recurrences neither BYYEARDAY nor BYWEEKNO may appear"
-        );
+      if (this.rule.freq == 'MONTHLY' && ('BYYEARDAY' in parts || 'BYWEEKNO' in parts)) {
+        throw new Error('For MONTHLY recurrences neither BYYEARDAY nor BYWEEKNO may appear');
       }
 
       // For WEEKLY recurrences (FREQ=WEEKLY) neither BYMONTHDAY nor
       // BYYEARDAY may appear.
-      if (
-        this.rule.freq == "WEEKLY" &&
-        ("BYYEARDAY" in parts || "BYMONTHDAY" in parts)
-      ) {
-        throw new Error(
-          "For WEEKLY recurrences neither BYMONTHDAY nor BYYEARDAY may appear"
-        );
+      if (this.rule.freq == 'WEEKLY' && ('BYYEARDAY' in parts || 'BYMONTHDAY' in parts)) {
+        throw new Error('For WEEKLY recurrences neither BYMONTHDAY nor BYYEARDAY may appear');
       }
 
       // BYYEARDAY may only appear in YEARLY rules
-      if (this.rule.freq != "YEARLY" && "BYYEARDAY" in parts) {
-        throw new Error("BYYEARDAY may only appear in YEARLY rules");
+      if (this.rule.freq != 'YEARLY' && 'BYYEARDAY' in parts) {
+        throw new Error('BYYEARDAY may only appear in YEARLY rules');
       }
 
-      this.last.second = this.setup_defaults(
-        "BYSECOND",
-        "SECONDLY",
-        this.dtstart.second
-      );
-      this.last.minute = this.setup_defaults(
-        "BYMINUTE",
-        "MINUTELY",
-        this.dtstart.minute
-      );
-      this.last.hour = this.setup_defaults(
-        "BYHOUR",
-        "HOURLY",
-        this.dtstart.hour
-      );
-      this.last.day = this.setup_defaults(
-        "BYMONTHDAY",
-        "DAILY",
-        this.dtstart.day
-      );
-      this.last.month = this.setup_defaults(
-        "BYMONTH",
-        "MONTHLY",
-        this.dtstart.month
-      );
+      this.last.second = this.setup_defaults('BYSECOND', 'SECONDLY', this.dtstart.second);
+      this.last.minute = this.setup_defaults('BYMINUTE', 'MINUTELY', this.dtstart.minute);
+      this.last.hour = this.setup_defaults('BYHOUR', 'HOURLY', this.dtstart.hour);
+      this.last.day = this.setup_defaults('BYMONTHDAY', 'DAILY', this.dtstart.day);
+      this.last.month = this.setup_defaults('BYMONTH', 'MONTHLY', this.dtstart.month);
 
-      if (this.rule.freq == "WEEKLY") {
-        if ("BYDAY" in parts) {
+      if (this.rule.freq == 'WEEKLY') {
+        if ('BYDAY' in parts) {
           var bydayParts = this.ruleDayOfWeek(parts.BYDAY[0], this.rule.wkst);
           var pos = bydayParts[0];
           var dow = bydayParts[1];
           var wkdy = dow - this.last.dayOfWeek(this.rule.wkst);
-          if (
-            (this.last.dayOfWeek(this.rule.wkst) < dow && wkdy >= 0) ||
-            wkdy < 0
-          ) {
+          if ((this.last.dayOfWeek(this.rule.wkst) < dow && wkdy >= 0) || wkdy < 0) {
             // Initial time is after first day of BYDAY data
             this.last.day += wkdy;
           }
         } else {
-          var dayName = ICAL.Recur.numericDayToIcalDay(
-            this.dtstart.dayOfWeek()
-          );
+          var dayName = ICAL.Recur.numericDayToIcalDay(this.dtstart.dayOfWeek());
           parts.BYDAY = [dayName];
         }
       }
 
-      if (this.rule.freq == "YEARLY") {
+      if (this.rule.freq == 'YEARLY') {
         for (;;) {
           this.expand_year_days(this.last.year);
           if (this.days.length > 0) {
@@ -7336,13 +6809,10 @@ ICAL.RecurIterator = (function () {
         this._nextByYearDay();
       }
 
-      if (this.rule.freq == "MONTHLY" && this.has_by_data("BYDAY")) {
+      if (this.rule.freq == 'MONTHLY' && this.has_by_data('BYDAY')) {
         var tempLast = null;
         var initLast = this.last.clone();
-        var daysInMonth = ICAL.Time.daysInMonth(
-          this.last.month,
-          this.last.year
-        );
+        var daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
 
         // Check every weekday in BYDAY with relative dow and pos.
         for (var i in this.by_data.BYDAY) {
@@ -7357,7 +6827,7 @@ ICAL.RecurIterator = (function () {
 
           // If |pos| >= 6, the byday is invalid for a monthly rule.
           if (pos >= 6 || pos <= -6) {
-            throw new Error("Malformed values in BYDAY part");
+            throw new Error('Malformed values in BYDAY part');
           }
 
           // If a Byday with pos=+/-5 is not in the current month it
@@ -7369,10 +6839,7 @@ ICAL.RecurIterator = (function () {
             }
             while (dayOfMonth > daysInMonth || dayOfMonth <= 0) {
               this.increment_month();
-              daysInMonth = ICAL.Time.daysInMonth(
-                this.last.month,
-                this.last.year
-              );
+              daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
               dayOfMonth = this.last.nthWeekDay(dow, pos);
             }
           }
@@ -7389,19 +6856,16 @@ ICAL.RecurIterator = (function () {
         //     this case. It accepts a special flag which will avoid incrementing
         //     the initial value without the flag days that match the start time
         //     would be missed.
-        if (this.has_by_data("BYMONTHDAY")) {
+        if (this.has_by_data('BYMONTHDAY')) {
           this._byDayAndMonthDay(true);
         }
 
         if (this.last.day > daysInMonth || this.last.day == 0) {
-          throw new Error("Malformed values in BYDAY part");
+          throw new Error('Malformed values in BYDAY part');
         }
-      } else if (this.has_by_data("BYMONTHDAY")) {
+      } else if (this.has_by_data('BYMONTHDAY')) {
         if (this.last.day < 0) {
-          var daysInMonth = ICAL.Time.daysInMonth(
-            this.last.month,
-            this.last.year
-          );
+          var daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
           this.last.day = daysInMonth + this.last.day + 1;
         }
       }
@@ -7414,10 +6878,7 @@ ICAL.RecurIterator = (function () {
     next: function icalrecur_iterator_next() {
       var before = this.last ? this.last.clone() : null;
 
-      if (
-        (this.rule.count && this.occurrence_number >= this.rule.count) ||
-        (this.rule.until && this.last.compare(this.rule.until) > 0)
-      ) {
+      if ((this.rule.count && this.occurrence_number >= this.rule.count) || (this.rule.until && this.last.compare(this.rule.until) > 0)) {
         //XXX: right now this is just a flag and has no impact
         //     we can simplify the above case to check for completed later.
         this.completed = true;
@@ -7436,43 +6897,36 @@ ICAL.RecurIterator = (function () {
         valid = 1;
 
         switch (this.rule.freq) {
-          case "SECONDLY":
+          case 'SECONDLY':
             this.next_second();
             break;
-          case "MINUTELY":
+          case 'MINUTELY':
             this.next_minute();
             break;
-          case "HOURLY":
+          case 'HOURLY':
             this.next_hour();
             break;
-          case "DAILY":
+          case 'DAILY':
             this.next_day();
             break;
-          case "WEEKLY":
+          case 'WEEKLY':
             this.next_week();
             break;
-          case "MONTHLY":
+          case 'MONTHLY':
             valid = this.next_month();
             break;
-          case "YEARLY":
+          case 'YEARLY':
             this.next_year();
             break;
 
           default:
             return null;
         }
-      } while (
-        !this.check_contracting_rules() ||
-        this.last.compare(this.dtstart) < 0 ||
-        !valid
-      );
+      } while (!this.check_contracting_rules() || this.last.compare(this.dtstart) < 0 || !valid);
 
       // TODO is this valid?
       if (this.last.compare(before) == 0) {
-        throw new Error(
-          "Same occurrence found twice, protecting " +
-            "you from death by recursion"
-        );
+        throw new Error('Same occurrence found twice, protecting ' + 'you from death by recursion');
       }
 
       if (this.rule.until && this.last.compare(this.rule.until) > 0) {
@@ -7485,44 +6939,32 @@ ICAL.RecurIterator = (function () {
     },
 
     next_second: function next_second() {
-      return this.next_generic("BYSECOND", "SECONDLY", "second", "minute");
+      return this.next_generic('BYSECOND', 'SECONDLY', 'second', 'minute');
     },
 
     increment_second: function increment_second(inc) {
-      return this.increment_generic(inc, "second", 60, "minute");
+      return this.increment_generic(inc, 'second', 60, 'minute');
     },
 
     next_minute: function next_minute() {
-      return this.next_generic(
-        "BYMINUTE",
-        "MINUTELY",
-        "minute",
-        "hour",
-        "next_second"
-      );
+      return this.next_generic('BYMINUTE', 'MINUTELY', 'minute', 'hour', 'next_second');
     },
 
     increment_minute: function increment_minute(inc) {
-      return this.increment_generic(inc, "minute", 60, "hour");
+      return this.increment_generic(inc, 'minute', 60, 'hour');
     },
 
     next_hour: function next_hour() {
-      return this.next_generic(
-        "BYHOUR",
-        "HOURLY",
-        "hour",
-        "monthday",
-        "next_minute"
-      );
+      return this.next_generic('BYHOUR', 'HOURLY', 'hour', 'monthday', 'next_minute');
     },
 
     increment_hour: function increment_hour(inc) {
-      this.increment_generic(inc, "hour", 24, "monthday");
+      this.increment_generic(inc, 'hour', 24, 'monthday');
     },
 
     next_day: function next_day() {
-      var has_by_day = "BYDAY" in this.by_data;
-      var this_freq = this.rule.freq == "DAILY";
+      var has_by_day = 'BYDAY' in this.by_data;
+      var this_freq = this.rule.freq == 'DAILY';
 
       if (this.next_hour() == 0) {
         return 0;
@@ -7544,7 +6986,7 @@ ICAL.RecurIterator = (function () {
         return end_of_data;
       }
 
-      if (this.has_by_data("BYWEEKNO")) {
+      if (this.has_by_data('BYWEEKNO')) {
         var idx = ++this.by_indices.BYWEEKNO;
 
         if (this.by_indices.BYWEEKNO == this.by_data.BYWEEKNO.length) {
@@ -7659,11 +7101,7 @@ ICAL.RecurIterator = (function () {
       function initMonth() {
         daysInMonth = ICAL.Time.daysInMonth(self.last.month, self.last.year);
 
-        byMonthDay = self.normalizeByMonthDayRules(
-          self.last.year,
-          self.last.month,
-          self.by_data.BYMONTHDAY
-        );
+        byMonthDay = self.normalizeByMonthDayRules(self.last.year, self.last.month, self.by_data.BYMONTHDAY);
 
         dateLen = byMonthDay.length;
 
@@ -7672,11 +7110,7 @@ ICAL.RecurIterator = (function () {
         // found date or at the last BYMONTHDAY, unless we are
         // initializing the iterator because in this case we have
         // to consider the last found date too.
-        while (
-          byMonthDay[dateIdx] <= lastDay &&
-          !(isInit && byMonthDay[dateIdx] == lastDay) &&
-          dateIdx < dateLen - 1
-        ) {
+        while (byMonthDay[dateIdx] <= lastDay && !(isInit && byMonthDay[dateIdx] == lastDay) && dateIdx < dateLen - 1) {
           dateIdx++;
         }
       }
@@ -7763,33 +7197,28 @@ ICAL.RecurIterator = (function () {
       if (monthsCounter <= 0) {
         // Checked 4 years without finding a Byday that matches
         // a Bymonthday. Maybe the rule is not correct.
-        throw new Error(
-          "Malformed values in BYDAY combined with BYMONTHDAY parts"
-        );
+        throw new Error('Malformed values in BYDAY combined with BYMONTHDAY parts');
       }
 
       return dataIsValid;
     },
 
     next_month: function next_month() {
-      var this_freq = this.rule.freq == "MONTHLY";
+      var this_freq = this.rule.freq == 'MONTHLY';
       var data_valid = 1;
 
       if (this.next_hour() == 0) {
         return data_valid;
       }
 
-      if (this.has_by_data("BYDAY") && this.has_by_data("BYMONTHDAY")) {
+      if (this.has_by_data('BYDAY') && this.has_by_data('BYMONTHDAY')) {
         data_valid = this._byDayAndMonthDay();
-      } else if (this.has_by_data("BYDAY")) {
-        var daysInMonth = ICAL.Time.daysInMonth(
-          this.last.month,
-          this.last.year
-        );
+      } else if (this.has_by_data('BYDAY')) {
+        var daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
         var setpos = 0;
         var setpos_total = 0;
 
-        if (this.has_by_data("BYSETPOS")) {
+        if (this.has_by_data('BYSETPOS')) {
           var last_day = this.last.day;
           for (var day = 1; day <= daysInMonth; day++) {
             this.last.day = day;
@@ -7808,11 +7237,7 @@ ICAL.RecurIterator = (function () {
           this.last.day = day;
 
           if (this.is_day_in_byday(this.last)) {
-            if (
-              !this.has_by_data("BYSETPOS") ||
-              this.check_set_position(++setpos) ||
-              this.check_set_position(setpos - setpos_total - 1)
-            ) {
+            if (!this.has_by_data('BYSETPOS') || this.check_set_position(++setpos) || this.check_set_position(setpos - setpos_total - 1)) {
               data_valid = 1;
               break;
             }
@@ -7824,14 +7249,14 @@ ICAL.RecurIterator = (function () {
           this.increment_month();
 
           if (this.is_day_in_byday(this.last)) {
-            if (!this.has_by_data("BYSETPOS") || this.check_set_position(1)) {
+            if (!this.has_by_data('BYSETPOS') || this.check_set_position(1)) {
               data_valid = 1;
             }
           } else {
             data_valid = 0;
           }
         }
-      } else if (this.has_by_data("BYMONTHDAY")) {
+      } else if (this.has_by_data('BYMONTHDAY')) {
         this.by_indices.BYMONTHDAY++;
 
         if (this.by_indices.BYMONTHDAY >= this.by_data.BYMONTHDAY.length) {
@@ -7839,10 +7264,7 @@ ICAL.RecurIterator = (function () {
           this.increment_month();
         }
 
-        var daysInMonth = ICAL.Time.daysInMonth(
-          this.last.month,
-          this.last.year
-        );
+        var daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
         var day = this.by_data.BYMONTHDAY[this.by_indices.BYMONTHDAY];
 
         if (day < 0) {
@@ -7857,10 +7279,7 @@ ICAL.RecurIterator = (function () {
         }
       } else {
         this.increment_month();
-        var daysInMonth = ICAL.Time.daysInMonth(
-          this.last.month,
-          this.last.year
-        );
+        var daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
         if (this.by_data.BYMONTHDAY[0] > daysInMonth) {
           data_valid = 0;
         } else {
@@ -7878,7 +7297,7 @@ ICAL.RecurIterator = (function () {
         return end_of_data;
       }
 
-      if (!this.has_by_data("BYDAY")) {
+      if (!this.has_by_data('BYDAY')) {
         return 1;
       }
 
@@ -7979,13 +7398,7 @@ ICAL.RecurIterator = (function () {
       }
     },
 
-    next_generic: function next_generic(
-      aRuleType,
-      aInterval,
-      aDateAttr,
-      aFollowingAttr,
-      aPreviousIncr
-    ) {
+    next_generic: function next_generic(aRuleType, aInterval, aDateAttr, aFollowingAttr, aPreviousIncr) {
       var has_by_rule = aRuleType in this.by_data;
       var this_freq = this.rule.freq == aInterval;
       var end_of_data = 0;
@@ -8005,11 +7418,11 @@ ICAL.RecurIterator = (function () {
         }
         this.last[aDateAttr] = dta[this.by_indices[aRuleType]];
       } else if (this_freq) {
-        this["increment_" + aDateAttr](this.rule.interval);
+        this['increment_' + aDateAttr](this.rule.interval);
       }
 
       if (has_by_rule && end_of_data && this_freq) {
-        this["increment_" + aFollowingAttr](1);
+        this['increment_' + aFollowingAttr](1);
       }
 
       return end_of_data;
@@ -8017,10 +7430,7 @@ ICAL.RecurIterator = (function () {
 
     increment_monthday: function increment_monthday(inc) {
       for (var i = 0; i < inc; i++) {
-        var daysInMonth = ICAL.Time.daysInMonth(
-          this.last.month,
-          this.last.year
-        );
+        var daysInMonth = ICAL.Time.daysInMonth(this.last.month, this.last.year);
         this.last.day++;
 
         if (this.last.day > daysInMonth) {
@@ -8032,7 +7442,7 @@ ICAL.RecurIterator = (function () {
 
     increment_month: function increment_month() {
       this.last.day = 1;
-      if (this.has_by_data("BYMONTH")) {
+      if (this.has_by_data('BYMONTH')) {
         this.by_indices.BYMONTH++;
 
         if (this.by_indices.BYMONTH == this.by_data.BYMONTH.length) {
@@ -8042,7 +7452,7 @@ ICAL.RecurIterator = (function () {
 
         this.last.month = this.by_data.BYMONTH[this.by_indices.BYMONTH];
       } else {
-        if (this.rule.freq == "MONTHLY") {
+        if (this.rule.freq == 'MONTHLY') {
           this.last.month += this.rule.interval;
         } else {
           this.last.month++;
@@ -8063,17 +7473,12 @@ ICAL.RecurIterator = (function () {
       this.last.year += inc;
     },
 
-    increment_generic: function increment_generic(
-      inc,
-      aDateAttr,
-      aFactor,
-      aNextIncrement
-    ) {
+    increment_generic: function increment_generic(inc, aDateAttr, aFactor, aNextIncrement) {
       this.last[aDateAttr] += inc;
       var nextunit = ICAL.helpers.trunc(this.last[aDateAttr] / aFactor);
       this.last[aDateAttr] %= aFactor;
       if (nextunit != 0) {
-        this["increment_" + aNextIncrement](nextunit);
+        this['increment_' + aNextIncrement](nextunit);
       }
     },
 
@@ -8087,7 +7492,7 @@ ICAL.RecurIterator = (function () {
 
       // We need our own copy with a few keys set
       var parts = {};
-      var rules = ["BYDAY", "BYWEEKNO", "BYMONTHDAY", "BYMONTH", "BYYEARDAY"];
+      var rules = ['BYDAY', 'BYWEEKNO', 'BYMONTHDAY', 'BYMONTH', 'BYYEARDAY'];
       for (var p in rules) {
         if (rules.hasOwnProperty(p)) {
           var part = rules[p];
@@ -8097,17 +7502,13 @@ ICAL.RecurIterator = (function () {
         }
       }
 
-      if ("BYMONTH" in parts && "BYWEEKNO" in parts) {
+      if ('BYMONTH' in parts && 'BYWEEKNO' in parts) {
         var valid = 1;
         var validWeeks = {};
         t.year = aYear;
         t.isDate = true;
 
-        for (
-          var monthIdx = 0;
-          monthIdx < this.by_data.BYMONTH.length;
-          monthIdx++
-        ) {
+        for (var monthIdx = 0; monthIdx < this.by_data.BYMONTH.length; monthIdx++) {
           var month = this.by_data.BYMONTH[monthIdx];
           t.month = month;
           t.day = 1;
@@ -8119,11 +7520,7 @@ ICAL.RecurIterator = (function () {
           }
         }
 
-        for (
-          var weekIdx = 0;
-          weekIdx < this.by_data.BYWEEKNO.length && valid;
-          weekIdx++
-        ) {
+        for (var weekIdx = 0; weekIdx < this.by_data.BYWEEKNO.length && valid; weekIdx++) {
           var weekno = this.by_data.BYWEEKNO[weekIdx];
           if (weekno < 52) {
             valid &= validWeeks[weekIdx];
@@ -8145,7 +7542,7 @@ ICAL.RecurIterator = (function () {
         var t1 = this.dtstart.clone();
         t1.year = this.last.year;
         this.days.push(t1.dayOfYear());
-      } else if (partCount == 1 && "BYMONTH" in parts) {
+      } else if (partCount == 1 && 'BYMONTH' in parts) {
         for (var monthkey in this.by_data.BYMONTH) {
           if (!this.by_data.BYMONTH.hasOwnProperty(monthkey)) {
             continue;
@@ -8156,7 +7553,7 @@ ICAL.RecurIterator = (function () {
           t2.isDate = true;
           this.days.push(t2.dayOfYear());
         }
-      } else if (partCount == 1 && "BYMONTHDAY" in parts) {
+      } else if (partCount == 1 && 'BYMONTHDAY' in parts) {
         for (var monthdaykey in this.by_data.BYMONTHDAY) {
           if (!this.by_data.BYMONTHDAY.hasOwnProperty(monthdaykey)) {
             continue;
@@ -8172,11 +7569,7 @@ ICAL.RecurIterator = (function () {
           t3.isDate = true;
           this.days.push(t3.dayOfYear());
         }
-      } else if (
-        partCount == 2 &&
-        "BYMONTHDAY" in parts &&
-        "BYMONTH" in parts
-      ) {
+      } else if (partCount == 2 && 'BYMONTHDAY' in parts && 'BYMONTH' in parts) {
         for (var monthkey in this.by_data.BYMONTH) {
           if (!this.by_data.BYMONTH.hasOwnProperty(monthkey)) {
             continue;
@@ -8199,17 +7592,13 @@ ICAL.RecurIterator = (function () {
             this.days.push(t.dayOfYear());
           }
         }
-      } else if (partCount == 1 && "BYWEEKNO" in parts) {
+      } else if (partCount == 1 && 'BYWEEKNO' in parts) {
         // TODO unimplemented in libical
-      } else if (
-        partCount == 2 &&
-        "BYWEEKNO" in parts &&
-        "BYMONTHDAY" in parts
-      ) {
+      } else if (partCount == 2 && 'BYWEEKNO' in parts && 'BYMONTHDAY' in parts) {
         // TODO unimplemented in libical
-      } else if (partCount == 1 && "BYDAY" in parts) {
+      } else if (partCount == 1 && 'BYDAY' in parts) {
         this.days = this.days.concat(this.expand_by_day(aYear));
-      } else if (partCount == 2 && "BYDAY" in parts && "BYMONTH" in parts) {
+      } else if (partCount == 2 && 'BYDAY' in parts && 'BYMONTH' in parts) {
         for (var monthkey in this.by_data.BYMONTH) {
           if (!this.by_data.BYMONTH.hasOwnProperty(monthkey)) {
             continue;
@@ -8228,7 +7617,7 @@ ICAL.RecurIterator = (function () {
           t.day = daysInMonth;
           var last_dow = t.dayOfWeek();
 
-          if (this.has_by_data("BYSETPOS")) {
+          if (this.has_by_data('BYSETPOS')) {
             var set_pos_counter = 0;
             var by_month_day = [];
             for (var day = 1; day <= daysInMonth; day++) {
@@ -8239,10 +7628,7 @@ ICAL.RecurIterator = (function () {
             }
 
             for (var spIndex = 0; spIndex < by_month_day.length; spIndex++) {
-              if (
-                this.check_set_position(spIndex + 1) ||
-                this.check_set_position(spIndex - by_month_day.length)
-              ) {
+              if (this.check_set_position(spIndex + 1) || this.check_set_position(spIndex - by_month_day.length)) {
                 this.days.push(doy_offset + by_month_day[spIndex]);
               }
             }
@@ -8261,11 +7647,7 @@ ICAL.RecurIterator = (function () {
               var last_matching_day = daysInMonth - ((last_dow + 7 - dow) % 7);
 
               if (pos == 0) {
-                for (
-                  var day = first_matching_day;
-                  day <= daysInMonth;
-                  day += 7
-                ) {
+                for (var day = first_matching_day; day <= daysInMonth; day += 7) {
                   this.days.push(doy_offset + day);
                 }
               } else if (pos > 0) {
@@ -8289,7 +7671,7 @@ ICAL.RecurIterator = (function () {
         this.days.sort(function (a, b) {
           return a - b;
         }); // Comparator function allows to sort numbers.
-      } else if (partCount == 2 && "BYDAY" in parts && "BYMONTHDAY" in parts) {
+      } else if (partCount == 2 && 'BYDAY' in parts && 'BYMONTHDAY' in parts) {
         var expandedDays = this.expand_by_day(aYear);
 
         for (var daykey in expandedDays) {
@@ -8302,12 +7684,7 @@ ICAL.RecurIterator = (function () {
             this.days.push(day);
           }
         }
-      } else if (
-        partCount == 3 &&
-        "BYDAY" in parts &&
-        "BYMONTHDAY" in parts &&
-        "BYMONTH" in parts
-      ) {
+      } else if (partCount == 3 && 'BYDAY' in parts && 'BYMONTHDAY' in parts && 'BYMONTH' in parts) {
         var expandedDays = this.expand_by_day(aYear);
 
         for (var daykey in expandedDays) {
@@ -8317,14 +7694,11 @@ ICAL.RecurIterator = (function () {
           var day = expandedDays[daykey];
           var tt = ICAL.Time.fromDayOfYear(day, aYear);
 
-          if (
-            this.by_data.BYMONTH.indexOf(tt.month) >= 0 &&
-            this.by_data.BYMONTHDAY.indexOf(tt.day) >= 0
-          ) {
+          if (this.by_data.BYMONTH.indexOf(tt.month) >= 0 && this.by_data.BYMONTHDAY.indexOf(tt.day) >= 0) {
             this.days.push(day);
           }
         }
-      } else if (partCount == 2 && "BYDAY" in parts && "BYWEEKNO" in parts) {
+      } else if (partCount == 2 && 'BYDAY' in parts && 'BYWEEKNO' in parts) {
         var expandedDays = this.expand_by_day(aYear);
 
         for (var daykey in expandedDays) {
@@ -8339,14 +7713,9 @@ ICAL.RecurIterator = (function () {
             this.days.push(day);
           }
         }
-      } else if (
-        partCount == 3 &&
-        "BYDAY" in parts &&
-        "BYWEEKNO" in parts &&
-        "BYMONTHDAY" in parts
-      ) {
+      } else if (partCount == 3 && 'BYDAY' in parts && 'BYWEEKNO' in parts && 'BYMONTHDAY' in parts) {
         // TODO unimplemted in libical
-      } else if (partCount == 1 && "BYYEARDAY" in parts) {
+      } else if (partCount == 1 && 'BYYEARDAY' in parts) {
         this.days = this.days.concat(this.by_data.BYYEARDAY);
       } else {
         this.days = [];
@@ -8423,10 +7792,7 @@ ICAL.RecurIterator = (function () {
         var dow = parts[1];
         var this_dow = tt.dayOfWeek();
 
-        if (
-          (pos == 0 && dow == this_dow) ||
-          tt.nthWeekDay(dow, pos) == tt.day
-        ) {
+        if ((pos == 0 && dow == this_dow) || tt.nthWeekDay(dow, pos) == tt.day) {
           return 1;
         }
       }
@@ -8443,7 +7809,7 @@ ICAL.RecurIterator = (function () {
      *                   and the given value is present in rules.
      */
     check_set_position: function check_set_position(aPos) {
-      if (this.has_by_data("BYSETPOS")) {
+      if (this.has_by_data('BYSETPOS')) {
         var idx = this.by_data.BYSETPOS.indexOf(aPos);
         // negative numbers are not false-y
         return idx !== -1;
@@ -8466,19 +7832,12 @@ ICAL.RecurIterator = (function () {
       }
     },
 
-    check_contract_restriction: function check_contract_restriction(
-      aRuleType,
-      v
-    ) {
+    check_contract_restriction: function check_contract_restriction(aRuleType, v) {
       var indexMapValue = icalrecur_iterator._indexMap[aRuleType];
-      var ruleMapValue =
-        icalrecur_iterator._expandMap[this.rule.freq][indexMapValue];
+      var ruleMapValue = icalrecur_iterator._expandMap[this.rule.freq][indexMapValue];
       var pass = false;
 
-      if (
-        aRuleType in this.by_data &&
-        ruleMapValue == icalrecur_iterator.CONTRACT
-      ) {
+      if (aRuleType in this.by_data && ruleMapValue == icalrecur_iterator.CONTRACT) {
         var ruleType = this.by_data[aRuleType];
 
         for (var bydatakey in ruleType) {
@@ -8502,24 +7861,20 @@ ICAL.RecurIterator = (function () {
       var doy = this.last.dayOfYear();
 
       return (
-        this.check_contract_restriction("BYSECOND", this.last.second) &&
-        this.check_contract_restriction("BYMINUTE", this.last.minute) &&
-        this.check_contract_restriction("BYHOUR", this.last.hour) &&
-        this.check_contract_restriction(
-          "BYDAY",
-          ICAL.Recur.numericDayToIcalDay(dow)
-        ) &&
-        this.check_contract_restriction("BYWEEKNO", weekNo) &&
-        this.check_contract_restriction("BYMONTHDAY", this.last.day) &&
-        this.check_contract_restriction("BYMONTH", this.last.month) &&
-        this.check_contract_restriction("BYYEARDAY", doy)
+        this.check_contract_restriction('BYSECOND', this.last.second) &&
+        this.check_contract_restriction('BYMINUTE', this.last.minute) &&
+        this.check_contract_restriction('BYHOUR', this.last.hour) &&
+        this.check_contract_restriction('BYDAY', ICAL.Recur.numericDayToIcalDay(dow)) &&
+        this.check_contract_restriction('BYWEEKNO', weekNo) &&
+        this.check_contract_restriction('BYMONTHDAY', this.last.day) &&
+        this.check_contract_restriction('BYMONTH', this.last.month) &&
+        this.check_contract_restriction('BYYEARDAY', doy)
       );
     },
 
     setup_defaults: function setup_defaults(aRuleType, req, deftime) {
       var indexMapValue = icalrecur_iterator._indexMap[aRuleType];
-      var ruleMapValue =
-        icalrecur_iterator._expandMap[this.rule.freq][indexMapValue];
+      var ruleMapValue = icalrecur_iterator._expandMap[this.rule.freq][indexMapValue];
 
       if (ruleMapValue != icalrecur_iterator.CONTRACT) {
         if (!(aRuleType in this.by_data)) {
@@ -8597,11 +7952,7 @@ ICAL.RecurExpansion = (function () {
   }
 
   function isRecurringComponent(comp) {
-    return (
-      comp.hasProperty("rdate") ||
-      comp.hasProperty("rrule") ||
-      comp.hasProperty("recurrence-id")
-    );
+    return comp.hasProperty('rdate') || comp.hasProperty('rrule') || comp.hasProperty('recurrence-id');
   }
 
   /**
@@ -8757,7 +8108,7 @@ ICAL.RecurExpansion = (function () {
       var start = ICAL.helpers.formatClassType(options.dtstart, ICAL.Time);
 
       if (!start) {
-        throw new Error(".dtstart (ICAL.Time) must be given");
+        throw new Error('.dtstart (ICAL.Time) must be given');
       } else {
         this.dtstart = start;
       }
@@ -8768,7 +8119,7 @@ ICAL.RecurExpansion = (function () {
         this.last = formatTime(options.last) || start.clone();
 
         if (!options.ruleIterators) {
-          throw new Error(".ruleIterators or .component must be given");
+          throw new Error('.ruleIterators or .component must be given');
         }
 
         this.ruleIterators = options.ruleIterators.map(function (item) {
@@ -8788,7 +8139,7 @@ ICAL.RecurExpansion = (function () {
           this.exDate = this.exDates[this.exDateInc];
         }
 
-        if (typeof options.complete !== "undefined") {
+        if (typeof options.complete !== 'undefined') {
           this.complete = options.complete;
         }
       }
@@ -8809,9 +8160,7 @@ ICAL.RecurExpansion = (function () {
 
       while (true) {
         if (currentTry++ > maxTries) {
-          throw new Error(
-            "max tries have occured, rule may be impossible to forfill."
-          );
+          throw new Error('max tries have occured, rule may be impossible to forfill.');
         }
 
         next = this.ruleDate;
@@ -8949,8 +8298,8 @@ ICAL.RecurExpansion = (function () {
         return;
       }
 
-      if (component.hasProperty("rdate")) {
-        this.ruleDates = this._extractDates(component, "rdate");
+      if (component.hasProperty('rdate')) {
+        this.ruleDates = this._extractDates(component, 'rdate');
 
         // special hack for cases where first rdate is prior
         // to the start date. We only check for the first rdate.
@@ -8960,18 +8309,14 @@ ICAL.RecurExpansion = (function () {
           this.ruleDateInc = 0;
           this.last = this.ruleDates[0].clone();
         } else {
-          this.ruleDateInc = ICAL.helpers.binsearchInsert(
-            this.ruleDates,
-            this.last,
-            compareTime
-          );
+          this.ruleDateInc = ICAL.helpers.binsearchInsert(this.ruleDates, this.last, compareTime);
         }
 
         this.ruleDate = this.ruleDates[this.ruleDateInc];
       }
 
-      if (component.hasProperty("rrule")) {
-        var rules = component.getAllProperties("rrule");
+      if (component.hasProperty('rrule')) {
+        var rules = component.getAllProperties('rrule');
         var i = 0;
         var len = rules.length;
 
@@ -8990,14 +8335,10 @@ ICAL.RecurExpansion = (function () {
         }
       }
 
-      if (component.hasProperty("exdate")) {
-        this.exDates = this._extractDates(component, "exdate");
+      if (component.hasProperty('exdate')) {
+        this.exDates = this._extractDates(component, 'exdate');
         // if we have a .last day we increment the index to beyond it.
-        this.exDateInc = ICAL.helpers.binsearchInsert(
-          this.exDates,
-          this.last,
-          compareTime
-        );
+        this.exDateInc = ICAL.helpers.binsearchInsert(this.exDates, this.last, compareTime);
 
         this.exDate = this.exDates[this.exDateInc];
       }
@@ -9104,7 +8445,7 @@ ICAL.Event = (function () {
     if (component) {
       this.component = component;
     } else {
-      this.component = new ICAL.Component("vevent");
+      this.component = new ICAL.Component('vevent');
     }
 
     this._rangeExceptionCache = Object.create(null);
@@ -9119,18 +8460,16 @@ ICAL.Event = (function () {
     if (options && options.exceptions) {
       options.exceptions.forEach(this.relateException, this);
     } else if (this.component.parent && !this.isRecurrenceException()) {
-      this.component.parent
-        .getAllSubcomponents("vevent")
-        .forEach(function (event) {
-          if (event.hasProperty("recurrence-id")) {
-            this.relateException(event);
-          }
-        }, this);
+      this.component.parent.getAllSubcomponents('vevent').forEach(function (event) {
+        if (event.hasProperty('recurrence-id')) {
+          this.relateException(event);
+        }
+      }, this);
     }
   }
 
   Event.prototype = {
-    THISANDFUTURE: "THISANDFUTURE",
+    THISANDFUTURE: 'THISANDFUTURE',
 
     /**
      * List of related event exceptions.
@@ -9159,7 +8498,7 @@ ICAL.Event = (function () {
      */
     relateException: function (obj) {
       if (this.isRecurrenceException()) {
-        throw new Error("cannot relate exception to exceptions");
+        throw new Error('cannot relate exception to exceptions');
       }
 
       if (obj instanceof ICAL.Component) {
@@ -9185,11 +8524,7 @@ ICAL.Event = (function () {
 
         // we keep them sorted so we can find the nearest
         // value later on...
-        var idx = ICAL.helpers.binsearchInsert(
-          this.rangeExceptions,
-          item,
-          compareRangeException
-        );
+        var idx = ICAL.helpers.binsearchInsert(this.rangeExceptions, item, compareRangeException);
 
         this.rangeExceptions.splice(idx, 0, item);
       }
@@ -9202,13 +8537,11 @@ ICAL.Event = (function () {
      * @return {Boolean}        True, when exception is within range
      */
     modifiesFuture: function () {
-      if (!this.component.hasProperty("recurrence-id")) {
+      if (!this.component.hasProperty('recurrence-id')) {
         return false;
       }
 
-      var range = this.component
-        .getFirstProperty("recurrence-id")
-        .getParameter("range");
+      var range = this.component.getFirstProperty('recurrence-id').getParameter('range');
       return range === this.THISANDFUTURE;
     },
 
@@ -9224,11 +8557,7 @@ ICAL.Event = (function () {
       }
 
       var utc = time.toUnixTime();
-      var idx = ICAL.helpers.binsearchInsert(
-        this.rangeExceptions,
-        [utc],
-        compareRangeException
-      );
+      var idx = ICAL.helpers.binsearchInsert(this.rangeExceptions, [utc], compareRangeException);
 
       idx -= 1;
 
@@ -9269,9 +8598,7 @@ ICAL.Event = (function () {
      */
     getOccurrenceDetails: function (occurrence) {
       var id = occurrence.toString();
-      var utcId = occurrence
-        .convertToZone(ICAL.Timezone.utcTimezone)
-        .toString();
+      var utcId = occurrence.convertToZone(ICAL.Timezone.utcTimezone).toString();
       var item;
       var result = {
         //XXX: Clone?
@@ -9360,7 +8687,7 @@ ICAL.Event = (function () {
      */
     isRecurring: function () {
       var comp = this.component;
-      return comp.hasProperty("rrule") || comp.hasProperty("rdate");
+      return comp.hasProperty('rrule') || comp.hasProperty('rdate');
     },
 
     /**
@@ -9370,7 +8697,7 @@ ICAL.Event = (function () {
      * @return {Boolean}    True, if the even describes a recurrence exception
      */
     isRecurrenceException: function () {
-      return this.component.hasProperty("recurrence-id");
+      return this.component.hasProperty('recurrence-id');
     },
 
     /**
@@ -9389,7 +8716,7 @@ ICAL.Event = (function () {
      *          Object of recurrence flags
      */
     getRecurrenceTypes: function () {
-      var rules = this.component.getAllProperties("rrule");
+      var rules = this.component.getAllProperties('rrule');
       var i = 0;
       var len = rules.length;
       var result = Object.create(null);
@@ -9407,11 +8734,11 @@ ICAL.Event = (function () {
      * @type {String}
      */
     get uid() {
-      return this._firstProp("uid");
+      return this._firstProp('uid');
     },
 
     set uid(value) {
-      this._setProp("uid", value);
+      this._setProp('uid', value);
     },
 
     /**
@@ -9419,11 +8746,11 @@ ICAL.Event = (function () {
      * @type {ICAL.Time}
      */
     get startDate() {
-      return this._firstProp("dtstart");
+      return this._firstProp('dtstart');
     },
 
     set startDate(value) {
-      this._setTime("dtstart", value);
+      this._setTime('dtstart', value);
     },
 
     /**
@@ -9433,9 +8760,9 @@ ICAL.Event = (function () {
      * @type {ICAL.Time}
      */
     get endDate() {
-      var endDate = this._firstProp("dtend");
+      var endDate = this._firstProp('dtend');
       if (!endDate) {
-        var duration = this._firstProp("duration");
+        var duration = this._firstProp('duration');
         endDate = this.startDate.clone();
         if (duration) {
           endDate.addDuration(duration);
@@ -9447,10 +8774,10 @@ ICAL.Event = (function () {
     },
 
     set endDate(value) {
-      if (this.component.hasProperty("duration")) {
-        this.component.removeProperty("duration");
+      if (this.component.hasProperty('duration')) {
+        this.component.removeProperty('duration');
       }
-      this._setTime("dtend", value);
+      this._setTime('dtend', value);
     },
 
     /**
@@ -9460,7 +8787,7 @@ ICAL.Event = (function () {
      * @type {ICAL.Duration}
      */
     get duration() {
-      var duration = this._firstProp("duration");
+      var duration = this._firstProp('duration');
       if (!duration) {
         return this.endDate.subtractDateTz(this.startDate);
       }
@@ -9468,11 +8795,11 @@ ICAL.Event = (function () {
     },
 
     set duration(value) {
-      if (this.component.hasProperty("dtend")) {
-        this.component.removeProperty("dtend");
+      if (this.component.hasProperty('dtend')) {
+        this.component.removeProperty('dtend');
       }
 
-      this._setProp("duration", value);
+      this._setProp('duration', value);
     },
 
     /**
@@ -9480,11 +8807,11 @@ ICAL.Event = (function () {
      * @type {String}
      */
     get location() {
-      return this._firstProp("location");
+      return this._firstProp('location');
     },
 
     set location(value) {
-      return this._setProp("location", value);
+      return this._setProp('location', value);
     },
 
     /**
@@ -9495,7 +8822,7 @@ ICAL.Event = (function () {
     get attendees() {
       //XXX: This is way lame we should have a better
       //     data structure for this later.
-      return this.component.getAllProperties("attendee");
+      return this.component.getAllProperties('attendee');
     },
 
     /**
@@ -9503,11 +8830,11 @@ ICAL.Event = (function () {
      * @type {String}
      */
     get summary() {
-      return this._firstProp("summary");
+      return this._firstProp('summary');
     },
 
     set summary(value) {
-      this._setProp("summary", value);
+      this._setProp('summary', value);
     },
 
     /**
@@ -9515,11 +8842,11 @@ ICAL.Event = (function () {
      * @type {String}
      */
     get description() {
-      return this._firstProp("description");
+      return this._firstProp('description');
     },
 
     set description(value) {
-      this._setProp("description", value);
+      this._setProp('description', value);
     },
 
     /**
@@ -9528,11 +8855,11 @@ ICAL.Event = (function () {
      * @type {String}
      */
     get organizer() {
-      return this._firstProp("organizer");
+      return this._firstProp('organizer');
     },
 
     set organizer(value) {
-      this._setProp("organizer", value);
+      this._setProp('organizer', value);
     },
 
     /**
@@ -9541,11 +8868,11 @@ ICAL.Event = (function () {
      * @type {Number}
      */
     get sequence() {
-      return this._firstProp("sequence");
+      return this._firstProp('sequence');
     },
 
     set sequence(value) {
-      this._setProp("sequence", value);
+      this._setProp('sequence', value);
     },
 
     /**
@@ -9553,11 +8880,11 @@ ICAL.Event = (function () {
      * @type {ICAL.Time}
      */
     get recurrenceId() {
-      return this._firstProp("recurrence-id");
+      return this._firstProp('recurrence-id');
     },
 
     set recurrenceId(value) {
-      this._setTime("recurrence-id", value);
+      this._setTime('recurrence-id', value);
     },
 
     /**
@@ -9584,14 +8911,11 @@ ICAL.Event = (function () {
       }
 
       // utc and local don't get a tzid
-      if (
-        time.zone === ICAL.Timezone.localTimezone ||
-        time.zone === ICAL.Timezone.utcTimezone
-      ) {
+      if (time.zone === ICAL.Timezone.localTimezone || time.zone === ICAL.Timezone.utcTimezone) {
         // remove the tzid
-        prop.removeParameter("tzid");
+        prop.removeParameter('tzid');
       } else {
-        prop.setParameter("tzid", time.zone.tzid);
+        prop.setParameter('tzid', time.zone.tzid);
       }
 
       prop.setValue(time);
@@ -9661,7 +8985,7 @@ ICAL.ComponentParser = (function () {
    * @param {Boolean} options.parseTimezeone    Whether timezones should be parsed
    */
   function ComponentParser(options) {
-    if (typeof options === "undefined") {
+    if (typeof options === 'undefined') {
       options = {};
     }
 
@@ -9729,7 +9053,7 @@ ICAL.ComponentParser = (function () {
      */
     process: function (ical) {
       //TODO: this is sync now in the future we will have a incremental parser.
-      if (typeof ical === "string") {
+      if (typeof ical === 'string') {
         ical = ICAL.parse(ical);
       }
 
@@ -9746,9 +9070,9 @@ ICAL.ComponentParser = (function () {
         component = components[i];
 
         switch (component.name) {
-          case "vtimezone":
+          case 'vtimezone':
             if (this.parseTimezone) {
-              var tzid = component.getFirstPropertyValue("tzid");
+              var tzid = component.getFirstPropertyValue('tzid');
               if (tzid) {
                 this.ontimezone(
                   new ICAL.Timezone({
@@ -9759,7 +9083,7 @@ ICAL.ComponentParser = (function () {
               }
             }
             break;
-          case "vevent":
+          case 'vevent':
             if (this.parseEvent) {
               this.onevent(new ICAL.Event(component));
             }

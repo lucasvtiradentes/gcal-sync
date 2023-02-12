@@ -1,42 +1,82 @@
-/*eslint no-undef: "warn"*/
-/*eslint no-unused-vars: "warn"*/
-
-var sourceCalendars = [['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'ticktick']];
-
-var howFrequent = 15; // What interval (minutes) to run this script on to check for new events
-var onlyFutureEvents = false; // If you turn this to "true", past events will not be synced (this will also removed past events from the target calendar if removeEventsFromCalendar is true)
-var addEventsToCalendar = true; // If you turn this to "false", you can check the log (View > Logs) to make sure your events are being read correctly before turning this on
-var modifyExistingEvents = true; // If you turn this to "false", any event in the feed that was modified after being added to the calendar will not update
-var removeEventsFromCalendar = true; // If you turn this to "true", any event created by the script that is not found in the feed will be removed.
-var addAlerts = 'yes'; // Whether to add the ics/ical alerts as notifications on the Google Calendar events or revert to the calendar's default reminders ("yes", "no", "default").
-var addOrganizerToTitle = false; // Whether to prefix the event name with the event organiser for further clarity
-var descriptionAsTitles = false; // Whether to use the ics/ical descriptions as titles (true) or to use the normal titles as titles (false)
-var addCalToTitle = false; // Whether to add the source calendar to title
-var addAttendees = false; // Whether to add the attendee list. If true, duplicate events will be automatically added to the attendees' calendar.
-var defaultAllDayReminder = -1; // Default reminder for all day events in minutes before the day of the event (-1 = no reminder, the value has to be between 0 and 40320)
-var overrideVisibility = ''; // Changes the visibility of the event ("default", "public", "private", "confidential"). Anything else will revert to the class value of the ICAL event.
-var addTasks = false;
-var emailSummary = false; // Will email you when an event is added/modified/removed to your calendar
-var email = ''; // OPTIONAL: If "emailSummary" is set to true or you want to receive update notifications, you will need to provide your email address
-var defaultMaxRetries = 10; // Maximum number of retries for api functions (with exponential backoff)
+/*eslint no-undef: "off"*/
+/*eslint no-unused-vars: "off"*/
 
 var startUpdateTime;
 
+const CONFIGS = {
+  email: 'lucasvtiradentes@gmail.com',
+  ticktickCallendars: [['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'ticktick']],
+  updateFrequency: 15,
+  getOnlyFutureEvents: false,
+  startUpdateTime: '',
+  addEventsToCalendar: true,
+  modifyExistingEvents: true,
+  removeEventsFromCalendar: true,
+  addAlerts: 'yes',
+  addOrganizerToTitle: false,
+  descriptionAsTitles: false,
+  addCalToTitle: false,
+  addAttendees: false,
+  defaultAllDayReminder: -1,
+  overrideVisibility: '',
+  addTasks: false,
+  emailSummary: false,
+  defaultMaxRetries: 10
+};
+
+const CALENDAR = {
+  calendarEvents: [],
+  calendarEventsIds: [],
+  icsEventsIds: [],
+  calendarEventsMD5s: [],
+  recurringEvents: [],
+  targetCalendarId: '',
+  targetCalendarName: ''
+};
+
+const SESSION = {
+  addedEvents: [],
+  modifiedEvents: [],
+  removedEvents: []
+};
+
+// var howFrequent = 15; // What interval (minutes) to run this script on to check for new events
+// var sourceCalendars = [['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'ticktick']];
+// var onlyFutureEvents = false; // If you turn this to "true", past events will not be synced (this will also removed past events from the target calendar if removeEventsFromCalendar is true)
+// var addEventsToCalendar = true; // If you turn this to "false", you can check the log (View > Logs) to make sure your events are being read correctly before turning this on
+// var modifyExistingEvents = true; // If you turn this to "false", any event in the feed that was modified after being added to the calendar will not update
+// var removeEventsFromCalendar = true; // If you turn this to "true", any event created by the script that is not found in the feed will be removed.
+// var addAlerts = 'yes'; // Whether to add the ics/ical alerts as notifications on the Google Calendar events or revert to the calendar's default reminders ("yes", "no", "default").
+// var addOrganizerToTitle = false; // Whether to prefix the event name with the event organiser for further clarity
+// var descriptionAsTitles = false; // Whether to use the ics/ical descriptions as titles (true) or to use the normal titles as titles (false)
+// var addCalToTitle = false; // Whether to add the source calendar to title
+// var addAttendees = false; // Whether to add the attendee list. If true, duplicate events will be automatically added to the attendees' calendar.
+// var defaultAllDayReminder = -1; // Default reminder for all day events in minutes before the day of the event (-1 = no reminder, the value has to be between 0 and 40320)
+// var overrideVisibility = ''; // Changes the visibility of the event ("default", "public", "private", "confidential"). Anything else will revert to the class value of the ICAL event.
+// var addTasks = false;
+// var emailSummary = false; // Will email you when an event is added/modified/removed to your calendar
+// var email = ''; // OPTIONAL: If "emailSummary" is set to true or you want to receive update notifications, you will need to provide your email address
+// var defaultMaxRetries = 10; // Maximum number of retries for api functions (with exponential backoff)
+
+// -----------------------------------------------------------------------------
+
 // Per-calendar global variables (must be reset before processing each new calendar!)
-var calendarEvents = [];
-var calendarEventsIds = [];
-var icsEventsIds = [];
-var calendarEventsMD5s = [];
-var recurringEvents = [];
-var targetCalendarId;
-var targetCalendarName;
+// var calendarEvents = [];
+// var calendarEventsIds = [];
+// var icsEventsIds = [];
+// var calendarEventsMD5s = [];
+// var recurringEvents = [];
+// var targetCalendarId;
+// var targetCalendarName;
+
+// -----------------------------------------------------------------------------
 
 // Per-session global variables (must NOT be reset before processing each new calendar!)
-var addedEvents = [];
-var modifiedEvents = [];
-var removedEvents = [];
+// var addedEvents = [];
+// var modifiedEvents = [];
+// var removedEvents = [];
 
-var tzids = [
+const TZIDS = [
   'Africa/Abidjan',
   'Africa/Accra',
   'Africa/Addis_Ababa',
@@ -627,9 +667,9 @@ var tzids = [
   'W-SU',
   'Zulu'
 ];
-//Windows Timezone names to IANA, according https://github.com/unicode-org/cldr/blob/master/common/supplemental/windowsZones.xml
 
-var tzidreplace = {
+//Windows Timezone names to IANA, according https://github.com/unicode-org/cldr/blob/master/common/supplemental/windowsZones.xml
+const TZID_REPLACE = {
   'Dateline Standard Time': 'Etc/GMT+12',
   'UTC-11': 'Etc/GMT+11',
   'Aleutian Standard Time': 'America/Adak',

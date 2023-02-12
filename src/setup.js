@@ -1,14 +1,13 @@
-/*global ScriptApp, Logger, PropertiesService, MailApp, UrlFetchApp*/
-/*eslint no-undef: "warn"*/
-/*eslint no-unused-vars: "warn"*/
+/*global ScriptApp, Logger, PropertiesService, MailApp, UrlFetchApp, CONFIGS */
+/*eslint no-undef: "error"*/
+/*eslint no-unused-vars: "off"*/
 
-// howFrequent
 function install() {
   //Delete any already existing triggers so we don't create excessive triggers
   deleteAllTriggers();
 
   //Schedule sync routine to explicitly repeat and schedule the initial sync
-  ScriptApp.newTrigger('startSync').timeBased().everyMinutes(getValidTriggerFrequency(howFrequent)).create();
+  ScriptApp.newTrigger('startSync').timeBased().everyMinutes(getValidTriggerFrequency(CONFIGS.updateFrequency)).create();
   ScriptApp.newTrigger('startSync').timeBased().after(1000).create();
 
   //Schedule sync routine to look for update once per day
@@ -61,7 +60,7 @@ function getValidTriggerFrequency(origFrequency) {
  */
 function checkForUpdate() {
   // No need to check if we can't alert anyway
-  if (email == '') return;
+  if (CONFIGS.email == '') return;
 
   var lastAlertedVersion = PropertiesService.getScriptProperties().getProperty('alertedForNewVersion');
   try {
@@ -69,7 +68,7 @@ function checkForUpdate() {
     var latestVersion = getLatestVersion();
 
     if (latestVersion > thisVersion && latestVersion != lastAlertedVersion) {
-      MailApp.sendEmail(email, `Version ${latestVersion} of GAS-ICS-Sync is available! (You have ${thisVersion})`, 'You can see the latest release here: https://github.com/derekantrican/GAS-ICS-Sync/releases');
+      MailApp.sendEmail(CONFIGS.email, `Version ${latestVersion} of GAS-ICS-Sync is available! (You have ${thisVersion})`, 'You can see the latest release here: https://github.com/derekantrican/GAS-ICS-Sync/releases');
 
       PropertiesService.getScriptProperties().setProperty('alertedForNewVersion', latestVersion);
     }
