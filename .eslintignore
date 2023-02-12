@@ -1,0 +1,28 @@
+# https://eslint.org/docs/latest/user-guide/configuring/ignoring-code
+
+# FOLDERS ###############################
+
+.git/
+.github/
+.husky/
+.vscode/
+docs
+ignore/
+node_modules/
+
+# FILES #################################
+
+.czrc
+.editorconfig
+.eslintignore
+.eslintrc.json
+.gitignore
+.prettierignore
+.prettierrc.json
+commitlint.config.js
+LICENSE
+package.json
+
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

@@ -1,32 +1,36 @@
 {
-	"name": "ticktick-gcal-sync",
-	"version": "0.0.1",
-	"description": "🔄 a google apps script for syncing events between github to ticktick and finally both to google calendar.",
-	"license": "MIT",
-	"author": {
-		"name": "Lucas Vieira",
-		"email": "lucasvtiradentes@gmail.com"
-	},
-	"homepage": "https://github.com/lucasvtiradentes/ticktick-gcal-sync",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync.git"
-	},
-	"bugs": {
-		"url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues"
-	},
-	"main": "src/index.js",
-	"scripts": {
-		"start": "echo start",
-		"commit": "cz",
-		"script:gitmoji": "node ./scripts/gitmoji-util.js",
-		"test:commit": "echo \":tada: init: initial commit (#1)\" | npx commitlint"
-	},
-	"devDependencies": {
-		"@commitlint/cli": "^17.4.2",
-		"@commitlint/config-conventional": "^17.4.2",
-		"commitizen": "^4.3.0",
-		"commitizen-emoji": "^1.0.5",
-		"husky": "^8.0.3"
-	}
+  "name": "ticktick-gcal-sync",
+  "version": "0.0.1",
+  "description": "🔄 a google apps script for syncing events between github to ticktick and finally both to google calendar.",
+  "license": "MIT",
+  "author": {
+    "name": "Lucas Vieira",
+    "email": "lucasvtiradentes@gmail.com"
+  },
+  "homepage": "https://github.com/lucasvtiradentes/ticktick-gcal-sync",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "echo start",
+    "commit": "cz",
+    "script:gitmoji": "node ./scripts/gitmoji-util.js",
+    "test:commit": "echo \":tada: init: initial commit (#1)\" | npx commitlint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.4.2",
+    "@commitlint/config-conventional": "^17.4.2",
+    "commitizen": "^4.3.0",
+    "commitizen-emoji": "^1.0.5",
+    "husky": "^8.0.3",
+    "prettier": "^2.8.4",
+    "eslint": "^8.31.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-prettier": "^4.2.1"
+  }
 }

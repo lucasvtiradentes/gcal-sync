@@ -1,0 +1,1 @@
+[ ] create a class with all useful methods (fetch calendar, create task, etc)
