@@ -1,9 +1,9 @@
 /*eslint no-undef: "off"*/
 /*eslint no-unused-vars: "off"*/
 
-var startUpdateTime;
+this.TickSync = {};
 
-const CONFIGS = {
+this.CONFIGS = {
   email: 'lucasvtiradentes@gmail.com',
   ticktickCallendars: [['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'ticktick']],
   updateFrequency: 15,
@@ -24,7 +24,7 @@ const CONFIGS = {
   defaultMaxRetries: 10
 };
 
-const CALENDAR = {
+this.CALENDAR = {
   calendarEvents: [],
   calendarEventsIds: [],
   icsEventsIds: [],
@@ -34,7 +34,7 @@ const CALENDAR = {
   targetCalendarName: ''
 };
 
-const SESSION = {
+this.SESSION = {
   addedEvents: [],
   modifiedEvents: [],
   removedEvents: []
@@ -76,7 +76,7 @@ const SESSION = {
 // var modifiedEvents = [];
 // var removedEvents = [];
 
-const TZIDS = [
+this.TZIDS = [
   'Africa/Abidjan',
   'Africa/Accra',
   'Africa/Addis_Ababa',
@@ -669,7 +669,7 @@ const TZIDS = [
 ];
 
 //Windows Timezone names to IANA, according https://github.com/unicode-org/cldr/blob/master/common/supplemental/windowsZones.xml
-const TZID_REPLACE = {
+this.TZID_REPLACE = {
   'Dateline Standard Time': 'Etc/GMT+12',
   'UTC-11': 'Etc/GMT+11',
   'Aleutian Standard Time': 'America/Adak',
@@ -807,3 +807,5 @@ const TZID_REPLACE = {
   'Line Islands Standard Time': 'Pacific/Kiritimati',
   Z: 'Etc/GMT'
 };
+
+/* ========================================================================== */

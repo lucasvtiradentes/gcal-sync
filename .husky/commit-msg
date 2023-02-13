@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+echo "🐶 husky script: [commit-msg]"
 npx --no -- commitlint --edit ${1}
+echo "✅ husky script: [commit-msg]"
+echo ""

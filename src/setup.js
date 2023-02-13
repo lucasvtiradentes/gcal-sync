@@ -83,3 +83,11 @@ function checkForUpdate() {
     return Number(version);
   }
 }
+
+/* ========================================================================== */
+
+TickSync.install = install;
+TickSync.uninstall = uninstall;
+TickSync.deleteAllTriggers = deleteAllTriggers;
+TickSync.getValidTriggerFrequency = getValidTriggerFrequency;
+TickSync.checkForUpdate = checkForUpdate;
