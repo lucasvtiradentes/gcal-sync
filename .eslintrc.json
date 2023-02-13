@@ -1,6 +1,5 @@
 {
   "env": {
-    "es2021": true,
     "browser": true
   },
   "extends": [
@@ -8,10 +7,6 @@
     "prettier"
   ],
   "parser": "babel-eslint",
-  "parserOptions": {
-    "sourceType": "module",
-    "allowImportExportEverywhere": true
-  },
   "overrides": [],
   "plugins": [
     "prettier"

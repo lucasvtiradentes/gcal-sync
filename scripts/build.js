@@ -1,19 +1,24 @@
-const { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } = require('node:fs');
+const { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, unlinkSync } = require('node:fs');
 const { basename, join } = require('node:path');
 const minify = require('minify');
 
-const FILES_TO_MERGE = ['./src/configs.js', './src/setup.js', './src/sync.js'];
-const FILES_TO_COPY = ['./src/libs/ical.js'];
+const DIST_FOLDER = './dist';
+if (!existsSync(DIST_FOLDER)) {
+  mkdirSync(DIST_FOLDER);
+}
 
-build(FILES_TO_COPY, FILES_TO_MERGE, './dist', 'OldCode');
+// const FILES_TO_MERGE = ['./src/TickSync.js'];
+// mergeFiles(FILES_TO_MERGE, DIST_FOLDER, 'TickSync');
+
+const FILES_TO_COPY = ['./src/TickSync.js', './src/libs/ical.js'];
+copyFiles(FILES_TO_COPY, DIST_FOLDER);
+
+const DIST_FILES = ['TickSync.js', 'ical.js'].map((name) => `${DIST_FOLDER}/${name}`);
+minifyFiles(DIST_FILES).then(() => deleteFiles(DIST_FILES));
 
 /* ========================================================================== */
 
-async function build(copyArr, mergeArr, distFolder, fileName) {
-  if (!existsSync(distFolder)) {
-    mkdirSync(distFolder);
-  }
-
+function copyFiles(copyArr, distFolder) {
   copyArr.forEach((file) => {
     if (!existsSync(file)) {
       throw new Error(`file could not be copied because it does not exist: [${file}]`);
@@ -21,13 +26,27 @@ async function build(copyArr, mergeArr, distFolder, fileName) {
 
     copyFileSync(file, join(distFolder, basename(file)));
   });
+}
 
+async function minifyFiles(filesToMinifyArr) {
+  for (let filePath of filesToMinifyArr) {
+    const minifiedFile = filePath.replace(`js`, `min.js`);
+    const minifiedContent = await minify(filePath);
+    writeFileSync(minifiedFile, minifiedContent);
+  }
+}
+
+function deleteFiles(filesToDeleteArr) {
+  for (let filePath of filesToDeleteArr) {
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+    }
+  }
+}
+
+async function mergeFiles(mergeArr, distFolder, fileName) {
   const mergerFile = `${distFolder}/${fileName}.js`;
   writeFileSync(mergerFile, mergeFilesContent(mergeArr));
-
-  const minifiedFile = `${distFolder}/${fileName}.min.js`;
-  const minifiedContent = await minify(mergerFile);
-  writeFileSync(minifiedFile, minifiedContent);
 }
 
 function mergeFilesContent(filesArr) {
