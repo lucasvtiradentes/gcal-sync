@@ -4,24 +4,24 @@
 this.TickSync = {};
 
 this.CONFIGS = {
-  email: 'lucasvtiradentes@gmail.com',
-  ticktickCallendars: [['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'ticktick']],
+  // email: 'lucasvtiradentes@gmail.com',
+  // ticktickCallendars: [['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'ticktick']],
   updateFrequency: 15,
-  getOnlyFutureEvents: false,
-  startUpdateTime: '',
-  addEventsToCalendar: true,
-  modifyExistingEvents: true,
-  removeEventsFromCalendar: true,
+  // getOnlyFutureEvents: false,
+  // startUpdateTime: '',
+  // addEventsToCalendar: true,
+  // modifyExistingEvents: true,
+  // removeEventsFromCalendar: true,
   addAlerts: 'yes',
   addOrganizerToTitle: false,
   descriptionAsTitles: false,
   addCalToTitle: false,
-  addAttendees: false,
+  // addAttendees: false,
   defaultAllDayReminder: -1,
   overrideVisibility: '',
-  addTasks: false,
-  emailSummary: false,
-  defaultMaxRetries: 10
+  addTasks: false
+  // emailSummary: false
+  // defaultMaxRetries: 10
 };
 
 this.CALENDAR = {
