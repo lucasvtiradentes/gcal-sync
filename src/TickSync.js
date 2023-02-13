@@ -146,10 +146,10 @@ class TickSync {
       showHidden: true,
       maxResults: 250
     }).items.filter(function (cal) {
-      return (cal.summaryOverride || cal.summary) == targetCalendarName && (cal.accessRole == 'owner' || cal.accessRole == 'writer');
+      return (cal.summaryOverride || cal.summary) === targetCalendarName && (cal.accessRole === 'owner' || cal.accessRole === 'writer');
     })[0];
 
-    if (targetCalendar == null) {
+    if (targetCalendar === null) {
       console.log('Creating Calendar: ' + targetCalendarName);
       targetCalendar = Calendar.newCalendar();
       targetCalendar.summary = targetCalendarName;
@@ -178,13 +178,13 @@ class TickSync {
       }
 
       var allEvents = component.getAllSubcomponents('vevent');
-      if (colorId != undefined)
+      if (colorId !== undefined)
         allEvents.forEach(function (event) {
           event.addPropertyWithValue('color', colorId);
         });
 
       var calName = component.getFirstPropertyValue('x-wr-calname') || component.getFirstPropertyValue('name');
-      if (calName != null)
+      if (calName !== null)
         allEvents.forEach(function (event) {
           event.addPropertyWithValue('parentCal', calName);
         });
@@ -268,6 +268,8 @@ class TickSync {
         if (this.configs.options.addEventsToCalendar) {
           console.log('Adding new event ' + newEvent.extendedProperties.private['id']);
           newEvent = this.#callWithBackoff(function () {
+            console.log(newEvent);
+            console.log(curCalendarObj.targetCalendarId);
             return Calendar.Events.insert(newEvent, curCalendarObj.targetCalendarId);
           }, this.configs.options.defaultMaxRetries);
 

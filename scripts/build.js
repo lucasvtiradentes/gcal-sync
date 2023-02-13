@@ -10,10 +10,10 @@ if (!existsSync(DIST_FOLDER)) {
 // const FILES_TO_MERGE = ['./src/TickSync.js'];
 // mergeFiles(FILES_TO_MERGE, DIST_FOLDER, 'TickSync');
 
-const FILES_TO_COPY = ['./src/TickSync.js', './src/libs/ical.js'];
+const FILES_TO_COPY = ['./src/libs/ical.js', './src/TickSync.js', './src/GCal.js', './src/Github.js', './src/ICal.js'];
 copyFiles(FILES_TO_COPY, DIST_FOLDER);
 
-const DIST_FILES = ['TickSync.js', 'ical.js'].map((name) => `${DIST_FOLDER}/${name}`);
+const DIST_FILES = ['ical.js', 'TickSync.js', 'GCal.js', 'ICal.js', 'Github.js'].map((name) => `${DIST_FOLDER}/${name}`);
 minifyFiles(DIST_FILES).then(() => deleteFiles(DIST_FILES));
 
 /* ========================================================================== */

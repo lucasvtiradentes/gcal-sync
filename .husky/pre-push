@@ -3,5 +3,7 @@
 
 echo "🐶 husky script: [pre-push]"
 npm run build
+git add .
+git commit --amend --no-edit
 echo "✅ husky script: [pre-push]"
 echo ""
