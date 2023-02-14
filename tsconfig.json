@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES2016",
+    "skipLibCheck": true,
+    "outDir": "build"
+  },
+  "include": [
+    "src"
+  ]
+}

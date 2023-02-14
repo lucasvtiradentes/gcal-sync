@@ -6,21 +6,7 @@
 .github/
 .husky/
 .vscode/
-docs/
+build/
+dist/
 ignore/
 node_modules/
-
-# FILES #################################
-
-.czrc
-.editorconfig
-.gitignore
-.prettierignore
-.prettierrc.json
-.commitlint.config.js
-LICENSE
-package.json
-
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
