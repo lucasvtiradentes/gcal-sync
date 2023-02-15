@@ -1,16 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-type icsCalendarLink = string;
-type googleCalendar = string;
-type calendar = [icsCalendarLink, googleCalendar];
+// type icsCalendarLink = string;
+// type googleCalendar = string;
+// type ignoreTagsArr = string[];
+
+type calendar = [string, string, string[]];
 
 type Config = {
   email: string;
   icsCalendars: calendar[];
   gcalCompletedCalendar: string;
-  startDate: string;
   options: {
     emailSummary: boolean;
+    showLogs: boolean;
+    debugMode: boolean;
   };
 };
 
@@ -40,7 +43,7 @@ type ParsedIcsEvent = {
 
 class TickSync {
   public config: Config;
-  private CONFIG_KEYS: string[] = ['email', 'icsCalendars', 'gcalCompletedCalendar', 'startDate', 'options'];
+  private CONFIG_KEYS: string[] = ['email', 'icsCalendars', 'gcalCompletedCalendar', 'options'];
 
   constructor(config: Config) {
     this.parseConfigs(config);
@@ -73,8 +76,6 @@ class TickSync {
     const seconds = splitArr[1].substring(4, 6);
 
     return { year, month, day, hours, minutes, seconds };
-    // return `${year}-${month}-${day}`;
-    // return new Date(Date.UTC(year, month, day, 0, 0, 0));
   }
 
   private parseIcsStringIntoEvents(icalStr: string) {
@@ -121,23 +122,32 @@ class TickSync {
     return allEventsArr;
   }
 
-  private getEventsFromIcsCalendar(icsCalendarLink: string) {
+  private getEventsFromIcsCalendar(icsCalendarLink: string, ignoreTagsArr?: string[]) {
     let icalStr = '';
 
     const url = icsCalendarLink.replace('webcal://', 'https://');
     const urlResponse = UrlFetchApp.fetch(url, { validateHttpsCertificates: false, muteHttpExceptions: true });
     if (urlResponse.getResponseCode() == 200) {
-      const urlContent = RegExp('(BEGIN:VCALENDAR.*?END:VCALENDAR)', 's').exec(urlResponse.getContentText());
-      if (urlContent == null) {
+      icalStr = urlResponse.getContentText();
+
+      if (icalStr.search('BEGIN:VCALENDAR') === -1) {
         throw new Error('[ERROR] Incorrect ics/ical URL: ' + url);
-      } else {
-        icalStr = urlContent[0];
       }
     } else {
       throw new Error('Error: Encountered HTTP error ' + urlResponse.getResponseCode() + ' when accessing ' + url);
     }
 
     const eventsArr = this.parseIcsStringIntoEvents(icalStr);
+
+    if (ignoreTagsArr) {
+      return eventsArr.filter((item) => {
+        const hasIgnoredTag = ignoreTagsArr.some((ignored) => {
+          return item.name.search(ignored) > -1;
+        });
+        return hasIgnoredTag === false;
+      });
+    }
+
     return eventsArr;
   }
 
@@ -165,8 +175,8 @@ class TickSync {
       summary: ev.summary,
       description: ev.description ?? '',
       link: ev.htmlLink,
-      attendees: ev.attendees.length > 0 ? ev.attendees : [],
-      visibility: ev.visibility,
+      attendees: ev.attendees ?? [],
+      visibility: ev.visibility ?? 'default',
       dateStart: ev.start,
       dateEnd: ev.end,
       dateCreated: ev.created,
@@ -193,31 +203,60 @@ class TickSync {
 
     const tmpCalendar = Calendar.newCalendar();
     tmpCalendar.summary = calName;
-    tmpCalendar.description = 'Created by GAS';
     tmpCalendar.timeZone = Calendar.Settings.get('timezone').value;
 
     const calendar = Calendar.Calendars.insert(tmpCalendar);
-    console.log(`Created the calendar ${calendar.summary}, with the ID ${calendar.id}`);
-
     return calendar;
   }
 
   private addEventToCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleAppsScript.Calendar.Schema.Event) {
     const eventFinal = Calendar.Events.insert(event, calendar.id);
-    console.log(`event ${eventFinal.summary} was added to calendar ${calendar.summary}`);
-
     return eventFinal;
+  }
+
+  private moveEventToOtherCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleAppsScript.Calendar.Schema.Event, newCalendar: GoogleAppsScript.Calendar.Schema.Calendar) {
+    Calendar.Events.move(calendar.id, event.id, newCalendar.id);
+  }
+
+  private getEventById(calendar: GoogleAppsScript.Calendar.Schema.Calendar, eventId: string) {
+    const event = Calendar.Events.get(calendar.id, eventId);
+    return event;
+  }
+
+  private updateEventFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleAppsScript.Calendar.Schema.Event, updatedProps: any) {
+    const updatedEvent = this.getEventById(calendar, event.id);
+
+    const finalObj = {
+      ...updatedEvent,
+      ...updatedProps
+    };
+    Calendar.Events.update(finalObj, calendar.id, event.id);
   }
 
   /* ======================================================================== */
 
+  private createCalendars() {
+    const allGcalendarsNames = [this.config.gcalCompletedCalendar, ...this.config.icsCalendars.map((item) => item[1])];
+    allGcalendarsNames.forEach((calName: string) => {
+      if (!this.getCalendarByName(calName)) {
+        this.createCalendar(calName);
+        if (this.config.options.showLogs) {
+          console.log(`Created the calendar ${calName}`);
+        }
+      }
+    });
+  }
+
   getTasksFromIcsCalendars() {
     const tasks: ParsedIcsEvent[] = this.config.icsCalendars.reduce((acc, cur) => {
-      const [icsCalendar, taskCalendar] = cur;
-      const tasksArray = this.getEventsFromIcsCalendar(icsCalendar).map((item) => {
+      const [icsCalendar, taskCalendar, ignoreTagsArr] = cur;
+
+      const tasksArray = ignoreTagsArr ? this.getEventsFromIcsCalendar(icsCalendar, ignoreTagsArr) : this.getEventsFromIcsCalendar(icsCalendar);
+      const tasks = tasksArray.map((item) => {
         return { ...item, taskCalendar };
       });
-      acc = [].concat.apply(acc, tasksArray);
+
+      acc = [].concat.apply(acc, tasks);
       return acc;
     }, []);
     return tasks;
@@ -234,33 +273,27 @@ class TickSync {
     return tasks;
   }
 
-  private createCalendars() {
-    const allGcalendarsNames = [this.config.gcalCompletedCalendar, ...this.config.icsCalendars.map((item) => item[1])];
-    allGcalendarsNames.forEach((calName: string) => {
-      if (!this.getCalendarByName(calName)) {
-        this.createCalendar(calName);
-      }
-    });
-  }
-
   syncEvents() {
-    console.log(1);
+    const syncNumbers = {
+      addedEvents: [],
+      updatedEvents: [],
+      completedEvents: []
+    };
+
     this.createCalendars();
-    console.log(2);
     const tasksFromIcsCalendars = this.getTasksFromIcsCalendars();
-    console.log(3);
     const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars();
-    console.log(4);
 
     tasksFromIcsCalendars.forEach((curIcsTask) => {
-      const doesTaksExistsOnGcal = tasksFromGoogleCalendars.map((item) => item.id).includes(curIcsTask.id);
+      const doesTaksExistsOnGcal = tasksFromGoogleCalendars.map((item) => item.extendedProperties.private.tickTaskId).includes(curIcsTask.id);
       const taskCalendar = this.getCalendarByName(curIcsTask.taskCalendar);
 
       if (!doesTaksExistsOnGcal) {
         const extendProps = {
           private: {
             tickSync: true,
-            tickTaskId: curIcsTask.id
+            tickTaskId: curIcsTask.id,
+            calendar: curIcsTask.taskCalendar
           }
         } as any;
 
@@ -272,34 +305,74 @@ class TickSync {
           extendedProperties: extendProps
         };
 
-        console.log(`${curIcsTask.name} - create task on gcal`);
-        this.addEventToCalendar(taskCalendar, taskEvent);
+        if (!this.config.options.debugMode) {
+          this.addEventToCalendar(taskCalendar, taskEvent);
+        }
+
+        if (this.config.options.showLogs) {
+          syncNumbers.addedEvents.push(`${taskCalendar.summary}: ${curIcsTask.name}`);
+          console.log(`added event to gcal     : [${curIcsTask.name}] / [${taskCalendar.summary}]`);
+        }
       } else {
-        // if (curIcsTask) {
-        //   // check if datetime is the same
-        //   console.log(`${curIcsTask.name} - dont modify`);
-        // } else {
-        //   console.log(`${curIcsTask.name} - change date`);
-        // }
+        const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
+
+        const changeTaskName = curIcsTask.name !== gcalTask.summary;
+        const changeTaskDescription = curIcsTask.description !== gcalTask.description;
+        const changeDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.dateStart).length;
+        const changeAllDate = curIcsTask.start['date'] !== gcalTask.dateStart['date'];
+        const changeSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.dateStart['dateTime'];
+
+        if (changeTaskName || changeTaskDescription || changeDateFormat || changeAllDate || changeSpecificDate) {
+          const modifiedFields = {
+            summary: curIcsTask.name,
+            description: curIcsTask.description,
+            start: curIcsTask.start,
+            end: curIcsTask.end
+          };
+
+          if (!this.config.options.debugMode) {
+            this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
+          }
+
+          if (this.config.options.showLogs) {
+            syncNumbers.updatedEvents.push(`${taskCalendar.summary}: ${curIcsTask.name}`);
+            console.log(`gcal event was updated  : [${curIcsTask.name}] / [${taskCalendar.summary}]`);
+          }
+        }
       }
     });
 
-    tasksFromGoogleCalendars.forEach((gcalEvent) => {
-      console.log(gcalEvent.extendedProperties);
+    const onlyTickEventsInGcal = tasksFromGoogleCalendars.filter((item) => item.extendedProperties.private.tickTaskId);
+
+    onlyTickEventsInGcal.forEach((gcalEvent) => {
+      const isTaskStillInTickTick = tasksFromIcsCalendars.map((item) => item.id).includes(gcalEvent.extendedProperties.private.tickTaskId);
+
+      if (!isTaskStillInTickTick) {
+        const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
+        const completedCalendar = this.getCalendarByName(this.config.gcalCompletedCalendar);
+
+        if (!this.config.options.debugMode) {
+          this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
+        }
+
+        if (this.config.options.showLogs) {
+          syncNumbers.completedEvents.push(`${gcalEvent.extendedProperties.private.calendar}: ${gcalEvent.summary}`);
+          console.log(`gcal event was completed: [${gcalEvent.summary}]`);
+        }
+      }
     });
 
-    console.log(tasksFromIcsCalendars);
-    console.log(tasksFromGoogleCalendars);
+    if (this.config.options.showLogs) {
+      console.log('------------------------------------------\n');
+
+      console.log(`addedEvents: ${syncNumbers.addedEvents.length}`);
+      console.log(syncNumbers.addedEvents);
+
+      console.log(`updatedEvents: ${syncNumbers.updatedEvents.length}`);
+      console.log(syncNumbers.updatedEvents);
+
+      console.log(`completedEvents: ${syncNumbers.completedEvents.length}`);
+      console.log(syncNumbers.completedEvents);
+    }
   }
 }
-
-/*
-      summary: event.summary ?? '',
-      location: event.location ?? '',
-      description: event.description ?? '',
-      start: event.start,
-      end: event.end,
-      attendees: event.attendees ? event.attendees.map((em) => ({ email: em })) : [],
-      reminders: Array.from(event.reminders as any).length > 0 ? { useDefault: false, overrides: event.reminders } : { useDefault: true },
-      extendedProperties: event.extendedProperties ?? {}
-*/
