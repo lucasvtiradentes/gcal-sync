@@ -14,6 +14,7 @@ type Config = {
     emailSummary: boolean;
     showLogs: boolean;
     debugMode: boolean;
+    updateFrequency: number;
   };
 };
 
@@ -247,7 +248,7 @@ class TickSync {
     });
   }
 
-  getTasksFromIcsCalendars() {
+  private getTasksFromIcsCalendars() {
     const tasks: ParsedIcsEvent[] = this.config.icsCalendars.reduce((acc, cur) => {
       const [icsCalendar, taskCalendar, ignoreTagsArr] = cur;
 
@@ -262,7 +263,7 @@ class TickSync {
     return tasks;
   }
 
-  getTasksFromGoogleCalendars() {
+  private getTasksFromGoogleCalendars() {
     const tasks: ParsedGoogleEvent[] = this.config.icsCalendars.reduce((acc, cur) => {
       const taskCalendar = cur[1];
       const calendar = this.getCalendarByName(taskCalendar);
@@ -271,6 +272,19 @@ class TickSync {
       return acc;
     }, []);
     return tasks;
+  }
+
+  setupTickSync() {
+    const updateFrequency = this.config.options.updateFrequency;
+    const tickFunctionName = 'tickSync';
+    const triggers = ScriptApp.getProjectTriggers();
+    const tickSyncTrigger = triggers.find((item) => item.getHandlerFunction() === tickFunctionName);
+
+    if (tickSyncTrigger) {
+      ScriptApp.deleteTrigger(tickSyncTrigger);
+    }
+
+    ScriptApp.newTrigger(tickFunctionName).timeBased().everyMinutes(updateFrequency).create();
   }
 
   syncEvents() {
@@ -302,6 +316,10 @@ class TickSync {
           description: curIcsTask.description,
           start: curIcsTask.start,
           end: curIcsTask.end,
+          reminders: {
+            useDefault: true,
+            overrides: []
+          },
           extendedProperties: extendProps
         };
 
