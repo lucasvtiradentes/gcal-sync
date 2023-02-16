@@ -6,11 +6,11 @@
 
 <div align="center">
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/made%20with-node-1f425f?logo=node.js&.svg" /></a>
-  <a href="https://www.github.com/lucasvtiradentes/ecommerce-stores-api/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/ecommerce-stores-api?color=green&label=updated"></a>
+  <a href="https://www.github.com/lucasvtiradentes/ticktick-gcal-sync/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/ticktick-gcal-sync?color=green&label=updated"></a>
   <br>
-    <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
   <a href="https://www.github.com/lucasvtiradentes"><img src="https://img.shields.io/badge/maintainer-%40lucasvtiradentes-yellow"></a>
-  <a href="https://github.com/lucasvtiradentes/ecommerce-stores-api#contributing"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions" /></a>
+  <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync#contributing"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions" /></a>
 </div>
 
 <p align="center">
@@ -21,14 +21,20 @@
 
 ## :trumpet: Overview
 
-a simple solution to add one way sync from ticktick to google calendar with some customizations.
+a solution to add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
+
+<div align="center">
+  <img src="./images/TYCKSYNC.png" />
+</div>
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./images/up_arrow.png" width="22"></a>
 
-&nbsp;&nbsp;&nbsp;✔️ sync github pull requests and issues to ticktick;<br>
-&nbsp;&nbsp;&nbsp;✔️ sync ticktick events to google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ everytime a github issue or pull request is updated, its corresponding event in ticktick is also updated;<br>
-&nbsp;&nbsp;&nbsp;✔️ everytime a ticktick event is updated, its corresponding event in google calendar is also updated.<br>
+&nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
+&nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in  its corresponding event in gcal agenda in case of changes in dates, description and title;<br>
+&nbsp;&nbsp;&nbsp;✔️ every completed task in ticktick will make the task be moved to a compelted gcal agenda;<br>
+&nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what tiktok has done throughout the day;<br>
+&nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;
+&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags present in its title.<br>
 
 <a href="#"><img src="./images/divider.png" /></a>
 
@@ -46,7 +52,7 @@ This project is distributed under the terms of the MIT License Version 2.0. A co
 
 If you are a typescript developer, we would kind and happy accept your help:
 
-- The best way to get started is to select any issue from the [`good-first-issue`](https://github.com/lucasvtiradentes/ecommerce-stores-api/labels/good%20first%20issue) label;
+- The best way to get started is to select any issue from the [`good-first-issue`](https://github.com/lucasvtiradentes/ticktick-gcal-sync/labels/good%20first%20issue) label;
 - If you would like to contribute, please review our [Contributing Guide](docs/CONTRIBUTING.md) for all relevant details.
 
 Another ways to positivily impact this project is to:
@@ -60,7 +66,7 @@ Another ways to positivily impact this project is to:
 
 Any questions or suggestions? You are welcome to discuss it on:
 
-- [Github issues](https://github.com/lucasvtiradentes/ecommerce-stores-api/issues)
+- [Github issues](https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues)
 - [Email](mailto:lucasvtiradentes@gmail.com)
 
 ## Acknowledgements
