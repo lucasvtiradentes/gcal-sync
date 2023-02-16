@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🐶 husky script: [pre-commit]"
+npm run lint:staged
+echo "✅ husky script: [pre-commit]"
+echo ""

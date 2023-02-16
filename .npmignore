@@ -1,0 +1,32 @@
+# https://docs.npmjs.com/cli/v7/using-npm/developers#keeping-files-out-of-your-package
+
+# FOLDERS ###############################
+
+.git/
+.github/
+.husky/
+.vscode/
+build/
+docs/
+ignore/
+node_modules/
+scripts/
+src/*.ts
+
+# FILES #################################
+
+.czrc
+.editorconfig
+.eslintignore
+.eslintrc.json
+.gitignore
+.lintstagedrc
+.npmignore
+.prettierignore
+.prettierrc.json
+commitlint.config.js
+LICENSE
+# package.json
+pnpm-lock.yaml
+release.config.js
+tsconfig.json

@@ -1,4 +1,4 @@
-// RULES: https://commitlint.js.org/#/reference-rules
+/* eslint-disable no-undef */
 
 const VALID_COMMIT_MESSAGE = ':tada: init: initial commit (#1)';
 const VALID_COMMIT_TYPES = getValidCommitTypes().map((commit) => commit.type);
