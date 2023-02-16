@@ -5,6 +5,7 @@
 </h3>
 
 <div align="center">
+  <a href="https://www.npmjs.com/package/ticktick-gcal-sync"><img src="https://img.shields.io/npm/v/ticktick-gcal-sync.svg?style=flat" alt="npm version"></a>
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/made%20with-node-1f425f?logo=node.js&.svg" /></a>
   <a href="https://www.github.com/lucasvtiradentes/ticktick-gcal-sync/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/ticktick-gcal-sync?color=green&label=updated"></a>
   <br>
@@ -17,36 +18,36 @@
   <a href="#dart-features">Features</a> • <a href="#books-about">About</a> • <a href="#family-community">Community</a>
 </p>
 
-<a href="#"><img src="./images/divider.png" /></a>
+<a href="#"><img src="./.github/images/divider.png" /></a>
 
 ## :trumpet: Overview
 
 a solution to add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
 
 <div align="center">
-  <img src="./images/TYCKSYNC.png" />
+  <img src="./.github/images/TYCKSYNC.png" />
 </div>
 
-## :dart: Features<a href="#TOC"><img align="right" src="./images/up_arrow.png" width="22"></a>
+## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 &nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in  its corresponding event in gcal agenda in case of changes in dates, description and title;<br>
+&nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates, description and title;<br>
 &nbsp;&nbsp;&nbsp;✔️ every completed task in ticktick will make the task be moved to a compelted gcal agenda;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what tiktok has done throughout the day;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;
+&nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags present in its title.<br>
 
-<a href="#"><img src="./images/divider.png" /></a>
+<a href="#"><img src="./.github/images/divider.png" /></a>
 
-## :books: About<a href="#TOC"><img align="right" src="./images/up_arrow.png" width="22"></a>
+## :books: About<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 ## License
 
 This project is distributed under the terms of the MIT License Version 2.0. A complete version of the license is available in the [LICENSE](LICENSE) file in this repository. Any contribution made to this project will be licensed under the MIT License Version 2.0.
 
-<a href="#"><img src="./images/divider.png" /></a>
+<a href="#"><img src="./.github/images/divider.png" /></a>
 
-## :family: Community<a href="#TOC"><img align="right" src="./images/up_arrow.png" width="22"></a>
+## :family: Community<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 ## Contributing
 
@@ -73,7 +74,7 @@ Any questions or suggestions? You are welcome to discuss it on:
 
 This project is an idea of [@lucasvtiradentes](https://github.com/lucasvtiradentes) to `return some value to the world` after years of consuming a lot of useful tools provided by this `amazing open source community`.
 
-<a href="#"><img src="./images/divider.png" /></a>
+<a href="#"><img src="./.github/images/divider.png" /></a>
 
 <div align="center">
   <p>

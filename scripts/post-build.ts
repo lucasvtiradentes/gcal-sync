@@ -1,5 +1,5 @@
 import * as minify from 'minify';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 const DIST_FOLDER = './dist';
@@ -8,8 +8,8 @@ if (!existsSync(DIST_FOLDER)) {
 }
 
 const FINAL_FILE = 'build/TickSync.js';
-const updatedContent = `${readFileSync(FINAL_FILE, { encoding: 'utf8' })}\nthis.TickSync = TickSync`;
-writeFileSync(FINAL_FILE, updatedContent);
+// const updatedContent = `${readFileSync(FINAL_FILE, { encoding: 'utf8' })}\nthis.TickSync = TickSync`;
+// writeFileSync(FINAL_FILE, updatedContent);
 
 const DIST_FILES = [FINAL_FILE];
 minifyFiles(DIST_FILES).then(() => {
@@ -42,6 +42,7 @@ function copyFiles(copyArr: string[], distFolder: string) {
   });
 }
 
+/*
 function deleteFiles(filesToDeleteArr: string[]) {
   for (const filePath of filesToDeleteArr) {
     if (existsSync(filePath)) {
@@ -49,3 +50,4 @@ function deleteFiles(filesToDeleteArr: string[]) {
     }
   }
 }
+*/

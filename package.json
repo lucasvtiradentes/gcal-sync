@@ -15,7 +15,7 @@
   "bugs": {
     "url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues"
   },
-  "main": "src/index.js",
+  "main": "dist/TickSync.min.js",
   "scripts": {
     "prepare": "husky install",
     "commit": "cz",
