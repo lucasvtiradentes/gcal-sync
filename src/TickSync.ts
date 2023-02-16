@@ -7,9 +7,14 @@
 type calendar = [string, string, string[]];
 
 type Config = {
-  email: string;
   icsCalendars: calendar[];
-  gcalCompletedCalendar: string;
+  gcalCompleted: string;
+  syncFunction: string;
+  summary: {
+    email: string;
+    timeZoneCorrection: number;
+    timeToEmail: string;
+  };
   options: {
     emailSummary: boolean;
     showLogs: boolean;
@@ -25,6 +30,7 @@ type ParsedGoogleEvent = {
   link: string;
   attendees: any[];
   visibility: string;
+  reminders: any;
   dateStart: any;
   dateEnd: any;
   dateCreated: any;
@@ -42,9 +48,15 @@ type ParsedIcsEvent = {
   taskCalendar?: string;
 };
 
+type SyncStats = {
+  addedEvents: string[];
+  updatedEvents: string[];
+  completedEvents: string[];
+};
+
 class TickSync {
   public config: Config;
-  private CONFIG_KEYS: string[] = ['email', 'icsCalendars', 'gcalCompletedCalendar', 'options'];
+  private CONFIG_KEYS: string[] = ['icsCalendars', 'gcalCompleted', 'syncFunction', 'summary', 'options'];
 
   constructor(config: Config) {
     this.parseConfigs(config);
@@ -178,6 +190,7 @@ class TickSync {
       link: ev.htmlLink,
       attendees: ev.attendees ?? [],
       visibility: ev.visibility ?? 'default',
+      reminders: ev.reminders ?? {},
       dateStart: ev.start,
       dateEnd: ev.end,
       dateCreated: ev.created,
@@ -234,10 +247,10 @@ class TickSync {
     Calendar.Events.update(finalObj, calendar.id, event.id);
   }
 
-  /* ======================================================================== */
+  /* TICKSYNC PRIVATE FUNCTIONS ============================================= */
 
   private createCalendars() {
-    const allGcalendarsNames = [this.config.gcalCompletedCalendar, ...this.config.icsCalendars.map((item) => item[1])];
+    const allGcalendarsNames = [this.config.gcalCompleted, ...this.config.icsCalendars.map((item) => item[1])];
     allGcalendarsNames.forEach((calName: string) => {
       if (!this.getCalendarByName(calName)) {
         this.createCalendar(calName);
@@ -274,21 +287,95 @@ class TickSync {
     return tasks;
   }
 
+  private shouldSendEmail() {
+    const timeArr = this.config.summary.timeToEmail.split(':');
+    const specifiedStamp = Number(timeArr[0]) * 60 + Number(timeArr[1]);
+
+    const date = new Date();
+    date.setHours(date.getHours() + this.config.summary.timeZoneCorrection);
+    const curStamp = Number(date.getHours()) * 60 + Number(date.getMinutes());
+
+    return curStamp >= specifiedStamp;
+  }
+
+  private emailSummary(syncStats: SyncStats) {
+    const allModifications = syncStats.addedEvents.length + syncStats.updatedEvents.length + syncStats.completedEvents.length;
+
+    let content = '';
+    content = `TickSync made ${allModifications} changes to your calendar:<br/><br/>\n`;
+    const addedTasks = syncStats.addedEvents.map((item: string) => `<li>${item}</li>`);
+    const updatedTasks = syncStats.updatedEvents.map((item: string) => `<li>${item}</li>`);
+    const completedTasks = syncStats.completedEvents.map((item: string) => `<li>${item}</li>`);
+    content += addedTasks.length > 0 ? `added events:<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
+    content += updatedTasks.length > 0 ? `updated events:<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
+    content += completedTasks.length > 0 ? `completed events:<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
+    content += "If you want to share feedback, please contact us at <a href='https://github.com/lucasvtiradentes/ticktick-gcal-sync'>github</a>.";
+
+    const message = {
+      to: this.config.summary.email,
+      name: 'TickSync bot',
+      subject: `TickSync summary for ${new Date().toLocaleString('pt-br').split(', ')[0]} - ${allModifications} modifications`,
+      htmlBody: content
+    };
+
+    MailApp.sendEmail(message);
+
+    if (this.config.options.showLogs) {
+      console.log(`summary email was sent to ${this.config.summary.email}`);
+    }
+  }
+
+  /* TICKSYNC PUBLIC FUNCTIONS ============================================== */
+
   setupTickSync() {
-    const updateFrequency = this.config.options.updateFrequency;
-    const tickFunctionName = 'tickSync';
-    const triggers = ScriptApp.getProjectTriggers();
-    const tickSyncTrigger = triggers.find((item) => item.getHandlerFunction() === tickFunctionName);
+    const tickSyncTrigger = ScriptApp.getProjectTriggers().find((item) => item.getHandlerFunction() === this.config.syncFunction);
 
     if (tickSyncTrigger) {
       ScriptApp.deleteTrigger(tickSyncTrigger);
     }
 
-    ScriptApp.newTrigger(tickFunctionName).timeBased().everyMinutes(updateFrequency).create();
+    ScriptApp.newTrigger(this.config.syncFunction).timeBased().everyMinutes(this.config.options.updateFrequency).create();
+
+    if (this.config.options.showLogs) {
+      console.log(`setup TickSync to update every ${this.config.options.updateFrequency} minutes`);
+    }
+  }
+
+  uninstallTickSync() {
+    const tickSyncTrigger = ScriptApp.getProjectTriggers().find((item) => item.getHandlerFunction() === this.config.syncFunction);
+
+    if (tickSyncTrigger) {
+      ScriptApp.deleteTrigger(tickSyncTrigger);
+      if (this.config.options.showLogs) {
+        console.log(`TickSync looping funtion trigger was removed!`);
+      }
+    }
+  }
+
+  cleanTodayEventsStats() {
+    const scriptProperties = PropertiesService.getScriptProperties();
+
+    scriptProperties.setProperty('addedEvents', '');
+    scriptProperties.setProperty('updatedEvents', '');
+    scriptProperties.setProperty('completedEvents', '');
+
+    if (this.config.options.showLogs) {
+      console.log(`${new Date().toLocaleString('pt-br').split(', ')[0]} stats were reseted!`);
+    }
+  }
+
+  showTodayEventsStats() {
+    const scriptProperties = PropertiesService.getScriptProperties();
+
+    console.log(`stats for ${new Date().toLocaleString('pt-br').split(', ')[0]}`);
+
+    console.log(scriptProperties.getProperty('addedEvents'));
+    console.log(scriptProperties.getProperty('updatedEvents'));
+    console.log(scriptProperties.getProperty('completedEvents'));
   }
 
   syncEvents() {
-    const syncNumbers = {
+    const sessionStats: SyncStats = {
       addedEvents: [],
       updatedEvents: [],
       completedEvents: []
@@ -317,8 +404,7 @@ class TickSync {
           start: curIcsTask.start,
           end: curIcsTask.end,
           reminders: {
-            useDefault: true,
-            overrides: []
+            useDefault: true
           },
           extendedProperties: extendProps
         };
@@ -328,7 +414,7 @@ class TickSync {
         }
 
         if (this.config.options.showLogs) {
-          syncNumbers.addedEvents.push(`${taskCalendar.summary}: ${curIcsTask.name}`);
+          sessionStats.addedEvents.push(`${taskCalendar.summary}: ${curIcsTask.name}`);
           console.log(`added event to gcal     : [${curIcsTask.name}] / [${taskCalendar.summary}]`);
         }
       } else {
@@ -353,7 +439,7 @@ class TickSync {
           }
 
           if (this.config.options.showLogs) {
-            syncNumbers.updatedEvents.push(`${taskCalendar.summary}: ${curIcsTask.name}`);
+            sessionStats.updatedEvents.push(`${taskCalendar.summary}: ${curIcsTask.name}`);
             console.log(`gcal event was updated  : [${curIcsTask.name}] / [${taskCalendar.summary}]`);
           }
         }
@@ -367,30 +453,66 @@ class TickSync {
 
       if (!isTaskStillInTickTick) {
         const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
-        const completedCalendar = this.getCalendarByName(this.config.gcalCompletedCalendar);
+        const completedCalendar = this.getCalendarByName(this.config.gcalCompleted);
 
         if (!this.config.options.debugMode) {
           this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
         }
 
         if (this.config.options.showLogs) {
-          syncNumbers.completedEvents.push(`${gcalEvent.extendedProperties.private.calendar}: ${gcalEvent.summary}`);
+          sessionStats.completedEvents.push(`${gcalEvent.extendedProperties.private.calendar}: ${gcalEvent.summary}`);
           console.log(`gcal event was completed: [${gcalEvent.summary}]`);
         }
       }
     });
 
     if (this.config.options.showLogs) {
-      console.log('------------------------------------------\n');
+      console.log(`addedEvents: ${sessionStats.addedEvents.length}`);
+      console.log(`updatedEvents: ${sessionStats.updatedEvents.length}`);
+      console.log(`completedEvents: ${sessionStats.completedEvents.length}`);
+    }
 
-      console.log(`addedEvents: ${syncNumbers.addedEvents.length}`);
-      console.log(syncNumbers.addedEvents);
+    if (this.config.options.emailSummary) {
+      const scriptProperties = PropertiesService.getScriptProperties();
 
-      console.log(`updatedEvents: ${syncNumbers.updatedEvents.length}`);
-      console.log(syncNumbers.updatedEvents);
+      if (!scriptProperties.getKeys().includes('addedEvents')) {
+        scriptProperties.setProperties({
+          addedEvents: '',
+          updatedEvents: '',
+          completedEvents: ''
+        });
+      }
 
-      console.log(`completedEvents: ${syncNumbers.completedEvents.length}`);
-      console.log(syncNumbers.completedEvents);
+      const sessionEventsCount = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
+      const addEv = scriptProperties.getProperty('addedEvents');
+      const updEv = scriptProperties.getProperty('updatedEvents');
+      const comEv = scriptProperties.getProperty('completedEvents');
+
+      if (sessionEventsCount > 0) {
+        scriptProperties.setProperty('addedEvents', `${addEv ? addEv + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
+        scriptProperties.setProperty('updatedEvents', `${updEv ? updEv + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
+        scriptProperties.setProperty('completedEvents', `${comEv ? comEv + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
+
+        if (this.config.options.showLogs) {
+          console.log('adding date stats to properties');
+        }
+      }
+
+      const todayEventsCount = addEv.split('\n').filter((item) => item.length > 0).length + updEv.split('\n').filter((item) => item.length > 0).length + comEv.split('\n').filter((item) => item.length > 0).length;
+      if (todayEventsCount > 0 && this.shouldSendEmail()) {
+        const dateStats: SyncStats = {
+          // prettier-ignore
+          addedEvents: scriptProperties.getProperty('addedEvents').split('\n').filter(item => item.length > 0),
+          // prettier-ignore
+          updatedEvents: scriptProperties.getProperty('updatedEvents').split('\n').filter(item => item.length > 0),
+          // prettier-ignore
+          completedEvents: scriptProperties.getProperty('completedEvents').split('\n').filter(item => item.length > 0)
+        };
+
+        this.emailSummary(dateStats);
+
+        this.cleanTodayEventsStats();
+      }
     }
   }
 }

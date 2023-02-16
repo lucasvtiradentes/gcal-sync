@@ -1,7 +1,7 @@
 <a name="TOC"></a>
 
 <h3 align="center">
-  GITHUB TICKTICK CALENDAR SYNC
+  TICKTICK GCAL SYNC
 </h3>
 
 <div align="center">
@@ -21,7 +21,7 @@
 
 ## :trumpet: Overview
 
-a solution to add sync between github, ticktick and google calendar all together.
+a simple solution to add one way sync from ticktick to google calendar with some customizations.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./images/up_arrow.png" width="22"></a>
 
@@ -36,7 +36,7 @@ a solution to add sync between github, ticktick and google calendar all together
 
 ## License
 
-this solution is distributed under the terms of the MIT License Version 2.0. A complete version of the license is available in the [LICENSE](LICENSE) file in this repository. Any contribution made to this project will be licensed under the MIT License Version 2.0.
+This project is distributed under the terms of the MIT License Version 2.0. A complete version of the license is available in the [LICENSE](LICENSE) file in this repository. Any contribution made to this project will be licensed under the MIT License Version 2.0.
 
 <a href="#"><img src="./images/divider.png" /></a>
 
