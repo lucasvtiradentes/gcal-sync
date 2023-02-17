@@ -257,6 +257,22 @@ class TickSync {
     return curStamp >= specifiedStamp;
   }
 
+  formatSummary(summary: string) {
+    const arr = summary.split('\n').map((item) => item.split(' | '));
+    const sortedArr = arr.sort((a, b) => Number(new Date(a[0])) - Number(new Date(b[0])));
+
+    const maxCalendar = Math.max(...sortedArr.map((item) => item[1].length));
+    const fixedCalendarArr = sortedArr.map((item) => {
+      const [date, calendar, task] = item;
+      const diffIndex = maxCalendar - calendar.length;
+      const newCalendar = diffIndex === 0 ? calendar : calendar + ' '.repeat(diffIndex);
+      return [date, newCalendar, task];
+    });
+
+    const strSorted = fixedCalendarArr.map((item) => item.join(' | ')).join('\n');
+    return strSorted;
+  }
+
   private emailSummary(syncStats: SyncStats) {
     const allModifications = syncStats.addedEvents.length + syncStats.updatedEvents.length + syncStats.completedEvents.length;
 
@@ -274,7 +290,7 @@ class TickSync {
       to: this.config.summary.email,
       name: 'TickSync bot',
       subject: `TickSync summary for ${new Date().toLocaleString('pt-br').split(', ')[0]} - ${allModifications} modifications`,
-      htmlBody: content
+      htmlBody: this.formatSummary(content)
     };
 
     MailApp.sendEmail(message);
