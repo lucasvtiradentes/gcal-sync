@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-type calendar = [string, string, string[]];
+type calendarItem = [string, string, string, string[]];
 
+// gcalCompleted: string;
 type Config = {
   synchronization: {
-    icsCalendars: calendar[];
-    gcalCompleted: string;
+    icsCalendars: calendarItem[];
     syncFunction: string;
     updateFrequency: number;
   };
@@ -235,7 +235,7 @@ class TickSync {
   /* TICKSYNC PRIVATE FUNCTIONS ============================================= */
 
   private createCalendars() {
-    const allGcalendarsNames = [this.config.synchronization.gcalCompleted, ...this.config.synchronization.icsCalendars.map((item) => item[1])];
+    const allGcalendarsNames = [...new Set([...this.config.synchronization.icsCalendars.map((item) => item[1]), ...this.config.synchronization.icsCalendars.map((item) => item[2])])];
     allGcalendarsNames.forEach((calName: string) => {
       if (!this.getCalendarByName(calName)) {
         this.createCalendar(calName);
@@ -284,11 +284,12 @@ class TickSync {
     }
   }
 
-  private checkTicktickAddedAndUpdatedTasks(taskCalendarName: string, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
+  private checkTicktickAddedAndUpdatedTasks(icsItem: calendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
+    const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
     const addedTasks: string[] = [];
     const updatedTasks: string[] = [];
 
-    const taskCalendar = this.getCalendarByName(taskCalendarName);
+    const taskCalendar = this.getCalendarByName(gCalCorresponding);
 
     tasksFromIcs.forEach((curIcsTask) => {
       const doesTaksExistsOnGcal = tasksFromGoogleCalendars.map((item) => item.extendedProperties.private.tickTaskId).includes(curIcsTask.id);
@@ -297,7 +298,8 @@ class TickSync {
         const extendProps = {
           private: {
             tickTaskId: curIcsTask.id,
-            calendar: taskCalendarName
+            calendar: gCalCorresponding,
+            completedCalendar: completedCal
           }
         } as any;
 
@@ -365,7 +367,7 @@ class TickSync {
 
       if (!isTaskStillInTickTick) {
         const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
-        const completedCalendar = this.getCalendarByName(this.config.synchronization.gcalCompleted);
+        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.synchronization.gcalCompleted
 
         if (!this.config.options.maintanceMode) {
           this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
@@ -463,10 +465,10 @@ class TickSync {
     const allTickTickTasks: ParsedIcsEvent[] = [];
 
     this.config.synchronization.icsCalendars.forEach((icsItem) => {
-      const [icsCal, gCalCorresponding, ignoredTags] = icsItem;
+      const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
       const tasksFromIcs = ignoredTags ? this.getEventsFromIcsCalendar(icsCal, ignoredTags) : this.getEventsFromIcsCalendar(icsCal);
       allTickTickTasks.push(...tasksFromIcs);
-      const [added, updated] = this.checkTicktickAddedAndUpdatedTasks(gCalCorresponding, tasksFromIcs, tasksFromGoogleCalendars);
+      const [added, updated] = this.checkTicktickAddedAndUpdatedTasks(icsItem, tasksFromIcs, tasksFromGoogleCalendars);
       sessionStats.addedEvents.push(...added);
       sessionStats.updatedEvents.push(...updated);
     });
