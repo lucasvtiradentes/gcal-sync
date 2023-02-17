@@ -26,6 +26,7 @@
     "pub": "semantic-release",
     "pub:check": "npm publish --dry-run",
     "pub:build": "npm pack && tar -xvzf *.tgz",
+    "postversion": "echo postversion testing",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
     "lint:check": "eslint .",

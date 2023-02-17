@@ -68,14 +68,14 @@ module.exports = {
         }
       }
     ],
-    '@semantic-release/github',
-    '@semantic-release/npm',
     [
       '@semantic-release/git',
       {
-        assets: ['docs/CHANGELOG.MD', 'package.json'],
+        assets: ['docs/CHANGELOG.MD', 'package.json', 'dist/TickSync.min.js'],
         message: ':memo: docs: update changelog files ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}'
       }
-    ]
+    ],
+    '@semantic-release/github',
+    '@semantic-release/npm'
   ]
 };
