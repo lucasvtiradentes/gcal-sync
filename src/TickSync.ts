@@ -59,28 +59,37 @@ type SyncStats = {
 
 class TickSync {
   public config: Config;
-  public githubRepository: string;
-  public version: string;
+  appName = 'ticktick-gcal-sync';
+  githubRepository = 'lucasvtiradentes/ticktick-gcal-sync';
+  version = ''; // version
 
   constructor(config: Config) {
-    this.parseConfigs(config);
+    this.validateConfigs(config);
     this.config = config;
-    this.githubRepository = 'lucasvtiradentes/ticktick-gcal-sync';
-    this.version = ''; // version
+
+    if (this.config.options.showLogs) {
+      console.log(`${this.appName} is running at version ${this.version}`);
+    }
   }
 
-  private parseConfigs(config: Config) {
-    const CONFIG_KEYS: string[] = ['synchronization', 'notifications', 'options'];
-    CONFIG_KEYS.forEach((key) => {
-      if (!Object.keys(config).includes(key)) {
+  private validateObject(objToCheck: any, requiredKeys: string[]) {
+    requiredKeys.forEach((key) => {
+      if (!objToCheck || !Object.keys(objToCheck).includes(key)) {
         throw new Error(`missing key in configs: ${key}`);
       }
     });
   }
 
+  private validateConfigs(config: Config) {
+    this.validateObject(config, ['synchronization', 'notifications', 'options']);
+    this.validateObject(config.synchronization, ['icsCalendars', 'syncFunction', 'updateFrequency']);
+    this.validateObject(config.notifications, ['email', 'timeToEmail', 'timeZoneCorrection', 'emailSummary', 'emailNewRelease']);
+    this.validateObject(config.options, ['showLogs', 'maintanceMode']);
+  }
+
   /* ICS CALENDARS FUNCTIONS ================================================ */
 
-  private getBetween(str: string, substr1: string, substr2: string) {
+  private getStrBetween(str: string, substr1: string, substr2: string) {
     const newStr = str.slice(str.search(substr1)).replace(substr1, '');
     return newStr.slice(0, newStr.search(substr2));
   }
@@ -102,10 +111,10 @@ class TickSync {
     const eventsArr = icalStr.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
 
     const allEventsArr: ParsedIcsEvent[] = eventsArr.reduce((acc, cur) => {
-      const timezone = this.getBetween(cur, 'TZID:', '\r\n');
-      let dtstart: any = this.getBetween(cur, 'DTSTART;', '\r\n');
+      const timezone = this.getStrBetween(cur, 'TZID:', '\r\n');
+      let dtstart: any = this.getStrBetween(cur, 'DTSTART;', '\r\n');
       dtstart = dtstart.slice(dtstart.search(':') + 1);
-      let dtend: any = this.getBetween(cur, 'DTEND;', '\r\n');
+      let dtend: any = this.getStrBetween(cur, 'DTEND;', '\r\n');
       dtend = dtend.slice(dtend.search(':') + 1);
 
       if (dtend === '') {
@@ -128,9 +137,9 @@ class TickSync {
       }
 
       const eventObj = {
-        id: this.getBetween(cur, 'UID:', '\r\n'),
-        name: this.getBetween(cur, 'SUMMARY:', '\r\n'),
-        description: this.getBetween(cur, 'DESCRIPTION:', '\r\n'),
+        id: this.getStrBetween(cur, 'UID:', '\r\n'),
+        name: this.getStrBetween(cur, 'SUMMARY:', '\r\n'),
+        description: this.getStrBetween(cur, 'DESCRIPTION:', '\r\n'),
         tzid: timezone,
         start: dtstart,
         end: dtend
