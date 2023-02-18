@@ -15,31 +15,405 @@
 </div>
 
 <p align="center">
-  <a href="#dart-features">Features</a> • <a href="#books-about">About</a> • <a href="#family-community">Community</a>
+  <a href="#dart-features">Features</a> • <a href="#warning-requirements">Requirements</a> • <a href="#bulb-usage">Usage</a> • <a href="#wrench-development">Development</a> • <a href="#pray-help">Help</a> • <a href="#books-about">About</a> • <a href="#family-community">Community</a>
 </p>
+
+<details>
+  <summary align="center"><span>see <b>all badges</b></span></summary>
+  <p align="center">
+    <br>
+    <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/graphs/contributors"><img src="https://img.shields.io/github/contributors/lucasvtiradentes/ticktick-gcal-sync.svg" /></a>
+    <br>
+    <a href="#"><img src="https://badges.frapsoft.com/os/v2/open-source.svg?v=103"></a>
+    <a href="https://saythanks.io/to/lucasvtiradentes"><img src="https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg"></a>
+    <a href="#"><img src="https://img.shields.io/github/sponsors/lucasvtiradentes?label=Github%20Sponsors" /></a>
+  </p>
+  <p align="center">
+    <br>
+    <a href="https://github.com/commitizen/cz-cli"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg?style=flat-square" alt="commitzen" /></a>
+    <a href="https://gitmoji.dev"><img src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67.svg?style=flat-square" alt="Gitmoji" /></a>
+    <a href="https://github.com/semantic-release/semantic-release"><img src="https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg?style=flat-square" alt="semantic-release"/></a>
+    <br>
+    <a href="https://git-scm.com/"><img src="https://badgen.net/badge/icon/git?icon=git&label"></a>
+    <a href="https://github.com/"><img src="https://badgen.net/badge/icon/github?icon=github&label"></a>
+    <a href="https://www.typescriptlang.org/"><img src="https://badgen.net/badge/icon/typescript?icon=typescript&label"></a>
+  </p>
+  <p align="center">
+    <br>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/releases"><img src="https://img.shields.io/github/v/release/lucasvtiradentes/ticktick-gcal-sync.svg" /></a>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/tags" target="_blank"><img src="https://img.shields.io/github/tag/lucasvtiradentes/ticktick-gcal-sync.svg" alt="GitHub tag (latest SemVer)"></a>
+    <br>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/pulls" target="_blank"><img src="https://badgen.net/github/prs/lucasvtiradentes/ticktick-gcal-sync?label=open%20PR" alt="GitHub"></a>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/commits/master" target="_blank"><img src="https://badgen.net/github/commits/lucasvtiradentes/ticktick-gcal-sync" alt="GitHub"></a>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues"><img src="https://img.shields.io/github/issues-raw/lucasvtiradentes/ticktick-gcal-sync" /></a>
+    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues?q=is%3Aissue+is%3Aclosed"><img src="https://img.shields.io/github/issues-closed-raw/lucasvtiradentes/ticktick-gcal-sync" /></a>
+  </p>
+</details>
+
+<details>
+  <summary align="center"><span>see <b>table of content</b></span></summary>
+  <p align="center">
+    <ul>
+      <!-- <li><a href="#trumpet-overview">Overview</a></li> -->
+      <!-- <li><a href="#pushpin-table-of-contents">TOC</a></li> -->
+      <li><a href="#dart-features">Features</a></li>
+      <li><a href="#warning-requirements">Requirements</a></li>
+      <li>
+        <a href="#bulb-usage">Usage</a>
+        <ul>
+          <li><a href="#installation">Installation</a></li>
+          <li><a href="#general-tips">General tips</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="#wrench-development">Development</a>
+        <ul>
+          <li><a href="#development-setup">Development setup</a></li>
+          <li><a href="#folders-and-files-structure">Folders and files structure</a></li>
+          <li><a href="#used-technologies">Used technologies</a></li>
+          <li><a href="#code-style">Code style</a></li>
+          <li><a href="#commit-messages-style">Commit messages style</a></li>
+          <li><a href="#tests">Tests</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="#pray-help">Help</a>
+        <ul>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#docs-and-support">Docs and support</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="#books-about">About</a>
+        <ul>
+          <li><a href="#related">Related</a></li>
+          <li><a href="#license">License</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="#family-community">Community</a>
+        <ul>
+          <li><a href="#contributing">Contributing</a></li>
+          <li><a href="#feedback">Feedback</a></li>
+          <li><a href="#acknowledgements">Acknowledgements</a></li>
+        </ul>
+      </li>
+    </ul>
+  </p>
+</details>
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
 ## :trumpet: Overview
 
-a solution to add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
+Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
 
 <div align="center">
-  <img src="./.github/images/TYCKSYNC.png" />
+  <img src="./.github/images/ticksync.png" />
 </div>
+
+This project was deeply inspired by [this tool](https://github.com/derekantrican/GAS-ICS-Sync), and my main reason about creating it was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress over time.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 &nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates, description and title;<br>
-&nbsp;&nbsp;&nbsp;✔️ every completed task in ticktick will make the task be moved to a compelted gcal agenda;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what tiktok has done throughout the day;<br>
+&nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the task be moved to a compelted gcal agenda: in case of deleted tasks, make sure to delete in gcal as well;<br>
+&nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what ticksync has done throughout the day;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags present in its title.<br>
+&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags.<br>
+
+## :warning: Requirements<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
+
+The only thing you need to use this solution is a `google account`.
+
+## :bulb: Usage<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
+
+### Installation
+
+To effectivily use this project, do the following steps:
+
+- remember to get all your calendars from ticktick in this [link](https://ticktick.com/webapp/#settings/subscribe);
+- go to [google apps script](https://script.google.com/home) and create a new project;
+- copy and past the code below and save the file;
+- change the variable `tickSyncConfigs` acording to your needs and data;
+- select the function `setup` in the upfront menu and run it: it will setup the function to run every `5 minutes`;
+
+```javascript
+function getTickSync() {
+  const tickSyncConfigs = {
+    synchronization: {
+      icsCalendars: [
+        ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // all will be synced
+        ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // all will be synced, but marks all tasks with a label
+        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // syncs everything, excepts tasks with the specified label
+      ],
+      syncFunction: 'sync',         // function name to run every x minutes
+      updateFrequency: 5            // wait time between sync checks
+    },
+    notifications: {
+      email: 'youremail@gmail.com', // email to send reports
+      timeToEmail: '23:30',         // time to email the summary
+      timeZoneCorrection: -3,       // difference from utc time
+      emailSummary: true,           // email summary daily at a specified time
+      emailNewRelease: true         // email new version releases
+    },
+    options: {
+      showLogs: true,               // show runtime information
+      maintanceMode: false          // option to not create, delete, update anything
+    }
+  };
+
+  // update the version in a regular basis to get the most recent updates
+  const tickSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/ticktick-gcal-sync@1.0.0`).getContentText();
+  eval(`this.TickSync = ` + tickSyncContent);
+  const tickSync = new TickSync(tickSyncConfigs);
+  return tickSync;
+}
+
+function sync() {
+  const tickSync = getTickSync();
+  tickSync.syncEvents();
+}
+
+function setup() {
+  const tickSync = getTickSync();
+  tickSync.installTickSync();
+}
+
+function remove() {
+  const tickSync = getTickSync();
+  tickSync.uninstallTickSync();
+}
+```
+
+After that, your data will be sync as you specified every 5 minutes.
+
+### General tips
+
+- you can have a tikctick calendar for all your tasks and ignore certain kind of tasks and handle this ignored ones in other gcal;
+- before setting up the auto sync, you can use the `maintanceMode` to check if everything is okay from reading the app logs;
+- every update in ticktick may take 5 minutes to propagate to their ics calendars.
+
+## :wrench: Development<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
+
+### Development setup
+
+To setup this project in your computer, download it in this link or run the following commands:
+
+```bash
+# Clone this repository
+$ git clone https://github.com/lucasvtiradentes/ticktick-gcal-sync
+
+# Go into the repository
+$ cd ticktick-gcal-sync
+```
+
+After download it, go to the project folder and run these commands:
+
+```bash
+# Install dependencies
+$ npm install
+```
+
+If you want to contribute to the project, after you make the necessary changes, run these commands to check if everything is working fine:
+
+```bash
+# Compiles the typescript code into javascript
+$ npm run build
+```
+
+to load your work in apps scripts with almost no effort, push your code to a repository and then add the following code to the apps script:
+
+```js
+function getTickSyncContent(mode){
+
+  if (mode === 'production'){
+    return UrlFetchApp.fetch(`https://unpkg.com/ticktick-gcal-sync`).getContentText()
+  } else if (mode === 'development'){
+    const repository = "lucasvtiradentes/ticktick-gcal-sync" // remember to update this
+    const filePath = "dist/TickSync.min.js"
+    const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}`
+    const response = UrlFetchApp.fetch(final_link, {'method' : 'get', 'contentType': 'application/json'})
+    const base64Content = JSON.parse(response.toString()).content
+    const decodedArr = Utilities.base64Decode(base64Content);
+    const decodedAsString = Utilities.newBlob(decodedArr).getDataAsString()
+    return decodedAsString
+  }
+
+  return ''
+
+}
+
+
+function getTickSync(){
+  ...
+  const tickSyncContent = getTickSyncContent('development') // 'production'
+  ...
+}
+```
+
+### Folders and files structure
+
+The project has the following folder strucure:
+
+```plain
+|-- .github         # contains CI-CD workflows, github templates, DOCS and images.
+|-- .husky          # contains git hooks configurations files.
+|-- .vscode         # contains vscode settings for this project.
+|-- dist            # (dev only) build folder
+|-- docs            # documentation folder
+|-- node_modules    # (dev only) dependencies folder
+|-- scripts         # scripts to help development
+|-- src             # application source code
+```
+
+and the filles present in root folder are the following:
+
+```plain
+.czrc                 # commitizen settings
+.editorconfig         # editorconfig settings
+.eslintignore         # eslint ignored items
+.eslintrc.json        # eslint settings
+.gitignore            # git ignored items
+.lintstagedrc         # lintstaged settings
+.npmignore            # npm package ignored items
+.prettierignore       # prettier ignored items
+.prettierrc.json      # prettier settings
+commitlint.config.js  # commitlint settings
+LICENSE               # application license
+package.json          # project specifications
+README.md             # project description markdown file
+release.config.js     # ci-cd npm package deployment configs
+tsconfig.json         # typescript settings
+```
+
+### Used technologies
+
+ticktick-gcal-sync uses the following thechnologies:
+
+<div align="center">
+  <table>
+    <tr>
+      <th>Scope</th>
+      <th>Subject</th>
+      <th>Technologies</th>
+    </tr>
+    <tr>
+      <td rowspan="1">Main</td>
+      <td>Main</td>
+      <td align="center">
+        <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white"></a>
+        <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white"></a>
+      </td>
+    </tr>
+    <tr>
+      <td rowspan="3">Setup</td>
+      <td>Code linting</td>
+      <td align="center">
+        <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/prettier-1A2C34?logo=prettier&logoColor=F7BA3E"></a>
+        <a href="https://github.com/eslint/eslint"><img src="https://img.shields.io/badge/eslint-3A33D1?logo=eslint&logoColor=white"></a>
+      </td>
+    </tr>
+    <tr>
+      <!-- <td rowspan="2">Setup</td> -->
+      <td>Commit linting</td>
+      <td align="center">
+      <a target="_blank" href="https://github.com/conventional-changelog/commitlint"><img src="https://img.shields.io/badge/commitlint-red?logo=commitlint&logoColor=white"></a>
+      <a target="_blank" href="https://github.com/commitizen/cz-cli"><img src="https://img.shields.io/badge/commitizen-pink?logo=conventionalcommits&logoColor=white"></a>
+      <a href="https://gitmoji.dev"><img
+    src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67.svg?style=flat-square"
+    alt="Gitmoji"/></a>
+      </td>
+    </tr>
+    <tr>
+      <!-- <td rowspan="2">Setup</td> -->
+      <td>Other</td>
+      <td align="center">
+        <a href="https://editorconfig.org/"><img src="https://img.shields.io/badge/Editor%20Config-E0EFEF?logo=editorconfig&logoColor=000"></a>
+        <a target="_blank" href="https://github.com/typicode/husky"><img src="https://img.shields.io/badge/🐶%20husky-green?logo=husky&logoColor=white"></a>
+        <a target="_blank" href="https://github.com/okonet/lint-staged"><img src="https://img.shields.io/badge/🚫%20lint%20staged-yellow?&logoColor=white"></a>
+      </td>
+    </tr>
+  </table>
+</div>
+
+And also this project used the following packages:
+
+```plain
+# DEV DEPENDENCIES (skiped @types/*)
+
+- semantic-release                   # semantic-release packages
+- @semantic-release/changelog
+- @semantic-release/commit-analyzer
+- @semantic-release/git
+- @semantic-release/release-notes-generator
+
+- @commitlint/cli                    # commitlint packages
+- @commitlint/config-conventional
+
+- commitizen                         # commitzen packages
+- commitizen-emoji
+
+- prettier                           # code styling packages
+- eslint
+- lint-staged
+- eslint-config-prettier
+- eslint-plugin-prettier
+- @typescript-eslint/eslint-plugin
+- @typescript-eslint/parser
+
+- husky                              # git hooks automation;
+- minify                             # minify files
+- rimraf                             # crossref delete files/folder
+- ts-node                            # typescript runner;
+- typescript                         # javascript superset tool;
+```
+
+### Code style
+
+There's not a named convention used in this project (like [airbnb](https://github.com/airbnb/javascript), for instance), instead we specified he settings we like the most in prettier. You can check these settings in the [.prettierrc](./.prettierrc.json) file.
+
+### Commit messages style
+
+This project uses the best of two main conventions to commit messages validation:
+
+- [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/): it's powerfull messages structure;
+- [gitmoji](https://gitmoji.dev/): it's beutiful and visual way to display commits.
+
+So a typically valid commit message has this pattern:
+
+> 🔧 config: add lint-staged to the project (#2)
+
+### Tests
+
+> **Warning** :warning: This project does not have tests yet, but you in the future we will be adding some.
+
+<a href="#"><img src="./.github/images/divider.png" /></a>
+
+## :pray: Help<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
+
+## FAQ
+
+You can check our most common questions and awnsers in this [link](./docs/FAQ.MD).
+
+## Docs and support
+
+The first point of call should be our [Github discussions](https://github.com/lucasvtiradentes/ticktick-gcal-sync/discussions).
+Ask your questions about bugs or specific use cases, and someone I will respond as soon as possible.
+Or, if you prefer, [open an issue](https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues) on our GitHub repo.
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
 ## :books: About<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
+
+## Related
+
+The most related links to this project are:
+
+- [GAS-ICS-Sync](https://github.com/derekantrican/GAS-ICS-Sync): A Google Apps Script for syncing ICS/ICAL files faster than the current Google Calendar speed. This was my main inspiration;
+- [online-ics](https://larrybolt.github.io/online-ics-feed-viewer/): online tool to view ICS calendars;
 
 ## License
 

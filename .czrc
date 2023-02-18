@@ -123,6 +123,12 @@
           "emoji": "🚀"
         },
         {
+          "name": "ci",
+          "description": "Add or update CI build system.",
+          "code": ":construction_worker:",
+          "emoji": "👷"
+        },
+        {
           "name": "fixci",
           "description": "Fix CI Build.",
           "code": ":green_heart:",
@@ -145,6 +151,12 @@
           "description": "Introduce breaking changes.",
           "code": ":boom:",
           "emoji": "💥"
+        },
+        {
+          "name": "tags",
+          "description": "Release / Version tags.",
+          "code": ":bookmark:",
+          "emoji": "🔖"
         }
       ]
     }

@@ -1,4 +1,4 @@
-name: 'ci/cd npm package publish'
+name: 'publish package to npm'
 
 on:
   push:
@@ -29,15 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: show importante variables
-        run: echo ${{ github.ref }}
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - name: List files in the repository
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          echo "📍 destination branch: ${{ github.ref }}"
+          echo "🎉 job was automatically triggered by a ${{ github.event_name }} event."
+          echo "🐧 job is now running on a ${{ runner.os }} server hosted by GitHub!"
+          echo "🔎 your repository is ${{ github.repository }}."
+          echo "🍏 job's status is ${{ job.status }}."
 
   publish:
     runs-on: ubuntu-latest
@@ -50,9 +47,9 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16
-      - name: build-scripts
+      - name: install dependencies
         run: |
           npm install
           npm run build
-      - name: publish things
+      - name: publish package to npm
         run: HUSKY=0 npm run pub

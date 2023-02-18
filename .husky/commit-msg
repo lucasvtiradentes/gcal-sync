@@ -3,6 +3,5 @@
 
 echo "🐶 husky script: [commit-msg]"
 npx --no -- commitlint --edit ${1}
-npm run build
 echo "✅ husky script: [commit-msg]"
 echo ""

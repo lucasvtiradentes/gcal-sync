@@ -10,3 +10,5 @@ build/
 dist/
 ignore/
 node_modules/
+
+README.md

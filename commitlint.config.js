@@ -125,6 +125,10 @@ function getValidCommitTypes() {
       code: ':rocket:'
     },
     {
+      type: 'ci',
+      code: ':construction_worker:'
+    },
+    {
       type: 'fixci',
       code: ':green_heart:'
     },
@@ -139,6 +143,10 @@ function getValidCommitTypes() {
     {
       type: 'breaking',
       code: ':boom:'
+    },
+    {
+      type: 'tags',
+      code: ':bookmark:'
     }
   ];
 }

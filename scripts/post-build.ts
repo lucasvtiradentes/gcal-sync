@@ -1,11 +1,13 @@
-import * as minify from 'minify';
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import * as minify from 'minify'; // just ignore if an error appers
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
-const DIST_FOLDER = './dist';
-if (!existsSync(DIST_FOLDER)) {
-  mkdirSync(DIST_FOLDER);
-}
+(async () => {
+  const DIST_FILE = `./dist/TickSync.js`;
+
+  const packageJson = JSON.parse(readFileSync('./package.json', { encoding: 'utf8' }));
+  const distFileContent = readFileSync(DIST_FILE, { encoding: 'utf8' });
+  const distFileWithVersion = distFileContent.replace(`this.version = ''; // version`, `this.version = '${packageJson.version}'; // version`);
+  writeFileSync(DIST_FILE, distFileWithVersion);
 
   await minifyFile(DIST_FILE);
   unlinkSync(DIST_FILE);
@@ -17,13 +19,3 @@ async function minifyFile(filePath: string) {
   const minifiedContent = await minify(filePath);
   writeFileSync(filePath.replace(`js`, `min.js`), minifiedContent);
 }
-
-/*
-function deleteFiles(filesToDeleteArr: string[]) {
-  for (const filePath of filesToDeleteArr) {
-    if (existsSync(filePath)) {
-      unlinkSync(filePath);
-    }
-  }
-}
-*/
