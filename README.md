@@ -5,7 +5,7 @@
 </h3>
 
 <div align="center">
-  <a href="https://www.npmjs.com/package/ticktick-gcal-sync"><img src="https://img.shields.io/npm/v/ticktick-gcal-sync.svg?style=flat" alt="npm version"></a>
+  <!-- <a href="https://www.npmjs.com/package/ticktick-gcal-sync"><img src="https://img.shields.io/npm/v/ticktick-gcal-sync.svg?style=flat" alt="npm version"></a> -->
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/made%20with-node-1f425f?logo=node.js&.svg" /></a>
   <a href="https://www.github.com/lucasvtiradentes/ticktick-gcal-sync/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/ticktick-gcal-sync?color=green&label=updated"></a>
   <br>
