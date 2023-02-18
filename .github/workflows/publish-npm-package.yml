@@ -52,4 +52,4 @@ jobs:
           npm install
           npm run build
       - name: publish package to npm
-        run: HUSKY=0 npm run pub
+        run: echo HUSKY=0 npm run pub

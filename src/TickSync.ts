@@ -213,10 +213,12 @@ class TickSync {
     const scriptProperties = this.getGoogleAppsScriptsObject();
     return scriptProperties.getKeys();
   }
+
   private getAppsScriptsProperty(propertyName: string) {
     const scriptProperties = this.getGoogleAppsScriptsObject();
     return scriptProperties.getProperty(propertyName);
   }
+
   private updateAppsScriptsProperty(propertyToUpdate: string, newValue: string) {
     const scriptProperties = this.getGoogleAppsScriptsObject();
     scriptProperties.setProperty(propertyToUpdate, newValue);
@@ -347,106 +349,12 @@ class TickSync {
 
   /* MAIL APP FUNCTIONS ===================================================== */
 
+  private getGoogleEmailObj() {
+    return MailApp;
+  }
+
   private sendEmail(emailObj: GoogleAppsScript.Mail.MailAdvancedParameters) {
-    MailApp.sendEmail(emailObj);
-  }
-
-  /* EMAILS FUNCTIONS ======================================================= */
-
-  private sendSummaryEmail() {
-    // tora
-  }
-
-  private sendNewReleaseEmail() {
-    // tora
-  }
-
-  private formatSummary(summary: string) {
-    if (summary === '' || !summary) {
-      return '';
-    }
-
-    const arr = summary.split('\n').map((item) => item.split(' | '));
-    const sortedArr = arr.sort((a, b) => Number(new Date(a[0])) - Number(new Date(b[0])));
-
-    const maxCalendar = Math.max(...sortedArr.map((item) => item[1].length));
-    const fixedCalendarArr = sortedArr.map((item) => {
-      const [date, calendar, task] = item;
-      const diffIndex = maxCalendar - calendar.length;
-      const newCalendar = diffIndex === 0 ? calendar : calendar + '_'.repeat(diffIndex);
-      return [date, newCalendar, task];
-    });
-
-    const strSorted = fixedCalendarArr.map((item) => item.join(' | ')).join('\n');
-    return strSorted;
-  }
-
-  private emailSummary(syncStats: SyncStats) {
-    const allModifications = syncStats.addedEvents.length + syncStats.updatedEvents.length + syncStats.completedEvents.length;
-
-    const formatedAddedEventsArr = syncStats.addedEvents.length === 0 ? [] : this.formatSummary(syncStats.addedEvents.join('\n')).split('\n');
-    const formatedUpdatedEventsArr = syncStats.updatedEvents.length === 0 ? [] : this.formatSummary(syncStats.updatedEvents.join('\n')).split('\n');
-    const formatedCompletedEventsArr = syncStats.completedEvents.length === 0 ? [] : this.formatSummary(syncStats.completedEvents.join('\n')).split('\n');
-
-    let content = '';
-    content = `${this.appName} made ${allModifications} changes to your calendar:<br/><br/>\n`;
-    const addedTasks = formatedAddedEventsArr.map((item: string) => `<li>${item}</li>`);
-    const updatedTasks = formatedUpdatedEventsArr.map((item: string) => `<li>${item}</li>`);
-    const completedTasks = formatedCompletedEventsArr.map((item: string) => `<li>${item}</li>`);
-    content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
-    content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
-    content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
-    content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.githubRepository}'>github</a>.`;
-
-    const message = {
-      to: this.config.notifications.email,
-      name: `${this.appName} bot`,
-      subject: `${this.appName} summary for ${this.todayDate} - ${allModifications} modifications`,
-      htmlBody: content
-    };
-
-    MailApp.sendEmail(message);
-
-    if (this.config.options.showLogs) {
-      console.log(`summary email was sent to ${this.config.notifications.email}`);
-    }
-  }
-
-  private checkForUpdate() {
-    const lastAlertedVersion = this.getAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted) ?? '';
-    const parseVersion = (v: string) => Number(v.replace('v', '').split('.').join(''));
-
-    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${this.githubRepository}/releases?per_page=1`);
-    const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0];
-
-    const latestVersion = parseVersion(lastReleaseObj.tag_name);
-    const thisVersion = parseVersion(this.version);
-
-    if (latestVersion > thisVersion && latestVersion.toString() != lastAlertedVersion) {
-      const message = `Hi!
-      <br/><br/>
-      a new <a href="https://github.com/${this.githubRepository}">${this.appName}</a> version is available: <br/>
-      <ul>
-        <li>new version: ${lastReleaseObj.tag_name}</li>
-        <li>published at: ${lastReleaseObj.published_at}</li>
-      </ul>
-      you can check details <a href="https://github.com/${this.githubRepository}/releases">here</a>.
-      `;
-
-      const emailObj = {
-        to: this.config.notifications.email,
-        name: `${this.appName} bot`,
-        subject: `new ${this.appName} version [${lastReleaseObj.tag_name}] was released!`,
-        htmlBody: message
-      };
-
-      MailApp.sendEmail(emailObj);
-
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted, latestVersion.toString());
-      if (this.config.options.showLogs) {
-        console.log(`a new release email was sent to ${this.config.notifications.email}`);
-      }
-    }
+    this.getGoogleEmailObj().sendEmail(emailObj);
   }
 
   /* SETUP TICK SYNC FUNCTIONS ============================================== */
@@ -496,6 +404,113 @@ class TickSync {
     console.log(`completedEvents: ${getItems(completedEvents).length}`, getItems(completedEvents).length > 0 ? `\n\n${this.formatEventsList(completedEvents)}` : '');
   }
 
+  /* EMAILS FUNCTIONS ======================================================= */
+
+  private sendNewReleaseEmail() {
+    const lastAlertedVersion = this.getAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted) ?? '';
+    const parseVersion = (v: string) => Number(v.replace('v', '').split('.').join(''));
+
+    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${this.githubRepository}/releases?per_page=1`);
+    const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0];
+
+    const latestVersion = parseVersion(lastReleaseObj.tag_name);
+    const thisVersion = parseVersion(this.version);
+
+    if (latestVersion > thisVersion && latestVersion.toString() != lastAlertedVersion) {
+      const message = `Hi!
+      <br/><br/>
+      a new <a href="https://github.com/${this.githubRepository}">${this.appName}</a> version is available: <br/>
+      <ul>
+        <li>new version: ${lastReleaseObj.tag_name}</li>
+        <li>published at: ${lastReleaseObj.published_at}</li>
+      </ul>
+      you can check details <a href="https://github.com/${this.githubRepository}/releases">here</a>.
+      `;
+
+      const emailObj = {
+        to: this.config.notifications.email,
+        name: `${this.appName} bot`,
+        subject: `new ${this.appName} version [${lastReleaseObj.tag_name}] was released!`,
+        htmlBody: message
+      };
+
+      MailApp.sendEmail(emailObj);
+
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted, latestVersion.toString());
+      if (this.config.options.showLogs) {
+        console.log(`a new release email was sent to ${this.config.notifications.email}`);
+      }
+    }
+  }
+
+  private sendSummaryEmail() {
+    const fixStr = (arrStr: string) => arrStr.split('\n').filter((item) => item.length > 0);
+
+    const addEv = fixStr(this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents));
+    const updEv = fixStr(this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents));
+    const comEv = fixStr(this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents));
+
+    const todayEventsCount = addEv.length + updEv.length + comEv.length;
+    if (todayEventsCount > 0) {
+      const todayEvents: SyncStats = {
+        addedEvents: addEv,
+        updatedEvents: updEv,
+        completedEvents: comEv
+      };
+
+      const allModifications = todayEvents.addedEvents.length + todayEvents.updatedEvents.length + todayEvents.completedEvents.length;
+
+      const formatedAddedEventsArr = todayEvents.addedEvents.length === 0 ? [] : this.formatSummary(todayEvents.addedEvents.join('\n')).split('\n');
+      const formatedUpdatedEventsArr = todayEvents.updatedEvents.length === 0 ? [] : this.formatSummary(todayEvents.updatedEvents.join('\n')).split('\n');
+      const formatedCompletedEventsArr = todayEvents.completedEvents.length === 0 ? [] : this.formatSummary(todayEvents.completedEvents.join('\n')).split('\n');
+
+      let content = '';
+      content = `${this.appName} made ${allModifications} changes to your calendar:<br/><br/>\n`;
+      const addedTasks = formatedAddedEventsArr.map((item: string) => `<li>${item}</li>`);
+      const updatedTasks = formatedUpdatedEventsArr.map((item: string) => `<li>${item}</li>`);
+      const completedTasks = formatedCompletedEventsArr.map((item: string) => `<li>${item}</li>`);
+      content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
+      content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
+      content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
+      content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.githubRepository}'>github</a>.`;
+
+      const message = {
+        to: this.config.notifications.email,
+        name: `${this.appName} bot`,
+        subject: `${this.appName} summary for ${this.todayDate} - ${allModifications} modifications`,
+        htmlBody: content
+      };
+
+      this.sendEmail(message);
+
+      if (this.config.options.showLogs) {
+        console.log(`summary email was sent to ${this.config.notifications.email}`);
+      }
+
+      this.cleanTodayEventsStats();
+    }
+  }
+
+  private formatSummary(summary: string) {
+    if (summary === '' || !summary) {
+      return '';
+    }
+
+    const arr = summary.split('\n').map((item) => item.split(' | '));
+    const sortedArr = arr.sort((a, b) => Number(new Date(a[0])) - Number(new Date(b[0])));
+
+    const maxCalendar = Math.max(...sortedArr.map((item) => item[1].length));
+    const fixedCalendarArr = sortedArr.map((item) => {
+      const [date, calendar, task] = item;
+      const diffIndex = maxCalendar - calendar.length;
+      const newCalendar = diffIndex === 0 ? calendar : calendar + '_'.repeat(diffIndex);
+      return [date, newCalendar, task];
+    });
+
+    const strSorted = fixedCalendarArr.map((item) => item.join(' | ')).join('\n');
+    return strSorted;
+  }
+
   /* TICKSYNC SYNC FUNCTIONS ================================================ */
 
   syncEvents() {
@@ -505,7 +520,8 @@ class TickSync {
       completedEvents: []
     };
 
-    this.createCalendars();
+    this.createMissingGoogleCalendars();
+    this.createMissingAppsScriptsProperties();
 
     const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars();
     const taggedCalendars = this.config.synchronization.icsCalendars.filter((item) => typeof item[3]?.tag === 'string');
@@ -554,53 +570,33 @@ class TickSync {
       console.log(`completedEvents: ${sessionStats.completedEvents.length}`);
     }
 
-    if (this.config.notifications.emailSummary && !this.config.options.maintanceMode) {
-      if (!this.getAppsScriptsProperties().includes(this.appsScriptsProperties.todayAddedEvents)) {
-        this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, '');
-        this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, '');
-        this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, '');
+    const sessionEventsCount = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
+    const addEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
+    const updEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
+    const comEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
+
+    if (sessionEventsCount > 0) {
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, `${addEv ? addEv + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, `${updEv ? updEv + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, `${comEv ? comEv + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
+
+      if (this.config.options.showLogs) {
+        console.log('adding date stats to properties');
+      }
+    }
+
+    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
+      if (this.config.notifications.emailSummary) {
+        this.sendSummaryEmail();
       }
 
-      const sessionEventsCount = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
-      const addEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
-      const updEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
-      const comEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
-
-      if (sessionEventsCount > 0) {
-        this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, `${addEv ? addEv + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
-        this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, `${updEv ? updEv + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
-        this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, `${comEv ? comEv + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
-
-        if (this.config.options.showLogs) {
-          console.log('adding date stats to properties');
-        }
-      }
-
-      if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
-        const todayEventsCount = addEv.split('\n').filter((item) => item.length > 0).length + updEv.split('\n').filter((item) => item.length > 0).length + comEv.split('\n').filter((item) => item.length > 0).length;
-        if (todayEventsCount > 0) {
-          const dateStats: SyncStats = {
-            // prettier-ignore
-            addedEvents: this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents).split('\n').filter(item => item.length > 0),
-            // prettier-ignore
-            updatedEvents: this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents).split('\n').filter(item => item.length > 0),
-            // prettier-ignore
-            completedEvents: this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents).split('\n').filter(item => item.length > 0)
-          };
-
-          this.emailSummary(dateStats);
-
-          this.cleanTodayEventsStats();
-        }
-
-        if (this.config.notifications.emailNewRelease) {
-          this.checkForUpdate();
-        }
+      if (this.config.notifications.emailNewRelease) {
+        this.sendNewReleaseEmail();
       }
     }
   }
 
-  private createCalendars() {
+  private createMissingGoogleCalendars() {
     const allGcalendarsNames = [...new Set([...this.config.synchronization.icsCalendars.map((item) => item[1]), ...this.config.synchronization.icsCalendars.map((item) => item[2])])];
     allGcalendarsNames.forEach((calName: string) => {
       if (!this.getCalendarByName(calName)) {
@@ -610,6 +606,14 @@ class TickSync {
         }
       }
     });
+  }
+
+  private createMissingAppsScriptsProperties() {
+    if (!this.getAppsScriptsProperties().includes(this.appsScriptsProperties.todayAddedEvents)) {
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, '');
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, '');
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, '');
+    }
   }
 
   private checkTicktickAddedAndUpdatedTasks(icsItem: calendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
