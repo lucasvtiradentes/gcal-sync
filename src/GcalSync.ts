@@ -64,28 +64,41 @@ type ParsedResult = {
   taggedIcsTasks: ParsedIcsEvent[];
 };
 
-class TickSync {
+type Environment = 'production' | 'development';
+
+class GcalSync {
   public config: Config;
 
-  version = ''; // version
-  appName = 'gcal-sync';
-  githubRepository = 'lucasvtiradentes/gcal-sync';
-  todayDate = new Date().toISOString().split('T')[0];
-  appsScriptsProperties = {
+  VERSION = ''; // version
+  APPNAME = 'gcal-sync';
+  GITHUB_REPOSITORY = 'lucasvtiradentes/gcal-sync';
+  TODAY_DATE = new Date().toISOString().split('T')[0];
+  ENVIRONMENT = this.detectEnvironment();
+  APPS_SCRIPTS_PROPERTIES = {
     todayAddedEvents: 'todayAddedEvents',
     todayUpdateEvents: 'todayUpdateEvents',
     todayCompletedEvents: 'todayCompletedEvents',
     lastReleasedVersionAlerted: 'lastReleasedVersionAlerted'
+  };
+  ERRORS = {
+    productionOnly: 'This method cannot run in non-production environments',
+    mustSpecifyConfig: 'You must specify the settings when starting the class',
+    incorrectIcsCalendar: 'The provided ics/ical URL is incorrect: ',
+    httpsError: 'There was a HTTP error when accessing: '
   };
 
   constructor(config: Config) {
     this.validateConfigs(config);
     this.config = config;
 
-    this.logger(`${this.appName} is running at version ${this.version}`);
+    this.logger(`${this.APPNAME} is running at version ${this.VERSION} in ${this.ENVIRONMENT} environment`);
   }
 
   private validateConfigs(config: Config) {
+    if (!config) {
+      throw new Error(this.ERRORS.mustSpecifyConfig);
+    }
+
     const validationArr = [
       { objToCheck: config, requiredKeys: ['synchronization', 'notifications', 'options'], name: 'configs' },
       { objToCheck: config.synchronization, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency'], name: 'configs.synchronization' },
@@ -137,6 +150,15 @@ class TickSync {
     const specifiedStamp = Number(timeArr[0]) * 60 + Number(timeArr[1]);
 
     return curStamp >= specifiedStamp;
+  }
+
+  /* DETECT ENVIRONMENT FUNCTION============================================= */
+  private detectEnvironment(): Environment {
+    if (typeof Calendar === 'undefined') {
+      return 'development';
+    } else {
+      return 'production';
+    }
   }
 
   /* LOGGER FUNCTIONS ======================================================= */
@@ -202,10 +224,10 @@ class TickSync {
       icalStr = urlResponse.getContentText();
 
       if (icalStr.search('BEGIN:VCALENDAR') === -1) {
-        throw new Error('[ERROR] Incorrect ics/ical URL: ' + url);
+        throw new Error(this.ERRORS.incorrectIcsCalendar + url);
       }
     } else {
-      throw new Error('Error: Encountered HTTP error ' + urlResponse.getResponseCode() + ' when accessing ' + url);
+      throw new Error(this.ERRORS.httpsError + url);
     }
 
     const eventsArr = icalStr.search('SUMMARY:No task.') > 0 ? [] : this.parseIcsStringIntoEvents(icalStr);
@@ -216,6 +238,10 @@ class TickSync {
   /* APPS SCRIPT PROPPERTIES ================================================ */
 
   private getGoogleAppsScriptsObject() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const Obj = PropertiesService.getScriptProperties();
@@ -245,6 +271,10 @@ class TickSync {
   /* APPS SCRIPTS TRIGGERS ================================================== */
 
   private getGoogleAppsScriptsTriggerObj() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
     return ScriptApp;
   }
 
@@ -268,6 +298,10 @@ class TickSync {
   /* GOOGLE CALENDAR FUNCTIONS ============================================== */
 
   private getGoogleCalendarObj() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
     return Calendar;
   }
 
@@ -363,6 +397,10 @@ class TickSync {
   /* MAIL APP FUNCTIONS ===================================================== */
 
   private getGoogleEmailObj() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
     return MailApp;
   }
 
@@ -376,25 +414,25 @@ class TickSync {
     this.removeAppsScriptsTrigger(this.config.synchronization.syncFunction);
     this.addAppsScriptsTrigger(this.config.synchronization.syncFunction, this.config.synchronization.updateFrequency);
 
-    this.logger(`${this.appName} was set to run ${this.config.synchronization.syncFunction} every ${this.config.synchronization.updateFrequency} minutes`);
+    this.logger(`${this.APPNAME} was set to run ${this.config.synchronization.syncFunction} every ${this.config.synchronization.updateFrequency} minutes`);
   }
 
   uninstallTickSync() {
     this.removeAppsScriptsTrigger(this.config.synchronization.syncFunction);
-    this.removeAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
-    this.removeAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
-    this.removeAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
-    this.removeAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted);
 
-    this.logger(`${this.appName} automation was removed from appscript!`);
+    this.logger(`${this.APPNAME} automation was removed from appscript!`);
   }
 
   cleanTodayEventsStats() {
-    this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, '');
-    this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, '');
-    this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, '');
 
-    this.logger(`${this.todayDate} stats were reseted!`);
+    this.logger(`${this.TODAY_DATE} stats were reseted!`);
   }
 
   showTodayEventsStats() {
@@ -405,11 +443,11 @@ class TickSync {
       return this.formatSummary(arrStr.split('\n').filter(item => item.length > 0).map((item) => `- ${item}`).join('\n'));
     };
 
-    this.logger(`stats for ${this.todayDate}`);
+    this.logger(`stats for ${this.TODAY_DATE}`);
 
-    const addedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
-    const updatedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
-    const completedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
+    const addedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
+    const updatedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
+    const completedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
 
     this.logger(`addedEvents: ${getItems(addedEvents).length}${getItems(addedEvents).length > 0 ? `\n\n${formatEventsList(addedEvents)}` : ''}`);
     this.logger(`updatedEvents: ${getItems(updatedEvents).length}${getItems(updatedEvents).length > 0 ? `\n\n${formatEventsList(updatedEvents)}` : ''}`);
@@ -429,10 +467,10 @@ class TickSync {
   }
 
   private createMissingAppsScriptsProperties() {
-    if (!this.getAppsScriptsProperties().includes(this.appsScriptsProperties.todayAddedEvents)) {
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, '');
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, '');
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, '');
+    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents)) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, '');
     }
   }
 
@@ -481,13 +519,13 @@ class TickSync {
     this.logger(`completedEvents: ${sessionCompletedEventsQuantity}`);
 
     if (sessionAddedEventsQuantity + sessionUpdatedEventsQuantity + sessionCompletedEventsQuantity > 0) {
-      const todayAddedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
-      const todayUpdatedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
-      const todayCompletedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
+      const todayAddedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
+      const todayUpdatedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
+      const todayCompletedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
 
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
 
       if (this.config.notifications.emailSession) {
         this.emailSession(sessionStats);
@@ -651,10 +689,10 @@ class TickSync {
   /* EMAILS FUNCTIONS ======================================================= */
 
   private sendNewReleaseEmail() {
-    const lastAlertedVersion = this.getAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted) ?? '';
+    const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
     const parseVersion = (v: string) => Number(v.replace('v', '').split('.').join(''));
 
-    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${this.githubRepository}/releases?per_page=1`);
+    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${this.GITHUB_REPOSITORY}/releases?per_page=1`);
     const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
 
     if (Object.keys(lastReleaseObj).length === 0) {
@@ -662,29 +700,29 @@ class TickSync {
     }
 
     const latestVersion = parseVersion(lastReleaseObj.tag_name);
-    const thisVersion = parseVersion(this.version);
+    const thisVersion = parseVersion(this.VERSION);
 
     if (latestVersion > thisVersion && latestVersion.toString() != lastAlertedVersion) {
       const message = `Hi!
       <br/><br/>
-      a new <a href="https://github.com/${this.githubRepository}">${this.appName}</a> version is available: <br/>
+      a new <a href="https://github.com/${this.GITHUB_REPOSITORY}">${this.APPNAME}</a> version is available: <br/>
       <ul>
         <li>new version: ${lastReleaseObj.tag_name}</li>
         <li>published at: ${lastReleaseObj.published_at}</li>
       </ul>
-      you can check details <a href="https://github.com/${this.githubRepository}/releases">here</a>.
+      you can check details <a href="https://github.com/${this.GITHUB_REPOSITORY}/releases">here</a>.
       `;
 
       const emailObj = {
         to: this.config.notifications.email,
-        name: `${this.appName} bot`,
-        subject: `new ${this.appName} version [${lastReleaseObj.tag_name}] was released!`,
+        name: `${this.APPNAME} bot`,
+        subject: `new ${this.APPNAME} version [${lastReleaseObj.tag_name}] was released!`,
         htmlBody: message
       };
 
       this.sendEmail(emailObj);
 
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.lastReleasedVersionAlerted, latestVersion.toString());
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, latestVersion.toString());
       this.logger(`a new release email was sent to ${this.config.notifications.email}`);
     }
   }
@@ -693,19 +731,19 @@ class TickSync {
     const allModifications = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
 
     let content = '';
-    content = `Hi!<br/><br/>${this.appName} made ${allModifications} changes to your calendar:<br/><br/>\n`;
+    content = `Hi!<br/><br/>${this.APPNAME} made ${allModifications} changes to your calendar:<br/><br/>\n`;
     const addedTasks = sessionStats.addedEvents.map((item: string) => `<li>${item}</li>`);
     const updatedTasks = sessionStats.updatedEvents.map((item: string) => `<li>${item}</li>`);
     const completedTasks = sessionStats.completedEvents.map((item: string) => `<li>${item}</li>`);
     content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
     content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
     content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
-    content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.githubRepository}'>github</a>.`;
+    content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
 
     const message = {
       to: this.config.notifications.email,
-      name: `${this.appName} bot`,
-      subject: `${this.appName} session of ${this.todayDate} - ${allModifications} modifications`,
+      name: `${this.APPNAME} bot`,
+      subject: `${this.APPNAME} session of ${this.TODAY_DATE} - ${allModifications} modifications`,
       htmlBody: content
     };
 
@@ -717,9 +755,9 @@ class TickSync {
   private sendSummaryEmail() {
     const fixStr = (arrStr: string) => arrStr.split('\n').filter((item) => item.length > 0);
 
-    const addEv = fixStr(this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents));
-    const updEv = fixStr(this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents));
-    const comEv = fixStr(this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents));
+    const addEv = fixStr(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents));
+    const updEv = fixStr(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents));
+    const comEv = fixStr(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents));
 
     const todayEventsCount = addEv.length + updEv.length + comEv.length;
     if (todayEventsCount > 0) {
@@ -736,19 +774,19 @@ class TickSync {
       const formatedCompletedEventsArr = todayEvents.completedEvents.length === 0 ? [] : this.formatSummary(todayEvents.completedEvents.join('\n')).split('\n');
 
       let content = '';
-      content = `Hi!<br/><br/>${this.appName} made ${allModifications} changes to your calendar:<br/><br/>\n`;
+      content = `Hi!<br/><br/>${this.APPNAME} made ${allModifications} changes to your calendar:<br/><br/>\n`;
       const addedTasks = formatedAddedEventsArr.map((item: string) => `<li>${item}</li>`);
       const updatedTasks = formatedUpdatedEventsArr.map((item: string) => `<li>${item}</li>`);
       const completedTasks = formatedCompletedEventsArr.map((item: string) => `<li>${item}</li>`);
       content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
       content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
       content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
-      content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.githubRepository}'>github</a>.`;
+      content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
 
       const message = {
         to: this.config.notifications.email,
-        name: `${this.appName} bot`,
-        subject: `${this.appName} daily summary for ${this.todayDate} - ${allModifications} modifications`,
+        name: `${this.APPNAME} bot`,
+        subject: `${this.APPNAME} daily summary for ${this.TODAY_DATE} - ${allModifications} modifications`,
         htmlBody: content
       };
 
