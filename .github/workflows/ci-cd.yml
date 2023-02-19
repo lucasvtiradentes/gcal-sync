@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: show job variables
         run: |
-          echo "important variables: "
+          echo "job variables: "
           echo ""
           echo " - repository           : ${{ github.repository }}."
           echo " - triggered event      : ${{ github.event_name }}"
@@ -58,4 +58,4 @@ jobs:
       - name: 5 - publish package to npm
         if: github.ref == 'refs/heads/master'
         run: |
-          echo "HUSKY=0 npm run pub"
+          HUSKY=0 npm run pub

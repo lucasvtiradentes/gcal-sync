@@ -20,8 +20,9 @@ type Config = {
     email: string;
     timeToEmail: string;
     timeZoneCorrection: number;
-    emailSummary: boolean;
+    emailDailySummary: boolean;
     emailNewRelease: boolean;
+    emailSession: boolean;
   };
   options: {
     showLogs: boolean;
@@ -67,8 +68,8 @@ class TickSync {
   public config: Config;
 
   version = ''; // version
-  appName = 'ticktick-gcal-sync';
-  githubRepository = 'lucasvtiradentes/ticktick-gcal-sync';
+  appName = 'gcal-sync';
+  githubRepository = 'lucasvtiradentes/gcal-sync';
   todayDate = new Date().toISOString().split('T')[0];
   appsScriptsProperties = {
     todayAddedEvents: 'todayAddedEvents',
@@ -88,7 +89,7 @@ class TickSync {
     const validationArr = [
       { objToCheck: config, requiredKeys: ['synchronization', 'notifications', 'options'], name: 'configs' },
       { objToCheck: config.synchronization, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency'], name: 'configs.synchronization' },
-      { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailSummary', 'emailNewRelease'], name: 'configs.notifications' },
+      { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailDailySummary', 'emailNewRelease', 'emailSession'], name: 'configs.notifications' },
       { objToCheck: config.options, requiredKeys: ['showLogs', 'maintanceMode'], name: 'configs.options' }
     ];
 
@@ -488,11 +489,14 @@ class TickSync {
       this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
       this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
 
+      if (this.config.notifications.emailSession) {
+        this.emailSession(sessionStats);
+      }
       this.logger('adding session events to today stats');
     }
 
     if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
-      if (this.config.notifications.emailSummary) {
+      if (this.config.notifications.emailDailySummary) {
         this.sendSummaryEmail();
       }
 
@@ -685,6 +689,31 @@ class TickSync {
     }
   }
 
+  private emailSession(sessionStats: SyncStats) {
+    const allModifications = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
+
+    let content = '';
+    content = `Hi!<br/><br/>${this.appName} made ${allModifications} changes to your calendar:<br/><br/>\n`;
+    const addedTasks = sessionStats.addedEvents.map((item: string) => `<li>${item}</li>`);
+    const updatedTasks = sessionStats.updatedEvents.map((item: string) => `<li>${item}</li>`);
+    const completedTasks = sessionStats.completedEvents.map((item: string) => `<li>${item}</li>`);
+    content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
+    content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
+    content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
+    content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.githubRepository}'>github</a>.`;
+
+    const message = {
+      to: this.config.notifications.email,
+      name: `${this.appName} bot`,
+      subject: `${this.appName} session of ${this.todayDate} - ${allModifications} modifications`,
+      htmlBody: content
+    };
+
+    this.sendEmail(message);
+
+    this.logger(`session email was sent to ${this.config.notifications.email}`);
+  }
+
   private sendSummaryEmail() {
     const fixStr = (arrStr: string) => arrStr.split('\n').filter((item) => item.length > 0);
 
@@ -719,7 +748,7 @@ class TickSync {
       const message = {
         to: this.config.notifications.email,
         name: `${this.appName} bot`,
-        subject: `${this.appName} summary for ${this.todayDate} - ${allModifications} modifications`,
+        subject: `${this.appName} daily summary for ${this.todayDate} - ${allModifications} modifications`,
         htmlBody: content
       };
 

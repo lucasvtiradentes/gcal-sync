@@ -1,17 +1,17 @@
 <a name="TOC"></a>
 
 <h3 align="center">
-  TICKTICK GCAL SYNC
+  GCAL SYNC
 </h3>
 
 <div align="center">
-  <!-- <a href="https://www.npmjs.com/package/ticktick-gcal-sync"><img src="https://img.shields.io/npm/v/ticktick-gcal-sync.svg?style=flat" alt="npm version"></a> -->
+  <a href="https://www.npmjs.com/package/gcal-sync"><img src="https://img.shields.io/npm/v/gcal-sync.svg?style=flat" alt="npm version"></a>
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/made%20with-node-1f425f?logo=node.js&.svg" /></a>
-  <a href="https://www.github.com/lucasvtiradentes/ticktick-gcal-sync/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/ticktick-gcal-sync?color=green&label=updated"></a>
+  <a href="https://www.github.com/lucasvtiradentes/gcal-sync/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/gcal-sync?color=green&label=updated"></a>
   <br>
   <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
   <a href="https://www.github.com/lucasvtiradentes"><img src="https://img.shields.io/badge/maintainer-%40lucasvtiradentes-yellow"></a>
-  <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync#contributing"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions" /></a>
+  <a href="https://github.com/lucasvtiradentes/gcal-sync#contributing"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions" /></a>
 </div>
 
 <p align="center">
@@ -23,7 +23,7 @@
   <p align="center">
     <br>
     <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/graphs/contributors"><img src="https://img.shields.io/github/contributors/lucasvtiradentes/ticktick-gcal-sync.svg" /></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/graphs/contributors"><img src="https://img.shields.io/github/contributors/lucasvtiradentes/gcal-sync.svg" /></a>
     <br>
     <a href="#"><img src="https://badges.frapsoft.com/os/v2/open-source.svg?v=103"></a>
     <a href="https://saythanks.io/to/lucasvtiradentes"><img src="https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg"></a>
@@ -41,13 +41,13 @@
   </p>
   <p align="center">
     <br>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/releases"><img src="https://img.shields.io/github/v/release/lucasvtiradentes/ticktick-gcal-sync.svg" /></a>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/tags" target="_blank"><img src="https://img.shields.io/github/tag/lucasvtiradentes/ticktick-gcal-sync.svg" alt="GitHub tag (latest SemVer)"></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/releases"><img src="https://img.shields.io/github/v/release/lucasvtiradentes/gcal-sync.svg" /></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/tags" target="_blank"><img src="https://img.shields.io/github/tag/lucasvtiradentes/gcal-sync.svg" alt="GitHub tag (latest SemVer)"></a>
     <br>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/pulls" target="_blank"><img src="https://badgen.net/github/prs/lucasvtiradentes/ticktick-gcal-sync?label=open%20PR" alt="GitHub"></a>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/commits/master" target="_blank"><img src="https://badgen.net/github/commits/lucasvtiradentes/ticktick-gcal-sync" alt="GitHub"></a>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues"><img src="https://img.shields.io/github/issues-raw/lucasvtiradentes/ticktick-gcal-sync" /></a>
-    <a href="https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues?q=is%3Aissue+is%3Aclosed"><img src="https://img.shields.io/github/issues-closed-raw/lucasvtiradentes/ticktick-gcal-sync" /></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/pulls" target="_blank"><img src="https://badgen.net/github/prs/lucasvtiradentes/gcal-sync?label=open%20PR" alt="GitHub"></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/commits/master" target="_blank"><img src="https://badgen.net/github/commits/lucasvtiradentes/gcal-sync" alt="GitHub"></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/issues"><img src="https://img.shields.io/github/issues-raw/lucasvtiradentes/gcal-sync" /></a>
+    <a href="https://github.com/lucasvtiradentes/gcal-sync/issues?q=is%3Aissue+is%3Aclosed"><img src="https://img.shields.io/github/issues-closed-raw/lucasvtiradentes/gcal-sync" /></a>
   </p>
 </details>
 
@@ -145,9 +145,9 @@ function getTickSync() {
   const tickSyncConfigs = {
     synchronization: {
       icsCalendars: [
-        ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // all will be synced
-        ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // all will be synced, but marks all tasks with a label
-        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // syncs everything, excepts tasks with the specified label
+        ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // everything will be synced
+        ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
+        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ],
       syncFunction: 'sync',         // function name to run every x minutes
       updateFrequency: 5            // wait time between sync checks
@@ -156,8 +156,9 @@ function getTickSync() {
       email: 'youremail@gmail.com', // email to send reports
       timeToEmail: '23:30',         // time to email the summary
       timeZoneCorrection: -3,       // difference from utc time
-      emailSummary: true,           // email summary daily at a specified time
-      emailNewRelease: true         // email new version releases
+      emailDailySummary: true,      // email summary daily at a specified time
+      emailNewRelease: true,        // email new version releases
+      emailSession: true            // email sessions with modifications
     },
     options: {
       showLogs: true,               // show runtime information
@@ -165,8 +166,9 @@ function getTickSync() {
     }
   };
 
-  // update the version in a regular basis to get the most recent updates
-  const tickSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/ticktick-gcal-sync@1.0.0`).getContentText();
+
+  const version = "1.0.0" // update the version in a regular basis to get the most recent updates
+  const tickSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.TickSync = ` + tickSyncContent);
   const tickSync = new TickSync(tickSyncConfigs);
   return tickSync;
@@ -204,10 +206,10 @@ To setup this project in your computer, download it in this link or run the foll
 
 ```bash
 # Clone this repository
-$ git clone https://github.com/lucasvtiradentes/ticktick-gcal-sync
+$ git clone https://github.com/lucasvtiradentes/gcal-sync
 
 # Go into the repository
-$ cd ticktick-gcal-sync
+$ cd gcal-sync
 ```
 
 After download it, go to the project folder and run these commands:
@@ -230,9 +232,10 @@ to load your work in apps scripts with almost no effort, push your code to a rep
 function getTickSyncContent(mode){
 
   if (mode === 'production'){
-    return UrlFetchApp.fetch(`https://unpkg.com/ticktick-gcal-sync`).getContentText()
+    const version = "1.0.0" // update the version in a regular basis to get the most recent updates
+    return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
   } else if (mode === 'development'){
-    const repository = "lucasvtiradentes/ticktick-gcal-sync" // remember to update this
+    const repository = "lucasvtiradentes/gcal-sync" // remember to update this
     const filePath = "dist/TickSync.min.js"
     const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}`
     const response = UrlFetchApp.fetch(final_link, {'method' : 'get', 'contentType': 'application/json'})
@@ -291,7 +294,7 @@ tsconfig.json         # typescript settings
 
 ### Used technologies
 
-ticktick-gcal-sync uses the following thechnologies:
+gcal-sync uses the following thechnologies:
 
 <div align="center">
   <table>
@@ -400,9 +403,9 @@ You can check our most common questions and awnsers in this [link](./docs/FAQ.MD
 
 ## Docs and support
 
-The first point of call should be our [Github discussions](https://github.com/lucasvtiradentes/ticktick-gcal-sync/discussions).
+The first point of call should be our [Github discussions](https://github.com/lucasvtiradentes/gcal-sync/discussions).
 Ask your questions about bugs or specific use cases, and someone I will respond as soon as possible.
-Or, if you prefer, [open an issue](https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues) on our GitHub repo.
+Or, if you prefer, [open an issue](https://github.com/lucasvtiradentes/gcal-sync/issues) on our GitHub repo.
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
@@ -427,7 +430,7 @@ This project is distributed under the terms of the MIT License Version 2.0. A co
 
 If you are a typescript developer, we would kind and happy accept your help:
 
-- The best way to get started is to select any issue from the [`good-first-issue`](https://github.com/lucasvtiradentes/ticktick-gcal-sync/labels/good%20first%20issue) label;
+- The best way to get started is to select any issue from the [`good-first-issue`](https://github.com/lucasvtiradentes/gcal-sync/labels/good%20first%20issue) label;
 - If you would like to contribute, please review our [Contributing Guide](docs/CONTRIBUTING.md) for all relevant details.
 
 Another ways to positivily impact this project is to:
@@ -441,7 +444,7 @@ Another ways to positivily impact this project is to:
 
 Any questions or suggestions? You are welcome to discuss it on:
 
-- [Github issues](https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues)
+- [Github issues](https://github.com/lucasvtiradentes/gcal-sync/issues)
 - [Email](mailto:lucasvtiradentes@gmail.com)
 
 ## Acknowledgements

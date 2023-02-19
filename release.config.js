@@ -2,7 +2,7 @@
 
 module.exports = {
   branches: ['master'],
-  repository: 'https://github.com/lucasvtiradentes/ticktick-gcal-sync',
+  repository: 'https://github.com/lucasvtiradentes/gcal-sync',
   plugins: [
     [
       '@semantic-release/commit-analyzer',

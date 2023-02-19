@@ -1,5 +1,5 @@
 {
-  "name": "ticktick-gcal-sync",
+  "name": "gcal-sync",
   "version": "0.0.1",
   "description": "🔄 a google apps script for syncing events between github to ticktick and finally both to google calendar.",
   "license": "MIT",
@@ -7,13 +7,13 @@
     "name": "Lucas Vieira",
     "email": "lucasvtiradentes@gmail.com"
   },
-  "homepage": "https://github.com/lucasvtiradentes/ticktick-gcal-sync",
+  "homepage": "https://github.com/lucasvtiradentes/gcal-sync",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync.git"
+    "url": "https://github.com/lucasvtiradentes/gcal-sync.git"
   },
   "bugs": {
-    "url": "https://github.com/lucasvtiradentes/ticktick-gcal-sync/issues"
+    "url": "https://github.com/lucasvtiradentes/gcal-sync/issues"
   },
   "main": "dist/TickSync.min.js",
   "scripts": {
