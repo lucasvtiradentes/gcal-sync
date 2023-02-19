@@ -10,16 +10,6 @@ type calendarOptions = {
 
 type calendarItem = [icsCalendarLink, icsTaskGcal, icsCompletedTaskGcal, calendarOptions];
 
-type IcsCalendarResult = {
-  icsCal: string;
-  gCalCorresponding: string;
-  completedCal: string;
-  calendarOptions: calendarOptions;
-  tasksFromIcs: ParsedIcsEvent[];
-  addedTasks: string[];
-  updatedTasks: string[];
-};
-
 type Config = {
   synchronization: {
     icsCalendars: calendarItem[];
@@ -39,7 +29,15 @@ type Config = {
   };
 };
 
-type ParsedGoogleEvent = Pick<GoogleAppsScript.Calendar.Schema.Event, 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+type IcsCalendarResult = {
+  icsCal: string;
+  gCalCorresponding: string;
+  completedCal: string;
+  calendarOptions: calendarOptions;
+  tasksFromIcs: ParsedIcsEvent[];
+  addedTasks: string[];
+  updatedTasks: string[];
+};
 
 type ParsedIcsEvent = {
   id: string;
@@ -51,10 +49,18 @@ type ParsedIcsEvent = {
   taskCalendar?: string;
 };
 
+type ParsedGoogleEvent = Pick<GoogleAppsScript.Calendar.Schema.Event, 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+
 type SyncStats = {
   addedEvents: string[];
   updatedEvents: string[];
   completedEvents: string[];
+};
+
+type ParsedResult = {
+  added: string[];
+  updated: string[];
+  taggedIcsTasks: ParsedIcsEvent[];
 };
 
 class TickSync {
@@ -393,15 +399,249 @@ class TickSync {
   showTodayEventsStats() {
     const getItems = (arrStr: string) => arrStr.split('\n').filter((item) => item.length > 0);
 
+    const formatEventsList = (arrStr: string) => {
+      // prettier-ignore
+      return this.formatSummary(arrStr.split('\n').filter(item => item.length > 0).map((item) => `- ${item}`).join('\n'));
+    };
+
     this.logger(`stats for ${this.todayDate}`);
 
     const addedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
     const updatedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
     const completedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
 
-    this.logger(`addedEvents: ${getItems(addedEvents).length}${getItems(addedEvents).length > 0 ? `\n\n${this.formatEventsList(addedEvents)}` : ''}`);
-    this.logger(`updatedEvents: ${getItems(updatedEvents).length}${getItems(updatedEvents).length > 0 ? `\n\n${this.formatEventsList(updatedEvents)}` : ''}`);
-    this.logger(`completedEvents: ${getItems(completedEvents).length}${getItems(completedEvents).length > 0 ? `\n\n${this.formatEventsList(completedEvents)}` : ''}`);
+    this.logger(`addedEvents: ${getItems(addedEvents).length}${getItems(addedEvents).length > 0 ? `\n\n${formatEventsList(addedEvents)}` : ''}`);
+    this.logger(`updatedEvents: ${getItems(updatedEvents).length}${getItems(updatedEvents).length > 0 ? `\n\n${formatEventsList(updatedEvents)}` : ''}`);
+    this.logger(`completedEvents: ${getItems(completedEvents).length}${getItems(completedEvents).length > 0 ? `\n\n${formatEventsList(completedEvents)}` : ''}`);
+  }
+
+  /* TICKSYNC SYNC FUNCTIONS ================================================ */
+
+  private createMissingGoogleCalendars() {
+    const allGcalendarsNames = [...new Set([...this.config.synchronization.icsCalendars.map((item) => item[1]), ...this.config.synchronization.icsCalendars.map((item) => item[2])])];
+    allGcalendarsNames.forEach((calName: string) => {
+      if (!this.getCalendarByName(calName)) {
+        this.createCalendar(calName);
+        this.logger(`created google calendar: [${calName}]`);
+      }
+    });
+  }
+
+  private createMissingAppsScriptsProperties() {
+    if (!this.getAppsScriptsProperties().includes(this.appsScriptsProperties.todayAddedEvents)) {
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, '');
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, '');
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, '');
+    }
+  }
+
+  private getTasksFromGoogleCalendars() {
+    const tasks: ParsedGoogleEvent[] = this.config.synchronization.icsCalendars.reduce((acc, cur) => {
+      const taskCalendar = cur[1];
+      const calendar = this.getCalendarByName(taskCalendar);
+      const tasksArray = this.getEventsFromCalendar(calendar);
+      acc = [].concat.apply(acc, tasksArray);
+      return acc;
+    }, []);
+    return tasks;
+  }
+
+  syncEvents() {
+    this.createMissingGoogleCalendars();
+    this.createMissingAppsScriptsProperties();
+
+    const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars();
+
+    const taggedCalendars = this.config.synchronization.icsCalendars.filter((item) => typeof item[3]?.tag === 'string');
+    const taggedResults = taggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars));
+    const taggedTmp = this.parseResults(taggedResults);
+
+    const nonTaggedCalendars = this.config.synchronization.icsCalendars.filter((item) => !item[3] || (item[3] && !item[3].tag));
+    const nonTaggedResults = nonTaggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars, taggedResults));
+    const nonTaggedTmp = this.parseResults(nonTaggedResults);
+
+    const sessionStats: SyncStats = {
+      addedEvents: [],
+      updatedEvents: [],
+      completedEvents: []
+    };
+
+    const allTickTickTasks: ParsedIcsEvent[] = [...taggedTmp.taggedIcsTasks, ...nonTaggedTmp.taggedIcsTasks];
+    sessionStats.completedEvents = this.checkCalendarCompletedTasks(tasksFromGoogleCalendars, allTickTickTasks);
+    sessionStats.addedEvents = [...taggedTmp.added, ...nonTaggedTmp.added];
+    sessionStats.updatedEvents = [...taggedTmp.updated, ...nonTaggedTmp.updated];
+
+    const sessionAddedEventsQuantity = sessionStats.addedEvents.length;
+    const sessionUpdatedEventsQuantity = sessionStats.updatedEvents.length;
+    const sessionCompletedEventsQuantity = sessionStats.completedEvents.length;
+
+    this.logger(`addedEvents: ${sessionAddedEventsQuantity}`);
+    this.logger(`updatedEvents: ${sessionUpdatedEventsQuantity}`);
+    this.logger(`completedEvents: ${sessionCompletedEventsQuantity}`);
+
+    if (sessionAddedEventsQuantity + sessionUpdatedEventsQuantity + sessionCompletedEventsQuantity > 0) {
+      const todayAddedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
+      const todayUpdatedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
+      const todayCompletedEvents = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
+
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
+      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
+
+      this.logger('adding session events to today stats');
+    }
+
+    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
+      if (this.config.notifications.emailSummary) {
+        this.sendSummaryEmail();
+      }
+
+      if (this.config.notifications.emailNewRelease) {
+        this.sendNewReleaseEmail();
+      }
+    }
+  }
+
+  /* ======================================================================== */
+
+  private checkCalendarItem(calendarItem: calendarItem, tasksFromGoogleCalendars: ParsedGoogleEvent[], taggedCalendarsResults?: IcsCalendarResult[]) {
+    const [icsCal, gCalCorresponding, completedCal, calendarOptions] = calendarItem;
+    let tasksFromIcs = this.getEventsFromIcsCalendar(icsCal);
+
+    if (calendarOptions.ignoredTags && taggedCalendarsResults) {
+      calendarOptions.ignoredTags.forEach((tagIgnored) => {
+        const ignoredCalendarInfo = taggedCalendarsResults.find((item) => item.calendarOptions.tag === tagIgnored);
+        if (ignoredCalendarInfo) {
+          const ignoredCalTasksIds = ignoredCalendarInfo.tasksFromIcs.map((item) => item.id);
+          tasksFromIcs = tasksFromIcs.filter((task) => ignoredCalTasksIds.includes(task.id) === false);
+        }
+      });
+    }
+
+    const [addedTasks, updatedTasks] = this.checkTicktickAddedAndUpdatedTasks(calendarItem, tasksFromIcs, tasksFromGoogleCalendars);
+    const result: IcsCalendarResult = {
+      icsCal,
+      gCalCorresponding,
+      completedCal,
+      calendarOptions,
+      tasksFromIcs,
+      addedTasks,
+      updatedTasks
+    };
+
+    return result;
+  }
+
+  private checkTicktickAddedAndUpdatedTasks(icsItem: calendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
+    const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
+    const addedTasks: string[] = [];
+    const updatedTasks: string[] = [];
+
+    const taskCalendar = this.getCalendarByName(gCalCorresponding);
+
+    tasksFromIcs.forEach((curIcsTask) => {
+      const doesTaksExistsOnGcal = tasksFromGoogleCalendars.map((item) => item.extendedProperties.private.tickTaskId).includes(curIcsTask.id);
+
+      if (!doesTaksExistsOnGcal) {
+        const extendProps = {
+          private: {
+            tickTaskId: curIcsTask.id,
+            calendar: gCalCorresponding,
+            completedCalendar: completedCal
+          }
+        } as any;
+
+        const taskEvent: GoogleAppsScript.Calendar.Schema.Event = {
+          summary: curIcsTask.name,
+          description: curIcsTask.description,
+          start: curIcsTask.start,
+          end: curIcsTask.end,
+          reminders: {
+            useDefault: true
+          },
+          extendedProperties: extendProps
+        };
+
+        if (!this.config.options.maintanceMode) {
+          this.addEventToCalendar(taskCalendar, taskEvent);
+        }
+
+        const date = curIcsTask.start.date ? curIcsTask.start.date : curIcsTask.start.dateTime.split('T')[0];
+        const taskRow = `${date} | ${taskCalendar.summary} | ${curIcsTask.name}`;
+        addedTasks.push(taskRow);
+        this.logger(`added event to gcal     : ${taskRow}`);
+      } else {
+        const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
+
+        const changeTaskName = curIcsTask.name !== gcalTask.summary;
+        const changeTaskDescription = curIcsTask.description !== gcalTask.description;
+        const changeDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
+        const changeAllDate = curIcsTask.start['date'] !== gcalTask.start['date'];
+        const changeSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
+
+        if (changeTaskName || changeTaskDescription || changeDateFormat || changeAllDate || changeSpecificDate) {
+          const modifiedFields = {
+            summary: curIcsTask.name,
+            description: curIcsTask.description,
+            start: curIcsTask.start,
+            end: curIcsTask.end
+          };
+
+          if (!this.config.options.maintanceMode) {
+            this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
+          }
+
+          const date = curIcsTask.start.date ? curIcsTask.start.date : curIcsTask.start.dateTime.split('T')[0];
+          const taskRow = `${date} | ${taskCalendar.summary} | ${curIcsTask.name}`;
+          updatedTasks.push(taskRow);
+          this.logger(`gcal event was updated  : ${taskRow}`);
+        }
+      }
+    });
+
+    return [addedTasks, updatedTasks];
+  }
+
+  private checkCalendarCompletedTasks(tasksFromGoogleCalendars: ParsedGoogleEvent[], allTickTickTasks: ParsedIcsEvent[]) {
+    const completedTasks: string[] = [];
+    const onlyTickEventsInGcal = tasksFromGoogleCalendars.filter((item) => item.extendedProperties.private.tickTaskId);
+
+    onlyTickEventsInGcal.forEach((gcalEvent) => {
+      const isTaskStillInTickTick = allTickTickTasks.map((item) => item.id).includes(gcalEvent.extendedProperties.private.tickTaskId);
+
+      if (!isTaskStillInTickTick) {
+        const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
+        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.synchronization.gcalCompleted
+
+        if (!this.config.options.maintanceMode) {
+          this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
+        }
+
+        const date = gcalEvent.start.date ? gcalEvent.start.date : gcalEvent.start.dateTime.split('T')[0];
+        const taskRow = `${date} | ${gcalEvent.extendedProperties.private.calendar} | ${gcalEvent.summary}`;
+        completedTasks.push(taskRow);
+        this.logger(`gcal event was completed: ${taskRow}`);
+      }
+    });
+
+    return completedTasks;
+  }
+
+  private parseResults(taggedResults: IcsCalendarResult[]) {
+    const taggedTmp = taggedResults.reduce((acc, cur) => {
+      if (!acc['added']) {
+        acc.added = [];
+        acc.updated = [];
+        acc.taggedIcsTasks = [];
+      }
+
+      acc.added.push(...cur.addedTasks);
+      acc.updated.push(...cur.updatedTasks);
+      acc.taggedIcsTasks.push(...cur.tasksFromIcs);
+      return acc;
+    }, {} as ParsedResult);
+
+    return taggedTmp;
   }
 
   /* EMAILS FUNCTIONS ======================================================= */
@@ -509,243 +749,5 @@ class TickSync {
 
     const strSorted = fixedCalendarArr.map((item) => item.join(' | ')).join('\n');
     return strSorted;
-  }
-
-  /* TICKSYNC SYNC FUNCTIONS ================================================ */
-
-  syncEvents() {
-    const sessionStats: SyncStats = {
-      addedEvents: [],
-      updatedEvents: [],
-      completedEvents: []
-    };
-
-    this.createMissingGoogleCalendars();
-    this.createMissingAppsScriptsProperties();
-
-    const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars();
-    const taggedCalendars = this.config.synchronization.icsCalendars.filter((item) => typeof item[3]?.tag === 'string');
-
-    const taggedResults = taggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars));
-    const taggedTmp = taggedResults.reduce((acc, cur) => {
-      if (!acc['added']) {
-        acc['added'] = [];
-        acc['updated'] = [];
-        acc['taggedIcsTasks'] = [];
-      }
-
-      acc['added'].push(...cur.addedTasks);
-      acc['updated'].push(...cur.updatedTasks);
-      acc['taggedIcsTasks'].push(...cur.tasksFromIcs);
-      return acc;
-    }, {});
-
-    sessionStats.addedEvents.push(...taggedTmp['added']);
-    sessionStats.updatedEvents.push(...taggedTmp['updated']);
-
-    const nonTaggedCalendars = this.config.synchronization.icsCalendars.filter((item) => !item[3] || (item[3] && !item[3].tag));
-    const nonTaggedResults = nonTaggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars, taggedResults));
-    const nonTaggedTmp = nonTaggedResults.reduce((acc, cur) => {
-      if (!acc['added']) {
-        acc['added'] = [];
-        acc['updated'] = [];
-        acc['taggedIcsTasks'] = [];
-      }
-
-      acc['added'].push(...cur.addedTasks);
-      acc['updated'].push(...cur.updatedTasks);
-      acc['taggedIcsTasks'].push(...cur.tasksFromIcs);
-      return acc;
-    }, {});
-
-    sessionStats.addedEvents.push(...nonTaggedTmp['added']);
-    sessionStats.updatedEvents.push(...nonTaggedTmp['updated']);
-
-    const allTickTickTasks: ParsedIcsEvent[] = [...taggedTmp['taggedIcsTasks'], ...nonTaggedTmp['taggedIcsTasks']];
-    sessionStats.completedEvents = this.checkCalendarCompletedTasks(tasksFromGoogleCalendars, allTickTickTasks);
-
-    this.logger(`addedEvents: ${sessionStats.addedEvents.length}`);
-    this.logger(`updatedEvents: ${sessionStats.updatedEvents.length}`);
-    this.logger(`completedEvents: ${sessionStats.completedEvents.length}`);
-
-    const sessionEventsCount = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
-    const addEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents);
-    const updEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents);
-    const comEv = this.getAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents);
-
-    if (sessionEventsCount > 0) {
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, `${addEv ? addEv + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, `${updEv ? updEv + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, `${comEv ? comEv + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
-
-      this.logger('adding date stats to properties');
-    }
-
-    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
-      if (this.config.notifications.emailSummary) {
-        this.sendSummaryEmail();
-      }
-
-      if (this.config.notifications.emailNewRelease) {
-        this.sendNewReleaseEmail();
-      }
-    }
-  }
-
-  private createMissingGoogleCalendars() {
-    const allGcalendarsNames = [...new Set([...this.config.synchronization.icsCalendars.map((item) => item[1]), ...this.config.synchronization.icsCalendars.map((item) => item[2])])];
-    allGcalendarsNames.forEach((calName: string) => {
-      if (!this.getCalendarByName(calName)) {
-        this.createCalendar(calName);
-        this.logger(`created google calendar: [${calName}]`);
-      }
-    });
-  }
-
-  private createMissingAppsScriptsProperties() {
-    if (!this.getAppsScriptsProperties().includes(this.appsScriptsProperties.todayAddedEvents)) {
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayAddedEvents, '');
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayUpdateEvents, '');
-      this.updateAppsScriptsProperty(this.appsScriptsProperties.todayCompletedEvents, '');
-    }
-  }
-
-  private checkTicktickAddedAndUpdatedTasks(icsItem: calendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
-    const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
-    const addedTasks: string[] = [];
-    const updatedTasks: string[] = [];
-
-    const taskCalendar = this.getCalendarByName(gCalCorresponding);
-
-    tasksFromIcs.forEach((curIcsTask) => {
-      const doesTaksExistsOnGcal = tasksFromGoogleCalendars.map((item) => item.extendedProperties.private.tickTaskId).includes(curIcsTask.id);
-
-      if (!doesTaksExistsOnGcal) {
-        const extendProps = {
-          private: {
-            tickTaskId: curIcsTask.id,
-            calendar: gCalCorresponding,
-            completedCalendar: completedCal
-          }
-        } as any;
-
-        const taskEvent: GoogleAppsScript.Calendar.Schema.Event = {
-          summary: curIcsTask.name,
-          description: curIcsTask.description,
-          start: curIcsTask.start,
-          end: curIcsTask.end,
-          reminders: {
-            useDefault: true
-          },
-          extendedProperties: extendProps
-        };
-
-        if (!this.config.options.maintanceMode) {
-          this.addEventToCalendar(taskCalendar, taskEvent);
-        }
-
-        const date = curIcsTask.start.date ? curIcsTask.start.date : curIcsTask.start.dateTime.split('T')[0];
-        const taskRow = `${date} | ${taskCalendar.summary} | ${curIcsTask.name}`;
-        addedTasks.push(taskRow);
-        this.logger(`added event to gcal     : ${taskRow}`);
-      } else {
-        const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
-
-        const changeTaskName = curIcsTask.name !== gcalTask.summary;
-        const changeTaskDescription = curIcsTask.description !== gcalTask.description;
-        const changeDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
-        const changeAllDate = curIcsTask.start['date'] !== gcalTask.start['date'];
-        const changeSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
-
-        if (changeTaskName || changeTaskDescription || changeDateFormat || changeAllDate || changeSpecificDate) {
-          const modifiedFields = {
-            summary: curIcsTask.name,
-            description: curIcsTask.description,
-            start: curIcsTask.start,
-            end: curIcsTask.end
-          };
-
-          if (!this.config.options.maintanceMode) {
-            this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
-          }
-
-          const date = curIcsTask.start.date ? curIcsTask.start.date : curIcsTask.start.dateTime.split('T')[0];
-          const taskRow = `${date} | ${taskCalendar.summary} | ${curIcsTask.name}`;
-          updatedTasks.push(taskRow);
-          this.logger(`gcal event was updated  : ${taskRow}`);
-        }
-      }
-    });
-
-    return [addedTasks, updatedTasks];
-  }
-
-  private checkCalendarCompletedTasks(tasksFromGoogleCalendars: ParsedGoogleEvent[], allTickTickTasks: ParsedIcsEvent[]) {
-    const completedTasks: string[] = [];
-    const onlyTickEventsInGcal = tasksFromGoogleCalendars.filter((item) => item.extendedProperties.private.tickTaskId);
-
-    onlyTickEventsInGcal.forEach((gcalEvent) => {
-      const isTaskStillInTickTick = allTickTickTasks.map((item) => item.id).includes(gcalEvent.extendedProperties.private.tickTaskId);
-
-      if (!isTaskStillInTickTick) {
-        const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
-        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.synchronization.gcalCompleted
-
-        if (!this.config.options.maintanceMode) {
-          this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
-        }
-
-        const date = gcalEvent.start.date ? gcalEvent.start.date : gcalEvent.start.dateTime.split('T')[0];
-        const taskRow = `${date} | ${gcalEvent.extendedProperties.private.calendar} | ${gcalEvent.summary}`;
-        completedTasks.push(taskRow);
-        this.logger(`gcal event was completed: ${taskRow}`);
-      }
-    });
-
-    return completedTasks;
-  }
-
-  private formatEventsList(arrStr: string) {
-    // prettier-ignore
-    return this.formatSummary(arrStr.split('\n').filter(item => item.length > 0).map((item) => `- ${item}`).join('\n'));
-  }
-
-  private checkCalendarItem(calendarItem: calendarItem, tasksFromGoogleCalendars: ParsedGoogleEvent[], taggedCalendarsResults?: IcsCalendarResult[]) {
-    const [icsCal, gCalCorresponding, completedCal, calendarOptions] = calendarItem;
-    let tasksFromIcs = this.getEventsFromIcsCalendar(icsCal);
-
-    if (calendarOptions.ignoredTags && taggedCalendarsResults) {
-      calendarOptions.ignoredTags.forEach((tagIgnored) => {
-        const ignoredCalendarInfo = taggedCalendarsResults.find((item) => item.calendarOptions.tag === tagIgnored);
-        if (ignoredCalendarInfo) {
-          const ignoredCalTasksIds = ignoredCalendarInfo.tasksFromIcs.map((item) => item.id);
-          tasksFromIcs = tasksFromIcs.filter((task) => ignoredCalTasksIds.includes(task.id) === false);
-        }
-      });
-    }
-
-    const [addedTasks, updatedTasks] = this.checkTicktickAddedAndUpdatedTasks(calendarItem, tasksFromIcs, tasksFromGoogleCalendars);
-    const result: IcsCalendarResult = {
-      icsCal,
-      gCalCorresponding,
-      completedCal,
-      calendarOptions,
-      tasksFromIcs,
-      addedTasks,
-      updatedTasks
-    };
-
-    return result;
-  }
-
-  private getTasksFromGoogleCalendars() {
-    const tasks: ParsedGoogleEvent[] = this.config.synchronization.icsCalendars.reduce((acc, cur) => {
-      const taskCalendar = cur[1];
-      const calendar = this.getCalendarByName(taskCalendar);
-      const tasksArray = this.getEventsFromCalendar(calendar);
-      acc = [].concat.apply(acc, tasksArray);
-      return acc;
-    }, []);
-    return tasks;
   }
 }
