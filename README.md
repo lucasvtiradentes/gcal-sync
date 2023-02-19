@@ -145,9 +145,9 @@ function getTickSync() {
   const tickSyncConfigs = {
     synchronization: {
       icsCalendars: [
-        ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // all will be synced
-        ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // all will be synced, but marks all tasks with a label
-        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // syncs everything, excepts tasks with the specified label
+        ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // everything will be synced
+        ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
+        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ],
       syncFunction: 'sync',         // function name to run every x minutes
       updateFrequency: 5            // wait time between sync checks
@@ -156,8 +156,9 @@ function getTickSync() {
       email: 'youremail@gmail.com', // email to send reports
       timeToEmail: '23:30',         // time to email the summary
       timeZoneCorrection: -3,       // difference from utc time
-      emailSummary: true,           // email summary daily at a specified time
-      emailNewRelease: true         // email new version releases
+      emailDailySummary: true,      // email summary daily at a specified time
+      emailNewRelease: true,        // email new version releases
+      emailSession: true            // email sessions with modifications
     },
     options: {
       showLogs: true,               // show runtime information
@@ -165,8 +166,9 @@ function getTickSync() {
     }
   };
 
-  // update the version in a regular basis to get the most recent updates
-  const tickSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/ticktick-gcal-sync@1.0.0`).getContentText();
+
+  const version = "1.0.0" // update the version in a regular basis to get the most recent updates
+  const tickSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/ticktick-gcal-sync@${version}`).getContentText();
   eval(`this.TickSync = ` + tickSyncContent);
   const tickSync = new TickSync(tickSyncConfigs);
   return tickSync;
@@ -230,7 +232,8 @@ to load your work in apps scripts with almost no effort, push your code to a rep
 function getTickSyncContent(mode){
 
   if (mode === 'production'){
-    return UrlFetchApp.fetch(`https://unpkg.com/ticktick-gcal-sync`).getContentText()
+    const version = "1.0.0" // update the version in a regular basis to get the most recent updates
+    return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/ticktick-gcal-sync@${version}`).getContentText()
   } else if (mode === 'development'){
     const repository = "lucasvtiradentes/ticktick-gcal-sync" // remember to update this
     const filePath = "dist/TickSync.min.js"

@@ -58,4 +58,4 @@ jobs:
       - name: 5 - publish package to npm
         if: github.ref == 'refs/heads/master'
         run: |
-          echo "HUSKY=0 npm run pub"
+          HUSKY=0 npm run pub
