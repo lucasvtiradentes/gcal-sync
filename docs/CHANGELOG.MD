@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.0.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.0.0...v1.0.1) (2023-02-19)
+
+
+### ✅ tests:
+
+* add unit testing ([#40](https://github.com/lucasvtiradentes/gcal-sync/issues/40)) ([504fc43](https://github.com/lucasvtiradentes/gcal-sync/commit/504fc43a0d5cea434301bb9c4c7e4989b48be70a))
+
 ## 1.0.0 (2023-02-19)
 
 
