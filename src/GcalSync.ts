@@ -11,10 +11,15 @@ type calendarOptions = {
 type calendarItem = [icsCalendarLink, icsTaskGcal, icsCompletedTaskGcal, calendarOptions];
 
 type Config = {
-  synchronization: {
+  ticktickSync: {
     icsCalendars: calendarItem[];
     syncFunction: string;
     updateFrequency: number;
+  };
+  githubSync: {
+    username: string;
+    googleCalendar: string;
+    startDate: string;
   };
   notifications: {
     email: string;
@@ -27,6 +32,8 @@ type Config = {
   options: {
     showLogs: boolean;
     maintanceMode: boolean;
+    syncTicktick: boolean;
+    syncGithub: boolean;
   };
 };
 
@@ -100,10 +107,11 @@ class GcalSync {
     }
 
     const validationArr = [
-      { objToCheck: config, requiredKeys: ['synchronization', 'notifications', 'options'], name: 'configs' },
-      { objToCheck: config.synchronization, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency'], name: 'configs.synchronization' },
+      { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'notifications', 'options'], name: 'configs' },
+      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency'], name: 'configs.ticktickSync' },
+      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar'], name: 'configs.githubSync' },
       { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailDailySummary', 'emailNewRelease', 'emailSession'], name: 'configs.notifications' },
-      { objToCheck: config.options, requiredKeys: ['showLogs', 'maintanceMode'], name: 'configs.options' }
+      { objToCheck: config.options, requiredKeys: ['showLogs', 'maintanceMode', 'syncTicktick', 'syncGithub'], name: 'configs.options' }
     ];
 
     validationArr.forEach((item) => {
@@ -219,7 +227,7 @@ class GcalSync {
     let icalStr = '';
 
     const url = icsCalendarLink.replace('webcal://', 'https://');
-    const urlResponse = UrlFetchApp.fetch(url, { validateHttpsCertificates: false, muteHttpExceptions: true });
+    const urlResponse = this.getGoogleFetch().fetch(url, { validateHttpsCertificates: false, muteHttpExceptions: true });
     if (urlResponse.getResponseCode() == 200) {
       icalStr = urlResponse.getContentText();
 
@@ -266,6 +274,16 @@ class GcalSync {
   private removeAppsScriptsProperty(propertyToDelete: string) {
     const scriptProperties = this.getGoogleAppsScriptsObject();
     scriptProperties.deleteProperty(propertyToDelete);
+  }
+
+  /* APPS SCRIPTS TRIGGERS ================================================== */
+
+  private getGoogleFetch() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
+    return UrlFetchApp;
   }
 
   /* APPS SCRIPTS TRIGGERS ================================================== */
@@ -322,6 +340,16 @@ class GcalSync {
   private getCalendarByName(calName: string) {
     const calendar = this.getAllCalendars().find((cal) => cal.summary === calName);
     return calendar;
+  }
+
+  private deleteCalendar(calName: string) {
+    const callendarObj = this.getGoogleCalendarObj();
+    const calendar = this.getCalendarByName(calName);
+
+    if (calendar) {
+      callendarObj.Calendars.remove(calendar.id);
+      this.logger(`deleted calendar ${calendar.summary}`);
+    }
   }
 
   private createCalendar(calName: string) {
@@ -408,17 +436,17 @@ class GcalSync {
     this.getGoogleEmailObj().sendEmail(emailObj);
   }
 
-  /* SETUP TICK SYNC FUNCTIONS ============================================== */
+  /* SETUP GCAL SYNC FUNCTIONS ============================================== */
 
-  installTickSync() {
-    this.removeAppsScriptsTrigger(this.config.synchronization.syncFunction);
-    this.addAppsScriptsTrigger(this.config.synchronization.syncFunction, this.config.synchronization.updateFrequency);
+  installGcalSync() {
+    this.removeAppsScriptsTrigger(this.config.ticktickSync.syncFunction);
+    this.addAppsScriptsTrigger(this.config.ticktickSync.syncFunction, this.config.ticktickSync.updateFrequency);
 
-    this.logger(`${this.APPNAME} was set to run ${this.config.synchronization.syncFunction} every ${this.config.synchronization.updateFrequency} minutes`);
+    this.logger(`${this.APPNAME} was set to run ${this.config.ticktickSync.syncFunction} every ${this.config.ticktickSync.updateFrequency} minutes`);
   }
 
-  uninstallTickSync() {
-    this.removeAppsScriptsTrigger(this.config.synchronization.syncFunction);
+  uninstallGcalSync() {
+    this.removeAppsScriptsTrigger(this.config.ticktickSync.syncFunction);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
@@ -454,48 +482,125 @@ class GcalSync {
     this.logger(`completedEvents: ${getItems(completedEvents).length}${getItems(completedEvents).length > 0 ? `\n\n${formatEventsList(completedEvents)}` : ''}`);
   }
 
-  /* TICKSYNC SYNC FUNCTIONS ================================================ */
+  /* GITHUB FUNCTIONS ======================================================= */
 
-  private createMissingGoogleCalendars() {
-    const allGcalendarsNames = [...new Set([...this.config.synchronization.icsCalendars.map((item) => item[1]), ...this.config.synchronization.icsCalendars.map((item) => item[2])])];
-    allGcalendarsNames.forEach((calName: string) => {
-      if (!this.getCalendarByName(calName)) {
-        this.createCalendar(calName);
-        this.logger(`created google calendar: [${calName}]`);
+  syncGihub() {
+    if (!this.config.options.syncGithub) {
+      return;
+    }
+
+    if (!this.getCalendarByName(this.config.githubSync.googleCalendar)) {
+      this.createCalendar(this.config.githubSync.googleCalendar);
+      this.logger(`created google calendar: [${this.config.githubSync.googleCalendar}]`);
+    }
+
+    const githubSessionStats = {
+      addedCommits: [],
+      deletedCommits: []
+    };
+
+    const githubCalendar = this.getCalendarByName(this.config.githubSync.googleCalendar);
+    const allCommitsInGoogleCalendar = this.getEventsFromCalendar(githubCalendar);
+
+    const allCommitsInGithub = this.getAllGithubCommits();
+
+    const parsedCommits = allCommitsInGithub.map((item) => {
+      const commitObj = {
+        commit: item.html_url,
+        date: item.commit.author.date,
+        message: item.commit.message.split('\n')[0],
+        repository: item.commit.tree.url.replace('https://api.github.com/repos/', '').split('/git')[0]
+      };
+      return commitObj;
+    });
+
+    const filteredCommitsByRepository = parsedCommits.filter((item) => {
+      const itemSearch = item.repository.search(this.config.githubSync.username);
+      return itemSearch > -1;
+    });
+
+    filteredCommitsByRepository.forEach((githubItem) => {
+      const gcalEvent = allCommitsInGoogleCalendar.find((gcalItem) => gcalItem.extendedProperties.private.githubCommitId === githubItem.commit);
+      if (!gcalEvent) {
+        const extendProps = {
+          private: {
+            githubCommitRepository: githubItem.repository,
+            githubCommitMessage: githubItem.message,
+            githubCommitDate: githubItem.date,
+            githubCommitId: githubItem.commit
+          }
+        } as any;
+
+        const taskEvent: GoogleAppsScript.Calendar.Schema.Event = {
+          summary: `${githubItem.repository} - ${githubItem.message}`,
+          description: githubItem.repository,
+          start: { dateTime: githubItem.date },
+          end: { dateTime: githubItem.date },
+          reminders: {
+            useDefault: false,
+            overrides: []
+          },
+          extendedProperties: extendProps
+        };
+
+        this.addEventToCalendar(githubCalendar, taskEvent);
+        this.logger(`add commit to gcal: ${githubItem.repository} - ${githubItem.commit}`);
+        githubSessionStats.addedCommits.push(githubItem);
       }
     });
+
+    this.getEventsFromCalendar(githubCalendar).forEach((item) => {
+      const commitGithub = filteredCommitsByRepository.find((commit) => commit.commit === item.extendedProperties.private.githubCommitId);
+      if (!commitGithub) {
+        console.log(`commit ${item.extendedProperties.private.githubCommitId} was deleted`);
+        githubSessionStats.addedCommits.push(item.extendedProperties.private);
+      }
+    });
+
+    return githubSessionStats;
   }
 
-  private createMissingAppsScriptsProperties() {
-    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents)) {
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, '');
+  private getAllGithubCommits() {
+    const allCommitsArr = [];
+
+    let pageNumber = 1;
+    let shouldBreak = false;
+
+    while (shouldBreak === false) {
+      const url = `https://api.github.com/search/commits?q=author:${this.config.githubSync.username}&page=${pageNumber}&sort=committer-date&per_page=100`;
+      const response = this.getGoogleFetch().fetch(url);
+      const data = JSON.parse(response.getContentText()) ?? {};
+      const commits = data.items;
+
+      if (commits.length === 0) {
+        shouldBreak = true;
+        break;
+      }
+
+      allCommitsArr.push(...commits);
+      pageNumber++;
     }
+
+    return allCommitsArr;
   }
 
-  private getTasksFromGoogleCalendars() {
-    const tasks: ParsedGoogleEvent[] = this.config.synchronization.icsCalendars.reduce((acc, cur) => {
-      const taskCalendar = cur[1];
-      const calendar = this.getCalendarByName(taskCalendar);
-      const tasksArray = this.getEventsFromCalendar(calendar);
-      acc = [].concat.apply(acc, tasksArray);
-      return acc;
-    }, []);
-    return tasks;
-  }
+  /* TICKSYNC SYNC FUNCTIONS ================================================ */
 
-  syncEvents() {
+  syncTicktick() {
+    if (!this.config.options.syncTicktick) {
+      return;
+    }
+
     this.createMissingGoogleCalendars();
     this.createMissingAppsScriptsProperties();
 
     const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars();
 
-    const taggedCalendars = this.config.synchronization.icsCalendars.filter((item) => typeof item[3]?.tag === 'string');
+    const taggedCalendars = this.config.ticktickSync.icsCalendars.filter((item) => typeof item[3]?.tag === 'string');
     const taggedResults = taggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars));
     const taggedTmp = this.parseResults(taggedResults);
 
-    const nonTaggedCalendars = this.config.synchronization.icsCalendars.filter((item) => !item[3] || (item[3] && !item[3].tag));
+    const nonTaggedCalendars = this.config.ticktickSync.icsCalendars.filter((item) => !item[3] || (item[3] && !item[3].tag));
     const nonTaggedResults = nonTaggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars, taggedResults));
     const nonTaggedTmp = this.parseResults(nonTaggedResults);
 
@@ -542,6 +647,35 @@ class GcalSync {
         this.sendNewReleaseEmail();
       }
     }
+  }
+
+  private createMissingGoogleCalendars() {
+    const allGcalendarsNames = [...new Set([...this.config.ticktickSync.icsCalendars.map((item) => item[1]), ...this.config.ticktickSync.icsCalendars.map((item) => item[2])])];
+    allGcalendarsNames.forEach((calName: string) => {
+      if (!this.getCalendarByName(calName)) {
+        this.createCalendar(calName);
+        this.logger(`created google calendar: [${calName}]`);
+      }
+    });
+  }
+
+  private createMissingAppsScriptsProperties() {
+    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents)) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, '');
+    }
+  }
+
+  private getTasksFromGoogleCalendars() {
+    const tasks: ParsedGoogleEvent[] = this.config.ticktickSync.icsCalendars.reduce((acc, cur) => {
+      const taskCalendar = cur[1];
+      const calendar = this.getCalendarByName(taskCalendar);
+      const tasksArray = this.getEventsFromCalendar(calendar);
+      acc = [].concat.apply(acc, tasksArray);
+      return acc;
+    }, []);
+    return tasks;
   }
 
   /* ======================================================================== */
@@ -653,7 +787,7 @@ class GcalSync {
 
       if (!isTaskStillInTickTick) {
         const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
-        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.synchronization.gcalCompleted
+        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.ticktickSync.gcalCompleted
 
         if (!this.config.options.maintanceMode) {
           this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
@@ -692,7 +826,7 @@ class GcalSync {
     const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
     const parseVersion = (v: string) => Number(v.replace('v', '').split('.').join(''));
 
-    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${this.GITHUB_REPOSITORY}/releases?per_page=1`);
+    const json_encoded = this.getGoogleFetch().fetch(`https://api.github.com/repos/${this.GITHUB_REPOSITORY}/releases?per_page=1`);
     const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
 
     if (Object.keys(lastReleaseObj).length === 0) {

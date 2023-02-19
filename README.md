@@ -141,9 +141,9 @@ To effectivily use this project, do the following steps:
 - select the function `setup` in the upfront menu and run it: it will setup the function to run every `5 minutes`;
 
 ```javascript
-function getTickSync() {
-  const tickSyncConfigs = {
-    synchronization: {
+function getGcalSync() {
+  const configs = {
+    ticktickSync: {
       icsCalendars: [
         ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // everything will be synced
         ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
@@ -151,6 +151,10 @@ function getTickSync() {
       ],
       syncFunction: 'sync',         // function name to run every x minutes
       updateFrequency: 5            // wait time between sync checks
+    },
+    githubSync: {
+      username: "lucasvtiradentes",  // github username
+      googleCalendar: "gh_commits"   // google calendar to isnert commits as events
     },
     notifications: {
       email: 'youremail@gmail.com', // email to send reports
@@ -162,31 +166,33 @@ function getTickSync() {
     },
     options: {
       showLogs: true,               // show runtime information
-      maintanceMode: false          // option to not create, delete, update anything
+      maintanceMode: false,         // option to not create, delete, update anything
+      syncTicktick: true,           // option to sync ticktick
+      syncGithub: true              // option to sync github
     }
   };
 
-
   const version = "1.0.0" // update the version in a regular basis to get the most recent updates
-  const tickSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
-  eval(`this.TickSync = ` + tickSyncContent);
-  const tickSync = new TickSync(tickSyncConfigs);
-  return tickSync;
+  const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
+  eval(`this.GcalSync = ` + gcalSyncContent);
+  const gcalSync = new GcalSync(tickSyncConfigs);
+  return gcalSync;
 }
 
 function sync() {
-  const tickSync = getTickSync();
-  tickSync.syncEvents();
+  const gcalSync = getGcalSync();
+  gcalSync.syncTicktick();
+  gcalSync.syncGihub();
 }
 
 function setup() {
-  const tickSync = getTickSync();
-  tickSync.installTickSync();
+  const gcalSync = getGcalSync();
+  gcalSync.installGcalSync();
 }
 
 function remove() {
-  const tickSync = getTickSync();
-  tickSync.uninstallTickSync();
+  const gcalSync = getGcalSync();
+  gcalSync.uninstallGcalSync();
 }
 ```
 

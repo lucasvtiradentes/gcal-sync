@@ -1,15 +1,19 @@
 export const gcalSyncConfig = {
-  synchronization: {
+  ticktickSync: {
     icsCalendars: [
-      ['webcal://ticktick.com/pub/calendar/feeds/z0b1l06k65bm/basic.ics', 'tick_fun', 'tick_done', { tag: '#LAZER' }],
-      ['webcal://ticktick.com/pub/calendar/feeds/frnl8al7cjlu/basic.ics', 'tick_imp', 'tick_done', { tag: '#IMP' }],
-      ['webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics', 'tick_tasks', 'tick_done', { ignoredTags: ['#LAZER', '#IMP'] }]
+      ['webcal://ticktick.com/5bm/basic.ics', 'tick_fun', 'tick_done', { tag: '#LAZER' }],
+      ['webcal://ticktick.com/jlu/basic.ics', 'tick_imp', 'tick_done', { tag: '#IMP' }],
+      ['webcal://ticktick.com/amw/basic.ics', 'tick_tasks', 'tick_done', { ignoredTags: ['#LAZER', '#IMP'] }]
     ],
     syncFunction: 'sync',
     updateFrequency: 5
   },
+  githubSync: {
+    username: 'lucasvtiradentes',
+    googleCalendar: 'gh_commits'
+  },
   notifications: {
-    email: 'lucasvtiradentes@gmail.com',
+    email: 'youremail@gmail.com',
     timeToEmail: '19:00',
     timeZoneCorrection: -3,
     emailDailySummary: true,
