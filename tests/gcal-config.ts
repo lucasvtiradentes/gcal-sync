@@ -5,8 +5,6 @@ export const gcalSyncConfig = {
       ['webcal://ticktick.com/jlu/basic.ics', 'tick_imp', 'tick_done', { tag: '#IMP' }],
       ['webcal://ticktick.com/amw/basic.ics', 'tick_tasks', 'tick_done', { ignoredTags: ['#LAZER', '#IMP'] }]
     ],
-    syncFunction: 'sync',
-    updateFrequency: 5,
     syncTicktick: true
   },
   githubSync: {
@@ -24,6 +22,8 @@ export const gcalSyncConfig = {
     emailSession: true
   },
   options: {
+    syncFunction: 'sync',
+    updateFrequency: 5,
     showLogs: true,
     maintanceMode: false
   }

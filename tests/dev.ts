@@ -7,5 +7,5 @@ console.log(gcalsync);
 // gcalsync.sync();
 // gcalsync.showTodayEventsStats();
 // gcalsync.cleanTodayEventsStats();
-// gcalsync.installTickSync();
-// gcalsync.uninstallTickSync();
+// gcalsync.installGcalSync();
+// gcalsync.uninstallGcalSync();

@@ -110,7 +110,7 @@
 Track your progress over time with an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a>.
 
 <div align="center">
-  <img src="./.github/images/ticksync.png" />
+  <img src="./.github/images/gcalsync.png" />
 </div>
 
 This project was deeply inspired by [this tool](https://github.com/derekantrican/GAS-ICS-Sync), and my main reason about creating mine was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress over time.
@@ -120,8 +120,8 @@ This project was deeply inspired by [this tool](https://github.com/derekantrican
 &nbsp;&nbsp;&nbsp;✔️ add github commits to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates and title;<br>
-&nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the task be moved to a compelted gcal agenda: in case of deleted tasks, make sure to delete in gcal as well;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what ticksync has done throughout the day;<br>
+&nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the event be moved to a compelted gcal agenda: in case of deleted tasks, make sure to delete in gcal as well;<br>
+&nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what gcalsync has done throughout the day;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags.<br>
 
@@ -150,13 +150,11 @@ function getGcalSync() {
         ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
         ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ],
-      syncFunction: 'sync',         // function name to run every x minutes
-      updateFrequency: 5,           // wait time between sync checks
       syncTicktick: true            // option to sync ticktick
     },
     githubSync: {
       username: "lucasvtiradentes", // github username
-      googleCalendar: "gh_commits"  // google calendar to isnert commits as events
+      googleCalendar: "gh_commits", // google calendar to isnert commits as events
       parseGithubEmojis: true,      // parse string emojis to emojis
       syncGithub: true              // option to sync github
     },
@@ -169,6 +167,8 @@ function getGcalSync() {
       emailSession: true            // email sessions with modifications
     },
     options: {
+      syncFunction: 'sync',         // function name to run every x minutes
+      updateFrequency: 5,           // wait time between sync checks
       showLogs: true,               // show runtime information
       maintanceMode: false          // option to not create, delete, update anything
     }
@@ -237,14 +237,14 @@ $ npm run build
 to load your work in apps scripts with almost no effort, push your code to a repository and then add the following code to the apps script:
 
 ```js
-function getTickSyncContent(mode){
+function getGcalSyncContent(mode){
 
   if (mode === 'production'){
-    const version = "1.0.0" // update the version in a regular basis to get the most recent updates
+    const version = "1.2.2" // version
     return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
   } else if (mode === 'development'){
     const repository = "lucasvtiradentes/gcal-sync" // remember to update this
-    const filePath = "dist/TickSync.min.js"
+    const filePath = "dist/GcalSync.min.js"
     const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}`
     const response = UrlFetchApp.fetch(final_link, {'method' : 'get', 'contentType': 'application/json'})
     const base64Content = JSON.parse(response.toString()).content
@@ -258,9 +258,9 @@ function getTickSyncContent(mode){
 }
 
 
-function getTickSync(){
+function getGcalSync(){
   ...
-  const tickSyncContent = getTickSyncContent('development') // 'production'
+  const gcalSyncContent = getGcalSyncContent('development') // 'production'
   ...
 }
 ```

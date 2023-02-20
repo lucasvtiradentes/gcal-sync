@@ -7,7 +7,7 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
   const packageJson = JSON.parse(readFileSync('./package.json', { encoding: 'utf8' }));
 
   replaceFileContent(DIST_FILE, `// version`, `this.VERSION = '${packageJson.version}'; // version`);
-  replaceFileContent(`./README.md`, `// version`, `  const version = "${packageJson.version}" // version`);
+  replaceFileContent(`./README.md`, `// version`, `const version = "${packageJson.version}" // version`);
 
   await minifyFile(DIST_FILE);
   unlinkSync(DIST_FILE);
@@ -18,7 +18,11 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 function replaceFileContent(file: string, strToFind: string, strToReplace: string) {
   const originalContent = readFileSync(file, { encoding: 'utf8' });
   // prettier-ignore
-  const newContent = originalContent.split('\n').map((line) => line.search(strToFind) > 0 ? strToReplace : line).join('\n');
+  const newContent = originalContent.split('\n').map((line) => {
+    const hasSearchedStr = line.search(strToFind) > 0
+    const identation = line.length - line.trimStart().length
+    return hasSearchedStr ? `${' '.repeat(identation)}${strToReplace}` : line
+  }).join('\n');
   writeFileSync(file, newContent);
 }
 

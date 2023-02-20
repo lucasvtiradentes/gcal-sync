@@ -15,8 +15,6 @@ type CalendarItem = [IcsCalendarLink, IcsTaskGcal, IcsCompletedTaskGcal, Calenda
 type Config = {
   ticktickSync: {
     icsCalendars: CalendarItem[];
-    syncFunction: string;
-    updateFrequency: number;
     syncTicktick: boolean;
   };
   githubSync: {
@@ -35,6 +33,8 @@ type Config = {
     emailSession: boolean;
   };
   options: {
+    syncFunction: string;
+    updateFrequency: number;
     showLogs: boolean;
     maintanceMode: boolean;
   };
@@ -154,10 +154,10 @@ class GcalSync {
 
     const validationArr = [
       { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'notifications', 'options'], name: 'configs' },
-      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency', 'syncTicktick'], name: 'configs.ticktickSync' },
+      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncTicktick'], name: 'configs.ticktickSync' },
       { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'syncGithub', 'parseGithubEmojis'], name: 'configs.githubSync' },
       { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailNewRelease', 'emailDailySummary', 'emailSession'], name: 'configs.notifications' },
-      { objToCheck: config.options, requiredKeys: ['showLogs', 'maintanceMode'], name: 'configs.options' }
+      { objToCheck: config.options, requiredKeys: ['syncFunction', 'updateFrequency', 'showLogs', 'maintanceMode'], name: 'configs.options' }
     ];
 
     validationArr.forEach((item) => {
@@ -489,14 +489,14 @@ class GcalSync {
   /* SETUP GCAL SYNC FUNCTIONS ============================================== */
 
   installGcalSync() {
-    this.removeAppsScriptsTrigger(this.config.ticktickSync.syncFunction);
-    this.addAppsScriptsTrigger(this.config.ticktickSync.syncFunction, this.config.ticktickSync.updateFrequency);
+    this.removeAppsScriptsTrigger(this.config.options.syncFunction);
+    this.addAppsScriptsTrigger(this.config.options.syncFunction, this.config.options.updateFrequency);
 
-    this.logger(`${this.APPNAME} was set to run ${this.config.ticktickSync.syncFunction} every ${this.config.ticktickSync.updateFrequency} minutes`);
+    this.logger(`${this.APPNAME} was set to run ${this.config.options.syncFunction} every ${this.config.options.updateFrequency} minutes`);
   }
 
   uninstallGcalSync() {
-    this.removeAppsScriptsTrigger(this.config.ticktickSync.syncFunction);
+    this.removeAppsScriptsTrigger(this.config.options.syncFunction);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks);
