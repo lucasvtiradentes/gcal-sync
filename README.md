@@ -135,10 +135,10 @@ The only thing you need to use this solution is a `google account`.
 
 To effectivily use this project, do the following steps:
 
-- remember to get all your calendars from ticktick in this [link](https://ticktick.com/webapp/#settings/subscribe);
+- get all your calendars from ticktick in this [link](https://ticktick.com/webapp/#settings/subscribe);
 - go to [google apps script](https://script.google.com/home) and create a new project;
 - copy and past the code below and save the file;
-- change the variable `tickSyncConfigs` acording to your needs and data;
+- change the variable `configs` acording to your needs and data;
 - select the function `setup` in the upfront menu and run it: it will setup the function to run every `5 minutes`;
 
 ```javascript
@@ -156,9 +156,9 @@ function getGcalSync() {
     },
     githubSync: {
       username: "lucasvtiradentes", // github username
-      googleCalendar: "gh_commits"  // google calendar to isnert commits as events,
-      parseGithubEmojis: true,       // parse string emojis to emojis
-      syncGithub: true             // option to sync github
+      googleCalendar: "gh_commits"  // google calendar to isnert commits as events
+      parseGithubEmojis: true,      // parse string emojis to emojis
+      syncGithub: true              // option to sync github
     },
     notifications: {
       email: 'youremail@gmail.com', // email to send reports
@@ -175,7 +175,7 @@ function getGcalSync() {
   };
 
   // update the version in a regular basis to get the most recent updates
-const version = "1.2.1" // version
+  const version = "1.2.1" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
   const gcalSync = new GcalSync(configs);

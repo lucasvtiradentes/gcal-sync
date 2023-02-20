@@ -6,8 +6,8 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
   const packageJson = JSON.parse(readFileSync('./package.json', { encoding: 'utf8' }));
 
-  replaceFileContent(DIST_FILE, `// version`, `VERSION = '${packageJson.version}'; // version`);
-  replaceFileContent(`./README.md`, `// version`, `const version = "${packageJson.version}" // version`);
+  replaceFileContent(DIST_FILE, `// version`, `this.VERSION = '${packageJson.version}'; // version`);
+  replaceFileContent(`./README.md`, `// version`, `  const version = "${packageJson.version}" // version`);
 
   await minifyFile(DIST_FILE);
   unlinkSync(DIST_FILE);
