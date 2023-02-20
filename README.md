@@ -175,7 +175,7 @@ function getGcalSync() {
   };
 
   // update the version in a regular basis to get the most recent updates
-  const version = "1.2.1" // version
+  const version = "1.2.2" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
   const gcalSync = new GcalSync(configs);

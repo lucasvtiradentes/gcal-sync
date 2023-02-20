@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.2.2](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.1...v1.2.2) (2023-02-20)
+
+
+### 🐛 bugfix:
+
+* broken build due to incorrect version updating ([#47](https://github.com/lucasvtiradentes/gcal-sync/issues/47)) ([7918136](https://github.com/lucasvtiradentes/gcal-sync/commit/79181369df9a4e8463e062a3e18cdd8d8a6e51d9))
+
 ## [1.2.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.0...v1.2.1) (2023-02-20)
 
 
