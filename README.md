@@ -107,7 +107,7 @@
 
 ## :trumpet: Overview
 
-Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
+Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> and <a href="https://github.com/">github</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
 
 <div align="center">
   <img src="./.github/images/ticksync.png" />
@@ -117,8 +117,9 @@ This project was deeply inspired by [this tool](https://github.com/derekantrican
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
+&nbsp;&nbsp;&nbsp;✔️ add github commits to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates, description and title;<br>
+&nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates and title;<br>
 &nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the task be moved to a compelted gcal agenda: in case of deleted tasks, make sure to delete in gcal as well;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what ticksync has done throughout the day;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
@@ -150,39 +151,39 @@ function getGcalSync() {
         ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ],
       syncFunction: 'sync',         // function name to run every x minutes
-      updateFrequency: 5            // wait time between sync checks
+      updateFrequency: 5,           // wait time between sync checks
+      syncTicktick: true            // option to sync ticktick
     },
     githubSync: {
-      username: "lucasvtiradentes",  // github username
-      googleCalendar: "gh_commits"   // google calendar to isnert commits as events
+      username: "lucasvtiradentes", // github username
+      googleCalendar: "gh_commits"  // google calendar to isnert commits as events,
+      parseGithubEmojis: true,       // parse string emojis to emojis
+      syncGithub: true             // option to sync github
     },
     notifications: {
       email: 'youremail@gmail.com', // email to send reports
       timeToEmail: '23:30',         // time to email the summary
       timeZoneCorrection: -3,       // difference from utc time
-      emailDailySummary: true,      // email summary daily at a specified time
       emailNewRelease: true,        // email new version releases
+      emailDailySummary: true,      // email summary daily at a specified time
       emailSession: true            // email sessions with modifications
     },
     options: {
       showLogs: true,               // show runtime information
-      maintanceMode: false,         // option to not create, delete, update anything
-      syncTicktick: true,           // option to sync ticktick
-      syncGithub: true              // option to sync github
+      maintanceMode: false          // option to not create, delete, update anything
     }
   };
 
-  const version = "1.0.0" // update the version in a regular basis to get the most recent updates
+  const version = "1.2.0" // update the version in a regular basis to get the most recent updates
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
-  const gcalSync = new GcalSync(tickSyncConfigs);
+  const gcalSync = new GcalSync(configs);
   return gcalSync;
 }
 
 function sync() {
   const gcalSync = getGcalSync();
-  gcalSync.syncTicktick();
-  gcalSync.syncGihub();
+  gcalSync.sync()
 }
 
 function setup() {

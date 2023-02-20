@@ -12,8 +12,8 @@ export const gcalSyncConfig = {
   githubSync: {
     username: 'lucasvtiradentes',
     googleCalendar: 'gh_commits',
-    syncGithub: true,
-    parseGithubEmojis: true
+    parseGithubEmojis: true,
+    syncGithub: true
   },
   notifications: {
     email: 'youremail@gmail.com',
