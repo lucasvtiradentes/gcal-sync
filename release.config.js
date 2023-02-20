@@ -73,7 +73,7 @@ module.exports = {
     [
       '@semantic-release/git',
       {
-        assets: ['docs/CHANGELOG.MD', 'package.json', 'dist/TickSync.min.js'],
+        assets: ['docs/CHANGELOG.MD', 'package.json', 'README.md', 'dist/TickSync.min.js'],
         message: ':bookmark: tags: new version release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}'
       }
     ]

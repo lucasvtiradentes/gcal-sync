@@ -107,13 +107,13 @@
 
 ## :trumpet: Overview
 
-Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> and <a href="https://github.com/">github</a> to <a href="https://calendar.google.com/">google calendar</a> with some customizations.
+Track your progress over time with an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a>.
 
 <div align="center">
   <img src="./.github/images/ticksync.png" />
 </div>
 
-This project was deeply inspired by [this tool](https://github.com/derekantrican/GAS-ICS-Sync), and my main reason about creating it was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress over time.
+This project was deeply inspired by [this tool](https://github.com/derekantrican/GAS-ICS-Sync), and my main reason about creating mine was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress over time.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
@@ -174,7 +174,8 @@ function getGcalSync() {
     }
   };
 
-  const version = "1.2.0" // update the version in a regular basis to get the most recent updates
+  // update the version in a regular basis to get the most recent updates
+const version = "1.2.0" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
   const gcalSync = new GcalSync(configs);

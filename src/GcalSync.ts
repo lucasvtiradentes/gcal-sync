@@ -463,6 +463,10 @@ class GcalSync {
     this.getGoogleCalendarObj().Events.move(calendar.id, event.id, newCalendar.id);
   }
 
+  private removeCalendarEvent(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent) {
+    this.getGoogleCalendarObj().Events.remove(calendar.id, event.id);
+  }
+
   private getEventById(calendar: GoogleAppsScript.Calendar.Schema.Calendar, eventId: string) {
     const event = this.getGoogleCalendarObj().Events.get(calendar.id, eventId);
     return event;
@@ -694,17 +698,24 @@ class GcalSync {
           }
         };
 
-        this.addEventToCalendar(githubCalendar, taskEvent);
+        if (!this.config.options.maintanceMode) {
+          this.addEventToCalendar(githubCalendar, taskEvent);
+          githubSessionStats.addedCommits.push(githubItem);
+        }
+
         this.logger(`add commit to gcal: ${shortnedRepository} - ${commitMessage}`);
-        githubSessionStats.addedCommits.push(githubItem);
       }
     });
 
     this.getEventsFromCalendar(githubCalendar).forEach((item) => {
       const commitGithub = filteredCommitsByRepository.find((commit) => commit.commitUrl === item.extendedProperties.private.commitUrl);
       if (!commitGithub) {
+        if (!this.config.options.maintanceMode) {
+          this.removeCalendarEvent(githubCalendar, item);
+          githubSessionStats.addedCommits.push(item.extendedProperties.private as ParsedGithubCommit);
+        }
+
         this.logger(`commit ${item.extendedProperties.private.commitUrl} was deleted`);
-        githubSessionStats.addedCommits.push(item.extendedProperties.private as ParsedGithubCommit);
       }
     });
 
