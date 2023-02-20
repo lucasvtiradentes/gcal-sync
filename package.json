@@ -1,6 +1,6 @@
 {
   "name": "gcal-sync",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "🔄 a google apps script for syncing events between github to ticktick and finally both to google calendar.",
   "license": "MIT",
   "author": {
