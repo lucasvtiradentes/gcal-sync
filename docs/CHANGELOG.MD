@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.1.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.0.1...v1.1.0) (2023-02-20)
+
+
+### ✨ feature:
+
+* add github sync ([#42](https://github.com/lucasvtiradentes/gcal-sync/issues/42)) ([77a6f22](https://github.com/lucasvtiradentes/gcal-sync/commit/77a6f22a8ee7d68b1a1e4f0f0ad2cec47f84ead7))
+
 ## [1.0.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.0.0...v1.0.1) (2023-02-19)
 
 
