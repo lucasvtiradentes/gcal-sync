@@ -1,5 +1,13 @@
 # CHANGELOG HISTORY
 
+## [1.2.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.1.0...v1.2.0) (2023-02-20)
+
+
+### ✨ feature:
+
+* add github stats to daily emails ([#44](https://github.com/lucasvtiradentes/gcal-sync/issues/44)) ([7f3ee50](https://github.com/lucasvtiradentes/gcal-sync/commit/7f3ee50d7266e68e7f24b8b0d5e4a0bb4dcd6a25))
+* add github sync stats ([#44](https://github.com/lucasvtiradentes/gcal-sync/issues/44)) ([1b615aa](https://github.com/lucasvtiradentes/gcal-sync/commit/1b615aac65f2f9404a9364f02c7ce31daa770878))
+
 ## [1.1.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.0.1...v1.1.0) (2023-02-20)
 
 
