@@ -40,6 +40,12 @@ class GitmojiUtils {
     return remainingCommits.map((item) => ({ emoji: item.emoji, type: item.type, description: item.description }));
   }
 
+  getEmojiConversionArray() {
+    [...this.allgitmojiArr].forEach((item) => {
+      console.log(`'${item.code}': '${item.emoji}',`);
+    });
+  }
+
   /* ======================================================================== */
 
   private getCommitlintTypesArray() {
@@ -123,6 +129,7 @@ console.log(gitmoji.exportConfigs('commitlint', true));
 console.log(gitmoji.exportConfigs('semantic-release-commit-analyzer'));
 console.log(gitmoji.exportConfigs('semantic-release-changelog'));
 
+// gitmoji.getEmojiConversionArray()
 // console.table(gitmoji.getOnlyRemainingTypesItems());
 // console.table(gitmoji.getOnlySpecifiedTypesItems());
 

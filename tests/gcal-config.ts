@@ -6,15 +6,18 @@ export const gcalSyncConfig = {
       ['webcal://ticktick.com/amw/basic.ics', 'tick_tasks', 'tick_done', { ignoredTags: ['#LAZER', '#IMP'] }]
     ],
     syncFunction: 'sync',
-    updateFrequency: 5
+    updateFrequency: 5,
+    syncTicktick: true
   },
   githubSync: {
     username: 'lucasvtiradentes',
-    googleCalendar: 'gh_commits'
+    googleCalendar: 'gh_commits',
+    syncGithub: true,
+    parseGithubEmojis: true
   },
   notifications: {
     email: 'youremail@gmail.com',
-    timeToEmail: '19:00',
+    timeToEmail: '23:00',
     timeZoneCorrection: -3,
     emailDailySummary: true,
     emailNewRelease: true,

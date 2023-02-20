@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+/* CONFIGS TYPES ------------------------------------------------------------ */
+
 type icsCalendarLink = string;
 type icsTaskGcal = string;
 type icsCompletedTaskGcal = string;
@@ -15,11 +17,14 @@ type Config = {
     icsCalendars: calendarItem[];
     syncFunction: string;
     updateFrequency: number;
+    syncTicktick: boolean;
   };
   githubSync: {
     username: string;
     googleCalendar: string;
     startDate: string;
+    parseGithubEmojis: boolean;
+    syncGithub: boolean;
   };
   notifications: {
     email: string;
@@ -32,20 +37,28 @@ type Config = {
   options: {
     showLogs: boolean;
     maintanceMode: boolean;
-    syncTicktick: boolean;
-    syncGithub: boolean;
   };
 };
 
-type IcsCalendarResult = {
-  icsCal: string;
-  gCalCorresponding: string;
-  completedCal: string;
-  calendarOptions: calendarOptions;
-  tasksFromIcs: ParsedIcsEvent[];
-  addedTasks: string[];
-  updatedTasks: string[];
+/* UTIL TYPES --------------------------------------------------------------- */
+
+type Environment = 'production' | 'development';
+
+type SessionStats = {
+  addedTicktickTasks: string;
+  updatedTicktickTasks: string;
+  completedTicktickTasks: string;
+  addedGithubCommits: string;
+  deletedGithubCommits: string;
 };
+
+/* GOOGLE TYPES ------------------------------------------------------------- */
+
+type GoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
+
+type ParsedGoogleEvent = Pick<GoogleEvent, 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+
+/* TICKTICK SYNC RELATED TYPES ---------------------------------------------- */
 
 type ParsedIcsEvent = {
   id: string;
@@ -57,21 +70,51 @@ type ParsedIcsEvent = {
   taskCalendar?: string;
 };
 
-type ParsedGoogleEvent = Pick<GoogleAppsScript.Calendar.Schema.Event, 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+type IcsCalendarResult = {
+  icsCal: string;
+  gCalCorresponding: string;
+  completedCal: string;
+  calendarOptions: calendarOptions;
+  tasksFromIcs: ParsedIcsEvent[];
+  addedTasks: GoogleEvent[];
+  updatedTasks: GoogleEvent[];
+};
 
-type SyncStats = {
-  addedEvents: string[];
-  updatedEvents: string[];
-  completedEvents: string[];
+type TicktickSessionStats = {
+  addedEvents: GoogleEvent[];
+  updatedEvents: GoogleEvent[];
+  completedEvents: GoogleEvent[];
+};
+
+type GcalPrivateTicktick = {
+  tickTaskId: string;
+  calendar: string;
+  completedCalendar: string;
 };
 
 type ParsedResult = {
-  added: string[];
-  updated: string[];
+  added: GoogleEvent[];
+  updated: GoogleEvent[];
   taggedIcsTasks: ParsedIcsEvent[];
 };
 
-type Environment = 'production' | 'development';
+/* GITHUB SYNC RELATED TYPES ------------------------------------------------ */
+
+type GithubSessionStats = {
+  addedCommits: ParsedGithubCommit[];
+  deletedCommits: ParsedGithubCommit[];
+};
+
+type ParsedGithubCommit = {
+  commitUrl: string;
+  commitRepository: string;
+  commitMessage: string;
+  commitDate: string;
+};
+
+type GcalPrivateGithub = ParsedGithubCommit;
+
+/* MAIN CLASS --------------------------------------------------------------- */
 
 class GcalSync {
   public config: Config;
@@ -82,9 +125,11 @@ class GcalSync {
   TODAY_DATE = new Date().toISOString().split('T')[0];
   ENVIRONMENT = this.detectEnvironment();
   APPS_SCRIPTS_PROPERTIES = {
-    todayAddedEvents: 'todayAddedEvents',
-    todayUpdateEvents: 'todayUpdateEvents',
-    todayCompletedEvents: 'todayCompletedEvents',
+    todayTicktickAddedTasks: 'todayTicktickAddedTasks',
+    todayTicktickUpdateTasks: 'todayTicktickUpdateTasks',
+    todayTicktickCompletedTasks: 'todayTicktickCompletedTasks',
+    todayGithubAddedCommits: 'todayGithubAddedCommits',
+    todayGithubDeletedCommits: 'todayGithubDeletedCommits',
     lastReleasedVersionAlerted: 'lastReleasedVersionAlerted'
   };
   ERRORS = {
@@ -99,6 +144,7 @@ class GcalSync {
     this.config = config;
 
     this.logger(`${this.APPNAME} is running at version ${this.VERSION} in ${this.ENVIRONMENT} environment`);
+    this.logger(`check the docs for your version here: ${`https://github.com/${this.GITHUB_REPOSITORY}/tree/v${this.VERSION}#readme`}`);
   }
 
   private validateConfigs(config: Config) {
@@ -108,10 +154,10 @@ class GcalSync {
 
     const validationArr = [
       { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'notifications', 'options'], name: 'configs' },
-      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency'], name: 'configs.ticktickSync' },
-      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar'], name: 'configs.githubSync' },
-      { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailDailySummary', 'emailNewRelease', 'emailSession'], name: 'configs.notifications' },
-      { objToCheck: config.options, requiredKeys: ['showLogs', 'maintanceMode', 'syncTicktick', 'syncGithub'], name: 'configs.options' }
+      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncFunction', 'updateFrequency', 'syncTicktick'], name: 'configs.ticktickSync' },
+      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'syncGithub', 'parseGithubEmojis'], name: 'configs.githubSync' },
+      { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailNewRelease', 'emailDailySummary', 'emailSession'], name: 'configs.notifications' },
+      { objToCheck: config.options, requiredKeys: ['showLogs', 'maintanceMode'], name: 'configs.options' }
     ];
 
     validationArr.forEach((item) => {
@@ -342,16 +388,6 @@ class GcalSync {
     return calendar;
   }
 
-  private deleteCalendar(calName: string) {
-    const callendarObj = this.getGoogleCalendarObj();
-    const calendar = this.getCalendarByName(calName);
-
-    if (calendar) {
-      callendarObj.Calendars.remove(calendar.id);
-      this.logger(`deleted calendar ${calendar.summary}`);
-    }
-  }
-
   private createCalendar(calName: string) {
     const callendarObj = this.getGoogleCalendarObj();
     const doesCalendarExists = this.getAllOwnedCalendars()
@@ -370,6 +406,16 @@ class GcalSync {
     return calendar;
   }
 
+  private deleteCalendar(calName: string) {
+    const callendarObj = this.getGoogleCalendarObj();
+    const calendar = this.getCalendarByName(calName);
+
+    if (calendar) {
+      callendarObj.Calendars.remove(calendar.id);
+      this.logger(`deleted calendar ${calendar.summary}`);
+    }
+  }
+
   /* GCAL EVENTS =========================== */
 
   private getEventsFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar) {
@@ -378,7 +424,7 @@ class GcalSync {
     return parsedEventsArr;
   }
 
-  private parseGoogleEvent(ev: GoogleAppsScript.Calendar.Schema.Event) {
+  private parseGoogleEvent(ev: GoogleEvent) {
     const parsedGoogleEvent: ParsedGoogleEvent = {
       id: ev.id,
       summary: ev.summary,
@@ -397,12 +443,12 @@ class GcalSync {
     return parsedGoogleEvent;
   }
 
-  private addEventToCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleAppsScript.Calendar.Schema.Event) {
+  private addEventToCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent) {
     const eventFinal = this.getGoogleCalendarObj().Events.insert(event, calendar.id);
     return eventFinal;
   }
 
-  private updateEventFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleAppsScript.Calendar.Schema.Event, updatedProps: any) {
+  private updateEventFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent, updatedProps: any) {
     const updatedEvent = this.getEventById(calendar, event.id);
 
     const finalObj = {
@@ -413,7 +459,7 @@ class GcalSync {
     this.getGoogleCalendarObj().Events.update(finalObj, calendar.id, event.id);
   }
 
-  private moveEventToOtherCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleAppsScript.Calendar.Schema.Event, newCalendar: GoogleAppsScript.Calendar.Schema.Calendar) {
+  private moveEventToOtherCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent, newCalendar: GoogleAppsScript.Calendar.Schema.Calendar) {
     this.getGoogleCalendarObj().Events.move(calendar.id, event.id, newCalendar.id);
   }
 
@@ -447,46 +493,152 @@ class GcalSync {
 
   uninstallGcalSync() {
     this.removeAppsScriptsTrigger(this.config.ticktickSync.syncFunction);
-    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
-    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
-    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted);
 
     this.logger(`${this.APPNAME} automation was removed from appscript!`);
   }
 
   cleanTodayEventsStats() {
-    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, '');
-    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, '');
-    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, '');
 
     this.logger(`${this.TODAY_DATE} stats were reseted!`);
   }
 
   showTodayEventsStats() {
-    const getItems = (arrStr: string) => arrStr.split('\n').filter((item) => item.length > 0);
-
-    const formatEventsList = (arrStr: string) => {
-      // prettier-ignore
-      return this.formatSummary(arrStr.split('\n').filter(item => item.length > 0).map((item) => `- ${item}`).join('\n'));
-    };
+    // prettier-ignore
+    const formatEventsList = (arrStr: string) => arrStr.split('\n').filter(item => item.length > 0).map((item) => `- ${item}`).join('\n')
+    const TODAY_SESSION = this.getTodayEvents();
 
     this.logger(`stats for ${this.TODAY_DATE}`);
-
-    const addedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
-    const updatedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
-    const completedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
-
-    this.logger(`addedEvents: ${getItems(addedEvents).length}${getItems(addedEvents).length > 0 ? `\n\n${formatEventsList(addedEvents)}` : ''}`);
-    this.logger(`updatedEvents: ${getItems(updatedEvents).length}${getItems(updatedEvents).length > 0 ? `\n\n${formatEventsList(updatedEvents)}` : ''}`);
-    this.logger(`completedEvents: ${getItems(completedEvents).length}${getItems(completedEvents).length > 0 ? `\n\n${formatEventsList(completedEvents)}` : ''}`);
+    this.logger(`ticktick sync - added tasks    : ${this.stringToArray(TODAY_SESSION.addedTicktickTasks).length}${this.stringToArray(TODAY_SESSION.addedTicktickTasks).length > 0 ? `\n\n${formatEventsList(TODAY_SESSION.addedTicktickTasks)}` : ''}`);
+    this.logger(`ticktick sync - updated tasks  : ${this.stringToArray(TODAY_SESSION.updatedTicktickTasks).length}${this.stringToArray(TODAY_SESSION.updatedTicktickTasks).length > 0 ? `\n\n${formatEventsList(TODAY_SESSION.updatedTicktickTasks)}` : ''}`);
+    this.logger(`ticktick sync - completed tasks: ${this.stringToArray(TODAY_SESSION.completedTicktickTasks).length}${this.stringToArray(TODAY_SESSION.completedTicktickTasks).length > 0 ? `\n\n${formatEventsList(TODAY_SESSION.completedTicktickTasks)}` : ''}`);
+    this.logger(`github sync   - added commmits : ${this.stringToArray(TODAY_SESSION.addedGithubCommits).length}${this.stringToArray(TODAY_SESSION.addedGithubCommits).length > 0 ? `\n\n${formatEventsList(TODAY_SESSION.addedGithubCommits)}` : ''}`);
+    this.logger(`github sync   - deleted commits: ${this.stringToArray(TODAY_SESSION.deletedGithubCommits).length}${this.stringToArray(TODAY_SESSION.deletedGithubCommits).length > 0 ? `\n\n${formatEventsList(TODAY_SESSION.deletedGithubCommits)}` : ''}`);
   }
 
-  /* GITHUB FUNCTIONS ======================================================= */
+  private getTodayEvents() {
+    const TODAY_SESSION: SessionStats = {
+      addedGithubCommits: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits),
+      addedTicktickTasks: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks),
+      completedTicktickTasks: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks),
+      deletedGithubCommits: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits),
+      updatedTicktickTasks: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks)
+    };
+    return TODAY_SESSION;
+  }
 
-  syncGihub() {
-    if (!this.config.options.syncGithub) {
+  sync() {
+    const ticktickSessionStats = this.syncTicktick();
+    const sessionAddedEventsQuantity = ticktickSessionStats.addedEvents.length;
+    const sessionUpdatedEventsQuantity = ticktickSessionStats.updatedEvents.length;
+    const sessionCompletedEventsQuantity = ticktickSessionStats.completedEvents.length;
+
+    if (this.config.ticktickSync.syncTicktick) {
+      this.logger(`ticktick sync - added tasks    : ${sessionAddedEventsQuantity}`);
+      this.logger(`ticktick sync - updated tasks  : ${sessionUpdatedEventsQuantity}`);
+      this.logger(`ticktick sync - completed tasks: ${sessionCompletedEventsQuantity}`);
+    }
+
+    const githubSessionStats = this.syncGihub();
+    const addedCommitsQuantity = githubSessionStats.addedCommits.length;
+    const deletedCommitsQuantity = githubSessionStats.deletedCommits.length;
+
+    if (this.config.githubSync.syncGithub) {
+      this.logger(`github sync   - added commits  : ${addedCommitsQuantity}`);
+      this.logger(`github sync   - deleted commits: ${deletedCommitsQuantity}`);
+    }
+
+    /* -------------------------------------------------- */
+
+    const CUR_SESSION: SessionStats = {
+      addedTicktickTasks: '',
+      updatedTicktickTasks: '',
+      completedTicktickTasks: '',
+      addedGithubCommits: '',
+      deletedGithubCommits: ''
+    };
+
+    if (sessionAddedEventsQuantity + sessionUpdatedEventsQuantity + sessionCompletedEventsQuantity > 0) {
+      const todayAddedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks);
+      const todayUpdatedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks);
+      const todayCompletedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks);
+
+      const formatTicktickItem = (gcalEvent: GoogleEvent) => {
+        const date = gcalEvent.start.date ? gcalEvent.start.date : gcalEvent.start.dateTime.split('T')[0];
+        return `${date} | ${gcalEvent.extendedProperties.private.calendar} | ${gcalEvent.summary}`;
+      };
+
+      CUR_SESSION.addedTicktickTasks = ticktickSessionStats.addedEvents.map((item) => formatTicktickItem(item)).join('\n');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${CUR_SESSION.addedTicktickTasks}`);
+
+      CUR_SESSION.updatedTicktickTasks = ticktickSessionStats.updatedEvents.map((item) => formatTicktickItem(item)).join('\n');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${CUR_SESSION.updatedTicktickTasks}`);
+
+      CUR_SESSION.completedTicktickTasks = ticktickSessionStats.completedEvents.map((item) => formatTicktickItem(item)).join('\n');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${CUR_SESSION.completedTicktickTasks}`);
+    }
+
+    if (addedCommitsQuantity + deletedCommitsQuantity > 0) {
+      const todayAddedGithubCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits);
+      const todayDeletedGithubCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits);
+
+      const formatGithubCommitItem = (item: ParsedGithubCommit) => {
+        const date = item.commitDate.split('T')[0];
+        const repository = item.commitRepository.replace(`${this.config.githubSync.username}/`, '');
+        const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(item.commitMessage) : item.commitMessage;
+        return `${date} | ${repository} | ${commitMessage}`;
+      };
+
+      CUR_SESSION.addedGithubCommits = githubSessionStats.addedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, `${todayAddedGithubCommits ? todayAddedGithubCommits + '\n' : ''}${CUR_SESSION.addedGithubCommits}`);
+
+      CUR_SESSION.deletedGithubCommits = githubSessionStats.deletedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, `${todayDeletedGithubCommits ? todayDeletedGithubCommits + '\n' : ''}${CUR_SESSION.deletedGithubCommits}`);
+
+      this.logger('added github sync session stats to today stats');
+    }
+
+    /* -------------------------------------------------- */
+
+    if (this.config.options.maintanceMode) {
       return;
+    }
+
+    if (this.config.notifications.emailSession) {
+      this.sendSessionEmail(CUR_SESSION);
+    }
+
+    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
+      if (this.config.notifications.emailDailySummary) {
+        this.sendDailySummaryEmail(this.getTodayEvents());
+      }
+
+      if (this.config.notifications.emailNewRelease) {
+        this.sendNewReleaseEmail();
+      }
+    }
+  }
+
+  /* GITHUB SYNC FUNCTIONS ================================================== */
+
+  private syncGihub() {
+    const githubSessionStats: GithubSessionStats = {
+      addedCommits: [],
+      deletedCommits: []
+    };
+
+    if (!this.config.githubSync.syncGithub) {
+      return githubSessionStats;
     }
 
     if (!this.getCalendarByName(this.config.githubSync.googleCalendar)) {
@@ -494,66 +646,65 @@ class GcalSync {
       this.logger(`created google calendar: [${this.config.githubSync.googleCalendar}]`);
     }
 
-    const githubSessionStats = {
-      addedCommits: [],
-      deletedCommits: []
-    };
-
     const githubCalendar = this.getCalendarByName(this.config.githubSync.googleCalendar);
     const allCommitsInGoogleCalendar = this.getEventsFromCalendar(githubCalendar);
 
     const allCommitsInGithub = this.getAllGithubCommits();
 
     const parsedCommits = allCommitsInGithub.map((item) => {
-      const commitObj = {
-        commit: item.html_url,
-        date: item.commit.author.date,
-        message: item.commit.message.split('\n')[0],
-        repository: item.commit.tree.url.replace('https://api.github.com/repos/', '').split('/git')[0]
+      const commitObj: ParsedGithubCommit = {
+        commitUrl: item.html_url,
+        commitRepository: item.commit.tree.url.replace('https://api.github.com/repos/', '').split('/git')[0],
+        commitMessage: item.commit.message.split('\n')[0],
+        commitDate: item.commit.author.date
       };
       return commitObj;
     });
 
     const filteredCommitsByRepository = parsedCommits.filter((item) => {
-      const itemSearch = item.repository.search(this.config.githubSync.username);
+      const itemSearch = item.commitRepository.search(this.config.githubSync.username);
       return itemSearch > -1;
     });
 
     filteredCommitsByRepository.forEach((githubItem) => {
-      const gcalEvent = allCommitsInGoogleCalendar.find((gcalItem) => gcalItem.extendedProperties.private.githubCommitId === githubItem.commit);
-      if (!gcalEvent) {
-        const extendProps = {
-          private: {
-            githubCommitRepository: githubItem.repository,
-            githubCommitMessage: githubItem.message,
-            githubCommitDate: githubItem.date,
-            githubCommitId: githubItem.commit
-          }
-        } as any;
+      const gcalEvent = allCommitsInGoogleCalendar.find((gcalItem) => gcalItem.extendedProperties.private.commitUrl === githubItem.commitUrl);
 
-        const taskEvent: GoogleAppsScript.Calendar.Schema.Event = {
-          summary: `${githubItem.repository} - ${githubItem.message}`,
-          description: githubItem.repository,
-          start: { dateTime: githubItem.date },
-          end: { dateTime: githubItem.date },
+      const shortnedRepository = githubItem.commitRepository.replace(`${this.config.githubSync.username}/`, '');
+      const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(githubItem.commitMessage) : githubItem.commitMessage;
+
+      if (!gcalEvent) {
+        const extendProps: GcalPrivateGithub = {
+          commitUrl: githubItem.commitUrl,
+          commitRepository: githubItem.commitRepository,
+          commitMessage: commitMessage,
+          commitDate: githubItem.commitDate
+        };
+
+        const taskEvent: GoogleEvent = {
+          summary: `${shortnedRepository} - ${commitMessage}`,
+          description: `repository: https://github.com/${githubItem.commitRepository}\ncommit: ${githubItem.commitUrl}`,
+          start: { dateTime: githubItem.commitDate },
+          end: { dateTime: githubItem.commitDate },
           reminders: {
             useDefault: false,
             overrides: []
           },
-          extendedProperties: extendProps
+          extendedProperties: {
+            private: extendProps
+          }
         };
 
         this.addEventToCalendar(githubCalendar, taskEvent);
-        this.logger(`add commit to gcal: ${githubItem.repository} - ${githubItem.commit}`);
+        this.logger(`add commit to gcal: ${shortnedRepository} - ${commitMessage}`);
         githubSessionStats.addedCommits.push(githubItem);
       }
     });
 
     this.getEventsFromCalendar(githubCalendar).forEach((item) => {
-      const commitGithub = filteredCommitsByRepository.find((commit) => commit.commit === item.extendedProperties.private.githubCommitId);
+      const commitGithub = filteredCommitsByRepository.find((commit) => commit.commitUrl === item.extendedProperties.private.commitUrl);
       if (!commitGithub) {
-        console.log(`commit ${item.extendedProperties.private.githubCommitId} was deleted`);
-        githubSessionStats.addedCommits.push(item.extendedProperties.private);
+        this.logger(`commit ${item.extendedProperties.private.commitUrl} was deleted`);
+        githubSessionStats.addedCommits.push(item.extendedProperties.private as ParsedGithubCommit);
       }
     });
 
@@ -584,11 +735,102 @@ class GcalSync {
     return allCommitsArr;
   }
 
-  /* TICKSYNC SYNC FUNCTIONS ================================================ */
+  private parseGithubEmojisString(str: string) {
+    const gitmojiObj = {
+      ':art:': '🎨',
+      ':zap:': '⚡️',
+      ':fire:': '🔥',
+      ':bug:': '🐛',
+      ':ambulance:': '🚑️',
+      ':sparkles:': '✨',
+      ':memo:': '📝',
+      ':rocket:': '🚀',
+      ':lipstick:': '💄',
+      ':tada:': '🎉',
+      ':white_check_mark:': '✅',
+      ':lock:': '🔒️',
+      ':closed_lock_with_key:': '🔐',
+      ':bookmark:': '🔖',
+      ':rotating_light:': '🚨',
+      ':construction:': '🚧',
+      ':green_heart:': '💚',
+      ':arrow_down:': '⬇️',
+      ':arrow_up:': '⬆️',
+      ':pushpin:': '📌',
+      ':construction_worker:': '👷',
+      ':chart_with_upwards_trend:': '📈',
+      ':recycle:': '♻️',
+      ':heavy_plus_sign:': '➕',
+      ':heavy_minus_sign:': '➖',
+      ':wrench:': '🔧',
+      ':hammer:': '🔨',
+      ':globe_with_meridians:': '🌐',
+      ':pencil2:': '✏️',
+      ':poop:': '💩',
+      ':rewind:': '⏪️',
+      ':twisted_rightwards_arrows:': '🔀',
+      ':package:': '📦️',
+      ':alien:': '👽️',
+      ':truck:': '🚚',
+      ':page_facing_up:': '📄',
+      ':boom:': '💥',
+      ':bento:': '🍱',
+      ':wheelchair:': '♿️',
+      ':bulb:': '💡',
+      ':beers:': '🍻',
+      ':speech_balloon:': '💬',
+      ':card_file_box:': '🗃️',
+      ':loud_sound:': '🔊',
+      ':mute:': '🔇',
+      ':busts_in_silhouette:': '👥',
+      ':children_crossing:': '🚸',
+      ':building_construction:': '🏗️',
+      ':iphone:': '📱',
+      ':clown_face:': '🤡',
+      ':egg:': '🥚',
+      ':see_no_evil:': '🙈',
+      ':camera_flash:': '📸',
+      ':alembic:': '⚗️',
+      ':mag:': '🔍️',
+      ':label:': '🏷️',
+      ':seedling:': '🌱',
+      ':triangular_flag_on_post:': '🚩',
+      ':goal_net:': '🥅',
+      ':dizzy:': '💫',
+      ':wastebasket:': '🗑️',
+      ':passport_control:': '🛂',
+      ':adhesive_bandage:': '🩹',
+      ':monocle_face:': '🧐',
+      ':coffin:': '⚰️',
+      ':test_tube:': '🧪',
+      ':necktie:': '👔',
+      ':stethoscope:': '🩺',
+      ':bricks:': '🧱',
+      ':technologist:': '🧑‍💻',
+      ':money_with_wings:': '💸',
+      ':thread:': '🧵',
+      ':safety_vest:': '🦺'
+    };
 
-  syncTicktick() {
-    if (!this.config.options.syncTicktick) {
-      return;
+    let curString = str;
+    for (const [key, value] of Object.entries(gitmojiObj)) {
+      curString = curString.replace(key, value);
+    }
+
+    return curString;
+  }
+
+  /* TICKTICK SYNC FUNCTIONS ================================================ */
+
+  private syncTicktick() {
+    const sessionStats: TicktickSessionStats = {
+      addedEvents: [],
+      updatedEvents: [],
+      completedEvents: []
+    };
+
+    if (!this.config.ticktickSync.syncTicktick) {
+      return sessionStats;
     }
 
     this.createMissingGoogleCalendars();
@@ -604,49 +846,12 @@ class GcalSync {
     const nonTaggedResults = nonTaggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars, taggedResults));
     const nonTaggedTmp = this.parseResults(nonTaggedResults);
 
-    const sessionStats: SyncStats = {
-      addedEvents: [],
-      updatedEvents: [],
-      completedEvents: []
-    };
-
     const allTickTickTasks: ParsedIcsEvent[] = [...taggedTmp.taggedIcsTasks, ...nonTaggedTmp.taggedIcsTasks];
     sessionStats.completedEvents = this.checkCalendarCompletedTasks(tasksFromGoogleCalendars, allTickTickTasks);
     sessionStats.addedEvents = [...taggedTmp.added, ...nonTaggedTmp.added];
     sessionStats.updatedEvents = [...taggedTmp.updated, ...nonTaggedTmp.updated];
 
-    const sessionAddedEventsQuantity = sessionStats.addedEvents.length;
-    const sessionUpdatedEventsQuantity = sessionStats.updatedEvents.length;
-    const sessionCompletedEventsQuantity = sessionStats.completedEvents.length;
-
-    this.logger(`addedEvents: ${sessionAddedEventsQuantity}`);
-    this.logger(`updatedEvents: ${sessionUpdatedEventsQuantity}`);
-    this.logger(`completedEvents: ${sessionCompletedEventsQuantity}`);
-
-    if (sessionAddedEventsQuantity + sessionUpdatedEventsQuantity + sessionCompletedEventsQuantity > 0) {
-      const todayAddedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents);
-      const todayUpdatedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents);
-      const todayCompletedEvents = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents);
-
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${sessionStats.addedEvents.join('\n')}`);
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${sessionStats.updatedEvents.join('\n')}`);
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${sessionStats.completedEvents.join('\n')}`);
-
-      if (this.config.notifications.emailSession) {
-        this.emailSession(sessionStats);
-      }
-      this.logger('adding session events to today stats');
-    }
-
-    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
-      if (this.config.notifications.emailDailySummary) {
-        this.sendSummaryEmail();
-      }
-
-      if (this.config.notifications.emailNewRelease) {
-        this.sendNewReleaseEmail();
-      }
-    }
+    return sessionStats;
   }
 
   private createMissingGoogleCalendars() {
@@ -660,10 +865,10 @@ class GcalSync {
   }
 
   private createMissingAppsScriptsProperties() {
-    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents)) {
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents, '');
+    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks)) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, '');
     }
   }
 
@@ -675,10 +880,9 @@ class GcalSync {
       acc = [].concat.apply(acc, tasksArray);
       return acc;
     }, []);
+
     return tasks;
   }
-
-  /* ======================================================================== */
 
   private checkCalendarItem(calendarItem: calendarItem, tasksFromGoogleCalendars: ParsedGoogleEvent[], taggedCalendarsResults?: IcsCalendarResult[]) {
     const [icsCal, gCalCorresponding, completedCal, calendarOptions] = calendarItem;
@@ -710,24 +914,22 @@ class GcalSync {
 
   private checkTicktickAddedAndUpdatedTasks(icsItem: calendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
     const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
-    const addedTasks: string[] = [];
-    const updatedTasks: string[] = [];
+    const addedTasks: GoogleEvent[] = [];
+    const updatedTasks: GoogleEvent[] = [];
 
     const taskCalendar = this.getCalendarByName(gCalCorresponding);
 
     tasksFromIcs.forEach((curIcsTask) => {
-      const doesTaksExistsOnGcal = tasksFromGoogleCalendars.map((item) => item.extendedProperties.private.tickTaskId).includes(curIcsTask.id);
+      const taskOnGcal = tasksFromGoogleCalendars.find((item) => item.extendedProperties.private.tickTaskId === curIcsTask.id);
 
-      if (!doesTaksExistsOnGcal) {
-        const extendProps = {
-          private: {
-            tickTaskId: curIcsTask.id,
-            calendar: gCalCorresponding,
-            completedCalendar: completedCal
-          }
-        } as any;
+      if (!taskOnGcal) {
+        const extendProps: GcalPrivateTicktick = {
+          tickTaskId: curIcsTask.id,
+          calendar: gCalCorresponding,
+          completedCalendar: completedCal
+        };
 
-        const taskEvent: GoogleAppsScript.Calendar.Schema.Event = {
+        const taskEvent: GoogleEvent = {
           summary: curIcsTask.name,
           description: curIcsTask.description,
           start: curIcsTask.start,
@@ -735,27 +937,34 @@ class GcalSync {
           reminders: {
             useDefault: true
           },
-          extendedProperties: extendProps
+          extendedProperties: {
+            private: extendProps
+          }
         };
 
         if (!this.config.options.maintanceMode) {
           this.addEventToCalendar(taskCalendar, taskEvent);
         }
 
-        const date = curIcsTask.start.date ? curIcsTask.start.date : curIcsTask.start.dateTime.split('T')[0];
-        const taskRow = `${date} | ${taskCalendar.summary} | ${curIcsTask.name}`;
-        addedTasks.push(taskRow);
-        this.logger(`added event to gcal     : ${taskRow}`);
+        addedTasks.push(taskEvent);
+        this.logger(`added event to gcal     : ${taskEvent.summary}`);
       } else {
         const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
 
-        const changeTaskName = curIcsTask.name !== gcalTask.summary;
-        const changeTaskDescription = curIcsTask.description !== gcalTask.description;
-        const changeDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
-        const changeAllDate = curIcsTask.start['date'] !== gcalTask.start['date'];
-        const changeSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
+        const changedTaskName = curIcsTask.name !== gcalTask.summary;
+        const changedTaskDescription = curIcsTask.description !== gcalTask.description;
+        const changedDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
+        const changedAllDate = curIcsTask.start['date'] !== gcalTask.start['date'];
+        const changedSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
 
-        if (changeTaskName || changeTaskDescription || changeDateFormat || changeAllDate || changeSpecificDate) {
+        if (changedTaskName || changedTaskDescription || changedDateFormat || changedAllDate || changedSpecificDate) {
+          console.log(`${curIcsTask.name} was changed!`);
+          console.log(`changedTaskName = ${changedTaskName}`);
+          console.log(`changedTaskDescription = ${changedTaskDescription}`);
+          console.log(`changedDateFormat = ${changedDateFormat}`);
+          console.log(`changedAllDate = ${changedAllDate}`);
+          console.log(`changedSpecificDate = ${changedSpecificDate}`);
+
           const modifiedFields = {
             summary: curIcsTask.name,
             description: curIcsTask.description,
@@ -767,10 +976,9 @@ class GcalSync {
             this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
           }
 
-          const date = curIcsTask.start.date ? curIcsTask.start.date : curIcsTask.start.dateTime.split('T')[0];
-          const taskRow = `${date} | ${taskCalendar.summary} | ${curIcsTask.name}`;
-          updatedTasks.push(taskRow);
-          this.logger(`gcal event was updated  : ${taskRow}`);
+          const finalGcalEvent = { ...gcalTask, ...modifiedFields };
+          updatedTasks.push(finalGcalEvent);
+          this.logger(`gcal event was updated  : ${finalGcalEvent.summary}`);
         }
       }
     });
@@ -779,7 +987,7 @@ class GcalSync {
   }
 
   private checkCalendarCompletedTasks(tasksFromGoogleCalendars: ParsedGoogleEvent[], allTickTickTasks: ParsedIcsEvent[]) {
-    const completedTasks: string[] = [];
+    const completedTasks: GoogleEvent[] = [];
     const onlyTickEventsInGcal = tasksFromGoogleCalendars.filter((item) => item.extendedProperties.private.tickTaskId);
 
     onlyTickEventsInGcal.forEach((gcalEvent) => {
@@ -793,10 +1001,8 @@ class GcalSync {
           this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
         }
 
-        const date = gcalEvent.start.date ? gcalEvent.start.date : gcalEvent.start.dateTime.split('T')[0];
-        const taskRow = `${date} | ${gcalEvent.extendedProperties.private.calendar} | ${gcalEvent.summary}`;
-        completedTasks.push(taskRow);
-        this.logger(`gcal event was completed: ${taskRow}`);
+        completedTasks.push(gcalEvent);
+        this.logger(`gcal event was completed: ${gcalEvent.summary}`);
       }
     });
 
@@ -820,7 +1026,7 @@ class GcalSync {
     return taggedTmp;
   }
 
-  /* EMAILS FUNCTIONS ======================================================= */
+  /* EMAIL FUNCTIONS ======================================================== */
 
   private sendNewReleaseEmail() {
     const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
@@ -849,8 +1055,8 @@ class GcalSync {
 
       const emailObj = {
         to: this.config.notifications.email,
-        name: `${this.APPNAME} bot`,
-        subject: `new ${this.APPNAME} version [${lastReleaseObj.tag_name}] was released!`,
+        name: `${this.APPNAME}`,
+        subject: `new version [${lastReleaseObj.tag_name}] was released - ${this.APPNAME}`,
         htmlBody: message
       };
 
@@ -861,23 +1067,15 @@ class GcalSync {
     }
   }
 
-  private emailSession(sessionStats: SyncStats) {
-    const allModifications = sessionStats.addedEvents.length + sessionStats.updatedEvents.length + sessionStats.completedEvents.length;
-
-    let content = '';
-    content = `Hi!<br/><br/>${this.APPNAME} made ${allModifications} changes to your calendar:<br/><br/>\n`;
-    const addedTasks = sessionStats.addedEvents.map((item: string) => `<li>${item}</li>`);
-    const updatedTasks = sessionStats.updatedEvents.map((item: string) => `<li>${item}</li>`);
-    const completedTasks = sessionStats.completedEvents.map((item: string) => `<li>${item}</li>`);
-    content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
-    content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
-    content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
-    content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
-
+  private sendSessionEmail(sessionStats: SessionStats) {
+    const content = this.generateReportEmailContent(sessionStats);
+    if (!content) {
+      return;
+    }
     const message = {
       to: this.config.notifications.email,
-      name: `${this.APPNAME} bot`,
-      subject: `${this.APPNAME} session of ${this.TODAY_DATE} - ${allModifications} modifications`,
+      name: `${this.APPNAME}`,
+      subject: `session report - ${this.getTotalSessionEvents(sessionStats)} modifications - ${this.APPNAME}`,
       htmlBody: content
     };
 
@@ -886,69 +1084,88 @@ class GcalSync {
     this.logger(`session email was sent to ${this.config.notifications.email}`);
   }
 
-  private sendSummaryEmail() {
-    const fixStr = (arrStr: string) => arrStr.split('\n').filter((item) => item.length > 0);
-
-    const addEv = fixStr(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayAddedEvents));
-    const updEv = fixStr(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayUpdateEvents));
-    const comEv = fixStr(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayCompletedEvents));
-
-    const todayEventsCount = addEv.length + updEv.length + comEv.length;
-    if (todayEventsCount > 0) {
-      const todayEvents: SyncStats = {
-        addedEvents: addEv,
-        updatedEvents: updEv,
-        completedEvents: comEv
-      };
-
-      const allModifications = todayEvents.addedEvents.length + todayEvents.updatedEvents.length + todayEvents.completedEvents.length;
-
-      const formatedAddedEventsArr = todayEvents.addedEvents.length === 0 ? [] : this.formatSummary(todayEvents.addedEvents.join('\n')).split('\n');
-      const formatedUpdatedEventsArr = todayEvents.updatedEvents.length === 0 ? [] : this.formatSummary(todayEvents.updatedEvents.join('\n')).split('\n');
-      const formatedCompletedEventsArr = todayEvents.completedEvents.length === 0 ? [] : this.formatSummary(todayEvents.completedEvents.join('\n')).split('\n');
-
-      let content = '';
-      content = `Hi!<br/><br/>${this.APPNAME} made ${allModifications} changes to your calendar:<br/><br/>\n`;
-      const addedTasks = formatedAddedEventsArr.map((item: string) => `<li>${item}</li>`);
-      const updatedTasks = formatedUpdatedEventsArr.map((item: string) => `<li>${item}</li>`);
-      const completedTasks = formatedCompletedEventsArr.map((item: string) => `<li>${item}</li>`);
-      content += addedTasks.length > 0 ? `added events: ${addedTasks.length}<br/> \n <ul>\n${addedTasks.join('\n')}</ul>\n` : '';
-      content += updatedTasks.length > 0 ? `updated events: ${updatedTasks.length}<br/> \n <ul>\n${updatedTasks.join('\n')}</ul>\n` : '';
-      content += completedTasks.length > 0 ? `completed events: ${completedTasks.length}<br/> \n <ul>\n${completedTasks.join('\n')}</ul>\n` : '';
-      content += `If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
-
-      const message = {
-        to: this.config.notifications.email,
-        name: `${this.APPNAME} bot`,
-        subject: `${this.APPNAME} daily summary for ${this.TODAY_DATE} - ${allModifications} modifications`,
-        htmlBody: content
-      };
-
-      this.sendEmail(message);
-
-      this.logger(`summary email was sent to ${this.config.notifications.email}`);
-
-      this.cleanTodayEventsStats();
+  private sendDailySummaryEmail(todaySession: SessionStats) {
+    const content = this.generateReportEmailContent(todaySession);
+    if (!content) {
+      return;
     }
+    const message = {
+      to: this.config.notifications.email,
+      name: `${this.APPNAME}`,
+      subject: `daily report for ${this.TODAY_DATE} - ${this.getTotalSessionEvents(todaySession)} modifications - ${this.APPNAME}`,
+      htmlBody: content
+    };
+
+    this.sendEmail(message);
+
+    this.logger(`summary email was sent to ${this.config.notifications.email}`);
+
+    this.cleanTodayEventsStats();
   }
 
-  private formatSummary(summary: string) {
-    if (summary === '' || !summary) {
-      return '';
+  /* EMAIL HELPER FUNCTIONS ================================================= */
+
+  private generateReportEmailContent(session: SessionStats) {
+    const addedTicktickTasks = this.stringToArray(session.addedTicktickTasks);
+    const updatedTicktickTasks = this.stringToArray(session.updatedTicktickTasks);
+    const completedTicktickTasks = this.stringToArray(session.completedTicktickTasks);
+    const addedGithubCommits = this.stringToArray(session.addedGithubCommits);
+    const removedGithubCommits = this.stringToArray(session.deletedGithubCommits);
+
+    const todayEventsCount = this.getTotalSessionEvents(session);
+
+    if (todayEventsCount === 0) {
+      return;
     }
 
-    const arr = summary.split('\n').map((item) => item.split(' | '));
-    const sortedArr = arr.sort((a, b) => Number(new Date(a[0])) - Number(new Date(b[0])));
+    const tableStyle = `style="border: 1px solid #333"`;
+    const tableRowStyle = ``;
+    const tableRowColumnStyle = `style="border: 1px solid #333"`;
 
-    const maxCalendar = Math.max(...sortedArr.map((item) => item[1].length));
-    const fixedCalendarArr = sortedArr.map((item) => {
-      const [date, calendar, task] = item;
-      const diffIndex = maxCalendar - calendar.length;
-      const newCalendar = diffIndex === 0 ? calendar : calendar + '_'.repeat(diffIndex);
-      return [date, newCalendar, task];
-    });
+    const getTableBodyItemsHtml = (itemsArr: any[]) => {
+      if (!itemsArr || itemsArr.length === 0) {
+        return ``;
+      }
 
-    const strSorted = fixedCalendarArr.map((item) => item.join(' | ')).join('\n');
-    return strSorted;
+      const arrSortedByDate = this.sortArrayByDate(itemsArr, 0);
+      const tableItems = arrSortedByDate.map((item: any[]) => `<tr ${tableRowStyle}>\n${item.map((it) => `<td ${tableRowColumnStyle}>${it}</td>`).join('\n')}\n</tr>`).join('\n');
+      return `${tableItems}`;
+    };
+
+    const ticktickTableHeader = `<tr ${tableRowStyle}>\n<th ${tableRowColumnStyle}>date</th><th ${tableRowColumnStyle}>calendar</th><th ${tableRowColumnStyle}>task</th>\n</tr>`;
+    const githubTableHeader = `<tr ${tableRowStyle}>\n<th ${tableRowColumnStyle}>date</th><th ${tableRowColumnStyle}>repository</th><th ${tableRowColumnStyle}>commit</th>\n</tr>`;
+
+    let content = '';
+    content = `Hi!<br/><br/>${this.APPNAME} made ${todayEventsCount} changes to your calendar:<br/><br/>\n`;
+
+    content += addedTicktickTasks.length > 0 ? `added ticktick events    : ${addedTicktickTasks.length}<br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
+    content += updatedTicktickTasks.length > 0 ? `updated ticktick events  : ${updatedTicktickTasks.length}<br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
+    content += completedTicktickTasks.length > 0 ? `completed ticktick events: ${completedTicktickTasks.length}<br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
+    content += addedGithubCommits.length > 0 ? `added commits events     : ${addedGithubCommits.length}<br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(addedGithubCommits)}\n</table>\n</center>\n` : '';
+    content += removedGithubCommits.length > 0 ? `removed commits events   : ${removedGithubCommits.length}<br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(removedGithubCommits)}\n</table>\n</center>\n` : '';
+
+    content += `<br/>If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
+
+    return content;
+  }
+
+  private getTotalSessionEvents(session: SessionStats) {
+    const todayEventsCount = this.stringToArray(session.addedTicktickTasks).length + this.stringToArray(session.updatedTicktickTasks).length + this.stringToArray(session.completedTicktickTasks).length + this.stringToArray(session.addedGithubCommits).length + this.stringToArray(session.deletedGithubCommits).length;
+    return todayEventsCount;
+  }
+
+  private stringToArray(arrStr: string) {
+    return arrStr.split('\n').filter((item) => item.length > 0);
+  }
+
+  private sortArrayByDate(arrToSortByDate: any[], indexToSort: number) {
+    if (!arrToSortByDate) {
+      return [];
+    }
+
+    const arr = arrToSortByDate.map((item) => item.split(' | '));
+    const sortedArr = arr.sort((a, b) => Number(new Date(a[indexToSort])) - Number(new Date(b[indexToSort])));
+
+    return sortedArr;
   }
 }
