@@ -583,13 +583,14 @@ class GcalSync {
       };
 
       CUR_SESSION.addedTicktickTasks = ticktickSessionStats.addedEvents.map((item) => formatTicktickItem(item)).join('\n');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${CUR_SESSION.addedTicktickTasks}`);
-
       CUR_SESSION.updatedTicktickTasks = ticktickSessionStats.updatedEvents.map((item) => formatTicktickItem(item)).join('\n');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${CUR_SESSION.updatedTicktickTasks}`);
-
       CUR_SESSION.completedTicktickTasks = ticktickSessionStats.completedEvents.map((item) => formatTicktickItem(item)).join('\n');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${CUR_SESSION.completedTicktickTasks}`);
+
+      if (!this.config.options.maintanceMode) {
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${CUR_SESSION.addedTicktickTasks}`);
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${CUR_SESSION.updatedTicktickTasks}`);
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${CUR_SESSION.completedTicktickTasks}`);
+      }
     }
 
     if (addedCommitsQuantity + deletedCommitsQuantity > 0) {
@@ -604,12 +605,12 @@ class GcalSync {
       };
 
       CUR_SESSION.addedGithubCommits = githubSessionStats.addedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, `${todayAddedGithubCommits ? todayAddedGithubCommits + '\n' : ''}${CUR_SESSION.addedGithubCommits}`);
-
       CUR_SESSION.deletedGithubCommits = githubSessionStats.deletedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, `${todayDeletedGithubCommits ? todayDeletedGithubCommits + '\n' : ''}${CUR_SESSION.deletedGithubCommits}`);
 
-      this.logger('added github sync session stats to today stats');
+      if (!this.config.options.maintanceMode) {
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, `${todayAddedGithubCommits ? todayAddedGithubCommits + '\n' : ''}${CUR_SESSION.addedGithubCommits}`);
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, `${todayDeletedGithubCommits ? todayDeletedGithubCommits + '\n' : ''}${CUR_SESSION.deletedGithubCommits}`);
+      }
     }
 
     /* -------------------------------------------------- */
