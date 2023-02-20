@@ -4,8 +4,7 @@ import { gcalSyncConfig } from './gcal-config';
 const gcalsync = new GcalSync(gcalSyncConfig);
 console.log(gcalsync);
 
-// gcalsync.syncTicktick();
-// gcalsync.syncGihub();
+// gcalsync.sync();
 // gcalsync.showTodayEventsStats();
 // gcalsync.cleanTodayEventsStats();
 // gcalsync.installTickSync();
