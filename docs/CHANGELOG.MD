@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.2.4](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.3...v1.2.4) (2023-02-20)
+
+
+### 🐛 bugfix:
+
+* error in maintance mode changing today stats ([#49](https://github.com/lucasvtiradentes/gcal-sync/issues/49)) ([89b7a2d](https://github.com/lucasvtiradentes/gcal-sync/commit/89b7a2db66424075239afecb250a219e2df3bfb2))
+
 ## [1.2.3](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.2...v1.2.3) (2023-02-20)
 
 ## [1.2.2](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.1...v1.2.2) (2023-02-20)
