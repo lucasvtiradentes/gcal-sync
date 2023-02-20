@@ -175,7 +175,7 @@ function getGcalSync() {
   };
 
   // update the version in a regular basis to get the most recent updates
-  const version = "1.2.2" // version
+  const version = "1.2.3" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
   const gcalSync = new GcalSync(configs);
@@ -240,7 +240,7 @@ to load your work in apps scripts with almost no effort, push your code to a rep
 function getGcalSyncContent(mode){
 
   if (mode === 'production'){
-    const version = "1.2.2" // version
+    const version = "1.2.3" // version
     return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
   } else if (mode === 'development'){
     const repository = "lucasvtiradentes/gcal-sync" // remember to update this
