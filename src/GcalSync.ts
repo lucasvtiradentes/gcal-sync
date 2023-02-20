@@ -2,19 +2,19 @@
 
 /* CONFIGS TYPES ------------------------------------------------------------ */
 
-type icsCalendarLink = string;
-type icsTaskGcal = string;
-type icsCompletedTaskGcal = string;
-type calendarOptions = {
+type IcsCalendarLink = string;
+type IcsTaskGcal = string;
+type IcsCompletedTaskGcal = string;
+type CalendarOptions = {
   tag?: string;
   ignoredTags?: string[];
 };
 
-type calendarItem = [icsCalendarLink, icsTaskGcal, icsCompletedTaskGcal, calendarOptions];
+type CalendarItem = [IcsCalendarLink, IcsTaskGcal, IcsCompletedTaskGcal, CalendarOptions];
 
 type Config = {
   ticktickSync: {
-    icsCalendars: calendarItem[];
+    icsCalendars: CalendarItem[];
     syncFunction: string;
     updateFrequency: number;
     syncTicktick: boolean;
@@ -74,7 +74,7 @@ type IcsCalendarResult = {
   icsCal: string;
   gCalCorresponding: string;
   completedCal: string;
-  calendarOptions: calendarOptions;
+  calendarOptions: CalendarOptions;
   tasksFromIcs: ParsedIcsEvent[];
   addedTasks: GoogleEvent[];
   updatedTasks: GoogleEvent[];
@@ -269,7 +269,7 @@ class GcalSync {
     return allEventsArr;
   }
 
-  private getEventsFromIcsCalendar(icsCalendarLink: string) {
+  private getEventsFromIcsCalendar(icsCalendarLink: IcsCalendarLink) {
     let icalStr = '';
 
     const url = icsCalendarLink.replace('webcal://', 'https://');
@@ -884,7 +884,7 @@ class GcalSync {
     return tasks;
   }
 
-  private checkCalendarItem(calendarItem: calendarItem, tasksFromGoogleCalendars: ParsedGoogleEvent[], taggedCalendarsResults?: IcsCalendarResult[]) {
+  private checkCalendarItem(calendarItem: CalendarItem, tasksFromGoogleCalendars: ParsedGoogleEvent[], taggedCalendarsResults?: IcsCalendarResult[]) {
     const [icsCal, gCalCorresponding, completedCal, calendarOptions] = calendarItem;
     let tasksFromIcs = this.getEventsFromIcsCalendar(icsCal);
 
@@ -912,7 +912,7 @@ class GcalSync {
     return result;
   }
 
-  private checkTicktickAddedAndUpdatedTasks(icsItem: calendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
+  private checkTicktickAddedAndUpdatedTasks(icsItem: CalendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
     const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
     const addedTasks: GoogleEvent[] = [];
     const updatedTasks: GoogleEvent[] = [];
@@ -931,7 +931,7 @@ class GcalSync {
 
         const taskEvent: GoogleEvent = {
           summary: curIcsTask.name,
-          description: curIcsTask.description,
+          description: `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}\ndescription: ${curIcsTask.description}`,
           start: curIcsTask.start,
           end: curIcsTask.end,
           reminders: {
@@ -947,24 +947,16 @@ class GcalSync {
         }
 
         addedTasks.push(taskEvent);
-        this.logger(`added event to gcal     : ${taskEvent.summary}`);
+        this.logger(`ticktick task was added to gcal: ${taskEvent.summary}`);
       } else {
         const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
 
         const changedTaskName = curIcsTask.name !== gcalTask.summary;
-        const changedTaskDescription = curIcsTask.description !== gcalTask.description;
         const changedDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
         const changedAllDate = curIcsTask.start['date'] !== gcalTask.start['date'];
         const changedSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
 
-        if (changedTaskName || changedTaskDescription || changedDateFormat || changedAllDate || changedSpecificDate) {
-          console.log(`${curIcsTask.name} was changed!`);
-          console.log(`changedTaskName = ${changedTaskName}`);
-          console.log(`changedTaskDescription = ${changedTaskDescription}`);
-          console.log(`changedDateFormat = ${changedDateFormat}`);
-          console.log(`changedAllDate = ${changedAllDate}`);
-          console.log(`changedSpecificDate = ${changedSpecificDate}`);
-
+        if (changedTaskName || changedDateFormat || changedAllDate || changedSpecificDate) {
           const modifiedFields = {
             summary: curIcsTask.name,
             description: curIcsTask.description,
@@ -978,7 +970,7 @@ class GcalSync {
 
           const finalGcalEvent = { ...gcalTask, ...modifiedFields };
           updatedTasks.push(finalGcalEvent);
-          this.logger(`gcal event was updated  : ${finalGcalEvent.summary}`);
+          this.logger(`ticktick task was updated: ${finalGcalEvent.summary}`);
         }
       }
     });
@@ -1002,7 +994,7 @@ class GcalSync {
         }
 
         completedTasks.push(gcalEvent);
-        this.logger(`gcal event was completed: ${gcalEvent.summary}`);
+        this.logger(`ticktick task was completed: ${gcalEvent.summary}`);
       }
     });
 
@@ -1118,31 +1110,30 @@ class GcalSync {
       return;
     }
 
-    const tableStyle = `style="border: 1px solid #333"`;
-    const tableRowStyle = ``;
+    const tableStyle = `style="border: 1px solid #333; width: 90%"`;
+    const tableRowStyle = `style="width: 100%"`;
     const tableRowColumnStyle = `style="border: 1px solid #333"`;
 
     const getTableBodyItemsHtml = (itemsArr: any[]) => {
       if (!itemsArr || itemsArr.length === 0) {
         return ``;
       }
-
       const arrSortedByDate = this.sortArrayByDate(itemsArr, 0);
-      const tableItems = arrSortedByDate.map((item: any[]) => `<tr ${tableRowStyle}>\n${item.map((it) => `<td ${tableRowColumnStyle}>${it}</td>`).join('\n')}\n</tr>`).join('\n');
+      const tableItems = arrSortedByDate.map((item: any[]) => `<tr ${tableRowStyle}">\n${item.map((it) => `<td ${tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n')}\n</tr>`).join('\n');
       return `${tableItems}`;
     };
 
-    const ticktickTableHeader = `<tr ${tableRowStyle}>\n<th ${tableRowColumnStyle}>date</th><th ${tableRowColumnStyle}>calendar</th><th ${tableRowColumnStyle}>task</th>\n</tr>`;
-    const githubTableHeader = `<tr ${tableRowStyle}>\n<th ${tableRowColumnStyle}>date</th><th ${tableRowColumnStyle}>repository</th><th ${tableRowColumnStyle}>commit</th>\n</tr>`;
+    const ticktickTableHeader = `<tr ${tableRowStyle}">\n<th ${tableRowColumnStyle} width="80px">date</th><th ${tableRowColumnStyle} width="130px">calendar</th><th ${tableRowColumnStyle} width="auto">task</th>\n</tr>`;
+    const githubTableHeader = `<tr ${tableRowStyle}">\n<th ${tableRowColumnStyle} width="80px">date</th><th ${tableRowColumnStyle} width="130px">repository</th><th ${tableRowColumnStyle} width="auto">commit</th>\n</tr>`;
 
     let content = '';
-    content = `Hi!<br/><br/>${this.APPNAME} made ${todayEventsCount} changes to your calendar:<br/><br/>\n`;
+    content = `Hi!<br/><br/>${this.APPNAME} made ${todayEventsCount} changes to your calendar:<br/>\n`;
 
-    content += addedTicktickTasks.length > 0 ? `added ticktick events    : ${addedTicktickTasks.length}<br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
-    content += updatedTicktickTasks.length > 0 ? `updated ticktick events  : ${updatedTicktickTasks.length}<br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
-    content += completedTicktickTasks.length > 0 ? `completed ticktick events: ${completedTicktickTasks.length}<br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
-    content += addedGithubCommits.length > 0 ? `added commits events     : ${addedGithubCommits.length}<br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(addedGithubCommits)}\n</table>\n</center>\n` : '';
-    content += removedGithubCommits.length > 0 ? `removed commits events   : ${removedGithubCommits.length}<br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(removedGithubCommits)}\n</table>\n</center>\n` : '';
+    content += addedTicktickTasks.length > 0 ? `<br/>added ticktick events    : ${addedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
+    content += updatedTicktickTasks.length > 0 ? `<br/>updated ticktick events  : ${updatedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
+    content += completedTicktickTasks.length > 0 ? `<br/>completed ticktick events: ${completedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
+    content += addedGithubCommits.length > 0 ? `<br/>added commits events     : ${addedGithubCommits.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(addedGithubCommits)}\n</table>\n</center>\n` : '';
+    content += removedGithubCommits.length > 0 ? `<br/>removed commits events   : ${removedGithubCommits.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(removedGithubCommits)}\n</table>\n</center>\n` : '';
 
     content += `<br/>If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
 
