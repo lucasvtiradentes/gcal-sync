@@ -991,6 +991,7 @@ class GcalSync {
     const updatedTasks: GoogleEvent[] = [];
 
     const taskCalendar = this.getCalendarByName(gCalCorresponding);
+    const generateGcalDescription = (curIcsTask: ParsedIcsEvent) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}\n\n${curIcsTask.description.replace(/\\n/g, '\n')}`;
 
     tasksFromIcs.forEach((curIcsTask) => {
       const taskOnGcal = tasksFromGoogleCalendars.find((item) => item.extendedProperties.private.tickTaskId === curIcsTask.id);
@@ -1004,7 +1005,7 @@ class GcalSync {
 
         const taskEvent: GoogleEvent = {
           summary: curIcsTask.name,
-          description: `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}\ndescription: ${curIcsTask.description}`,
+          description: generateGcalDescription(curIcsTask),
           start: curIcsTask.start,
           end: curIcsTask.end,
           reminders: {
@@ -1032,7 +1033,7 @@ class GcalSync {
         if (changedTaskName || changedDateFormat || changedIntialDate || changedFinalDate) {
           const modifiedFields = {
             summary: curIcsTask.name,
-            description: curIcsTask.description,
+            description: generateGcalDescription(curIcsTask),
             start: curIcsTask.start,
             end: curIcsTask.end
           };
