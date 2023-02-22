@@ -146,7 +146,8 @@ class GcalSync {
     todayTicktickCompletedTasks: 'todayTicktickCompletedTasks',
     todayGithubAddedCommits: 'todayGithubAddedCommits',
     todayGithubDeletedCommits: 'todayGithubDeletedCommits',
-    lastReleasedVersionAlerted: 'lastReleasedVersionAlerted'
+    lastReleasedVersionAlerted: 'lastReleasedVersionAlerted',
+    lastDailyEmailSentDate: 'lastDailyEmailSentDate'
   };
   ERRORS = {
     productionOnly: 'This method cannot run in non-production environments',
@@ -660,17 +661,25 @@ class GcalSync {
       }
     }
 
-    /* -------------------------------------------------- */
-
-    if (this.config.options.maintanceMode) {
-      return;
+    if (!this.config.options.maintanceMode) {
+      this.sendAfterSyncEmails(CUR_SESSION);
     }
+  }
 
+  private sendAfterSyncEmails(curSession: SessionStats) {
     if (this.config.notifications.emailSession) {
-      this.sendSessionEmail(CUR_SESSION);
+      this.sendSessionEmail(curSession);
     }
 
-    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail)) {
+    const alreadySentTodayEmails = this.TODAY_DATE !== this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
+
+    console.log(`this.TODAY_DATE = ${this.TODAY_DATE}`);
+    console.log(`lastDailyEmailSentDate = ${this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate)}`);
+    console.log(`alreadySentTodayEmails = ${alreadySentTodayEmails}`);
+
+    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail) && !alreadySentTodayEmails) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
+
       if (this.config.notifications.emailDailySummary) {
         this.sendDailySummaryEmail(this.getTodayEvents());
       }
