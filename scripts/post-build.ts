@@ -1,15 +1,16 @@
-import * as minify from 'minify'; // just ignore if an error appers
+import * as minify from 'minify'; // ignore if an error appears
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
 (async () => {
   const DIST_FILE = `./dist/GcalSync.js`;
+  const VERSION_UPDATE = `// version`;
 
   const packageJson = JSON.parse(readFileSync('./package.json', { encoding: 'utf8' }));
 
-  replaceFileContent(DIST_FILE, `// version`, `this.VERSION = '${packageJson.version}'; // version`);
-  replaceFileContent(`./README.md`, `// version`, `const version = "${packageJson.version}" // version`);
+  replaceFileContent(DIST_FILE, VERSION_UPDATE, `this.VERSION = '${packageJson.version}'; ${VERSION_UPDATE}`);
+  replaceFileContent(`./README.md`, VERSION_UPDATE, `const version = "${packageJson.version}" ${VERSION_UPDATE}`);
 
-  await minifyFile(DIST_FILE);
+  await minifyFile(DIST_FILE, DIST_FILE.replace(`js`, `min.js`));
   unlinkSync(DIST_FILE);
 })();
 
@@ -26,7 +27,7 @@ function replaceFileContent(file: string, strToFind: string, strToReplace: strin
   writeFileSync(file, newContent);
 }
 
-async function minifyFile(filePath: string) {
+async function minifyFile(filePath: string, distPath: string) {
   const minifiedContent = await minify(filePath);
-  writeFileSync(filePath.replace(`js`, `min.js`), minifiedContent);
+  writeFileSync(distPath, minifiedContent);
 }
