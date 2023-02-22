@@ -58,7 +58,21 @@ type GoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
 
 type ParsedGoogleEvent = Pick<GoogleEvent, 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
 
-/* TICKTICK SYNC RELATED TYPES ---------------------------------------------- */
+/* TICKTICK TYPES ----------------------------------------------------------- */
+
+type IcsEvent = {
+  DSTAMP: string;
+  DTSTART: string;
+  DTEND: string;
+  SUMMARY: string;
+  UID: string;
+  DESCRIPTION: string;
+  SEQUENCE: string;
+  TZID: string;
+  ALARM_TRIGGER: string;
+  ALARM_ACTION: string;
+  ALARM_DESCRIPTION: string;
+};
 
 type ParsedIcsEvent = {
   id: string;
@@ -69,6 +83,8 @@ type ParsedIcsEvent = {
   end: any;
   taskCalendar?: string;
 };
+
+/* TICKTICK SYNC RELATED TYPES ---------------------------------------------- */
 
 type IcsCalendarResult = {
   icsCal: string;
@@ -100,16 +116,16 @@ type ParsedResult = {
 
 /* GITHUB SYNC RELATED TYPES ------------------------------------------------ */
 
-type GithubSessionStats = {
-  addedCommits: ParsedGithubCommit[];
-  deletedCommits: ParsedGithubCommit[];
-};
-
 type ParsedGithubCommit = {
   commitUrl: string;
   commitRepository: string;
   commitMessage: string;
   commitDate: string;
+};
+
+type GithubSessionStats = {
+  addedCommits: ParsedGithubCommit[];
+  deletedCommits: ParsedGithubCommit[];
 };
 
 type GcalPrivateGithub = ParsedGithubCommit;
@@ -170,6 +186,20 @@ class GcalSync {
     });
   }
 
+  private detectEnvironment(): Environment {
+    if (typeof Calendar === 'undefined') {
+      return 'development';
+    } else {
+      return 'production';
+    }
+  }
+
+  private logger(message: string) {
+    if (this.config.options.showLogs) {
+      console.log(message);
+    }
+  }
+
   /* HELPER FUNCTIONS ======================================================= */
 
   private getStrBetween(str: string, substr1: string, substr2: string) {
@@ -206,70 +236,9 @@ class GcalSync {
     return curStamp >= specifiedStamp;
   }
 
-  /* DETECT ENVIRONMENT FUNCTION============================================= */
-  private detectEnvironment(): Environment {
-    if (typeof Calendar === 'undefined') {
-      return 'development';
-    } else {
-      return 'production';
-    }
-  }
-
-  /* LOGGER FUNCTIONS ======================================================= */
-
-  private logger(message: string) {
-    if (this.config.options.showLogs) {
-      console.log(message);
-    }
-  }
-
   /* ICS CALENDARS FUNCTIONS ================================================ */
 
-  private parseIcsStringIntoEvents(icalStr: string) {
-    const eventsArr = icalStr.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
-
-    const allEventsArr: ParsedIcsEvent[] = eventsArr.reduce((acc, cur) => {
-      const timezone = this.getStrBetween(cur, 'TZID:', '\r\n');
-      let dtstart: any = this.getStrBetween(cur, 'DTSTART;', '\r\n');
-      dtstart = dtstart.slice(dtstart.search(':') + 1);
-      let dtend: any = this.getStrBetween(cur, 'DTEND;', '\r\n');
-      dtend = dtend.slice(dtend.search(':') + 1);
-
-      if (dtend === '') {
-        const startDateObj = this.getParsedTimeStamp(dtstart);
-        const nextDate = new Date(Date.UTC(Number(startDateObj.year), Number(startDateObj.month) - 1, Number(startDateObj.day), 0, 0, 0));
-        nextDate.setDate(nextDate.getDate() + 1);
-        dtend = { date: nextDate.toISOString().split('T')[0] };
-        dtstart = { date: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}` };
-      } else {
-        const startDateObj = this.getParsedTimeStamp(dtstart);
-        const endDateObj = this.getParsedTimeStamp(dtend);
-        dtstart = {
-          dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}-03:00`,
-          timeZone: timezone
-        };
-        dtend = {
-          dateTime: `${endDateObj.year}-${endDateObj.month}-${endDateObj.day}T${endDateObj.hours}:${endDateObj.minutes}:${endDateObj.seconds}-03:00`,
-          timeZone: timezone
-        };
-      }
-
-      const eventObj = {
-        id: this.getStrBetween(cur, 'UID:', '\r\n'),
-        name: this.getStrBetween(cur, 'SUMMARY:', '\r\n'),
-        description: this.getStrBetween(cur, 'DESCRIPTION:', '\r\n'),
-        tzid: timezone,
-        start: dtstart,
-        end: dtend
-      };
-      acc.push(eventObj);
-      return acc;
-    }, []);
-
-    return allEventsArr;
-  }
-
-  private getEventsFromIcsCalendar(icsCalendarLink: IcsCalendarLink) {
+  private getIcsCalendarStr(icsCalendarLink: IcsCalendarLink) {
     let icalStr = '';
 
     const url = icsCalendarLink.replace('webcal://', 'https://');
@@ -284,9 +253,87 @@ class GcalSync {
       throw new Error(this.ERRORS.httpsError + url);
     }
 
-    const eventsArr = icalStr.search('SUMMARY:No task.') > 0 ? [] : this.parseIcsStringIntoEvents(icalStr);
+    return icalStr;
+  }
 
-    return eventsArr;
+  private getIcsEvents(icalStr: string) {
+    const eventsArr = icalStr.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
+
+    const allEventsArr: IcsEvent[] = eventsArr.reduce((acc, cur) => {
+      const alarmArr = cur.split('BEGIN:VALARM\r\n');
+      const eventObj = {
+        DSTAMP: this.getStrBetween(cur, 'DTSTAMP:', '\r\n'),
+        DTSTART: this.getStrBetween(cur, 'DTSTART;', '\r\n'),
+        DTEND: this.getStrBetween(cur, 'DTEND;', '\r\n'),
+        SUMMARY: this.getStrBetween(cur, 'SUMMARY:', '\r\n'),
+        UID: this.getStrBetween(cur, 'UID:', '\r\n'),
+        DESCRIPTION: this.getStrBetween(cur, 'DESCRIPTION:', '\r\n'),
+        SEQUENCE: this.getStrBetween(cur, 'SEQUENCE:', '\r\n'),
+        TZID: this.getStrBetween(cur, 'TZID:', '\r\n'),
+        ALARM_TRIGGER: alarmArr.length === 1 ? '' : this.getStrBetween(alarmArr[1], 'TRIGGER:', '\r\n'),
+        ALARM_ACTION: alarmArr.length === 1 ? '' : this.getStrBetween(alarmArr[1], 'ACTION:', '\r\n'),
+        ALARM_DESCRIPTION: alarmArr.length === 1 ? '' : this.getStrBetween(alarmArr[1], 'DESCRIPTION:', '\r\n')
+      };
+      return [...acc, eventObj];
+    }, []);
+
+    return allEventsArr;
+  }
+
+  private getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: string) {
+    let finalDtstart: any = dtstart;
+    let finalDtend: any = dtend;
+
+    finalDtstart = finalDtstart.slice(finalDtstart.search(':') + 1);
+    finalDtend = finalDtend.slice(finalDtend.search(':') + 1);
+
+    if (finalDtend === '') {
+      const startDateObj = this.getParsedTimeStamp(finalDtstart);
+      const nextDate = new Date(Date.UTC(Number(startDateObj.year), Number(startDateObj.month) - 1, Number(startDateObj.day), 0, 0, 0));
+      nextDate.setDate(nextDate.getDate() + 1);
+      finalDtend = { date: nextDate.toISOString().split('T')[0] };
+      finalDtstart = { date: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}` };
+    } else {
+      const startDateObj = this.getParsedTimeStamp(finalDtstart);
+      const endDateObj = this.getParsedTimeStamp(finalDtend);
+      finalDtstart = {
+        dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}-03:00`,
+        timeZone: timezone
+      };
+      finalDtend = {
+        dateTime: `${endDateObj.year}-${endDateObj.month}-${endDateObj.day}T${endDateObj.hours}:${endDateObj.minutes}:${endDateObj.seconds}-03:00`,
+        timeZone: timezone
+      };
+    }
+
+    return {
+      finalDtstart,
+      finalDtend
+    };
+  }
+
+  private parseIcsEvents(icsEvents: IcsEvent[]) {
+    const parsedIcsEvents: ParsedIcsEvent[] = icsEvents.reduce((acc, cur) => {
+      const parsedDateTime = this.getParsedIcsDatetimes(cur.DTSTART, cur.DTEND, cur.TZID);
+      const eventObj = {
+        id: cur.UID,
+        name: cur.SUMMARY,
+        description: cur.DESCRIPTION,
+        tzid: cur.TZID,
+        start: parsedDateTime.finalDtstart,
+        end: parsedDateTime.finalDtend
+      };
+      return [...acc, eventObj];
+    }, []);
+
+    return parsedIcsEvents;
+  }
+
+  private getEventsFromIcsCalendar(icsCalendarLink: IcsCalendarLink) {
+    const icsString = this.getIcsCalendarStr(icsCalendarLink);
+    const icsEvents = icsString.search('SUMMARY:No task.') > 0 ? [] : this.getIcsEvents(icsString);
+    const parsedIcsEvents = this.parseIcsEvents(icsEvents);
+    return parsedIcsEvents;
   }
 
   /* APPS SCRIPT PROPPERTIES ================================================ */
