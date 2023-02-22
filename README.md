@@ -74,7 +74,6 @@
           <li><a href="#used-technologies">Used technologies</a></li>
           <li><a href="#code-style">Code style</a></li>
           <li><a href="#commit-messages-style">Commit messages style</a></li>
-          <li><a href="#tests">Tests</a></li>
         </ul>
       </li>
       <li>
@@ -107,20 +106,42 @@
 
 ## :trumpet: Overview
 
-Track your progress over time with an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a>.
+
+
 
 <div align="center">
-  <img src="./.github/images/gcalsync.png" />
+  <table>
+    <tr>
+      <td width="250">
+        <img width="250" src="./.github/images/gcalsync.webp" />
+      </td>
+      <td align="left">
+        <p>Track your progress over time with an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a>.</p>
+        <p>In the image it is shown my current usage of this tool:
+          <ul align="left">
+            <li align="left"><b>black</b>: my past github commits (in public repositories);</li>
+            <li align="left"><b>green</b>: ticktick completed tasks are showned as green events;</li>
+            <li align="left">the others collors are for ticktick tasks to do:
+              <ul>
+                <li><b>red</b>: important tasks with pre-defined datetime;</li>
+                <li><b>blue</b>: planned tasks;</li>
+                <li><b>purple</b>: not tasks (games to watch, movie release dates, etc).</li>
+              </ul>
+            </li>
+          </ul>
+        </p>
+        <p>This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress.</p>
+      </td>
+    </tr>
+  </table>
 </div>
-
-This project was deeply inspired by [this tool](https://github.com/derekantrican/GAS-ICS-Sync), and my main reason about creating mine was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress over time.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 &nbsp;&nbsp;&nbsp;✔️ add github commits to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates and title;<br>
-&nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the event be moved to a compelted gcal agenda: in case of deleted tasks, make sure to delete in gcal as well;<br>
+&nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the event be moved to a compelted gcal agenda;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what gcalsync has done throughout the day;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags.<br>
@@ -146,21 +167,21 @@ function getGcalSync() {
   const configs = {
     ticktickSync: {
       icsCalendars: [
-        ['webcal://othercalendar1.ics', 'gcal_1', 'tick_done'], // everything will be synced
-        ['webcal://othercalendar2.ics', 'gcal_2', 'tick_done', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
-        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'tick_done', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
+        ['webcal://othercalendar1.ics', 'gcal_1', 'gcal_completed'], // everything will be synced
+        ['webcal://othercalendar2.ics', 'gcal_2', 'gcal_completed', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
+        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ],
-      syncTicktick: true            // option to sync ticktick
+      syncTicktick: true            // option to sync ticktick tasks
     },
     githubSync: {
       username: "lucasvtiradentes", // github username
       googleCalendar: "gh_commits", // google calendar to isnert commits as events
       parseGithubEmojis: true,      // parse string emojis to emojis
-      syncGithub: true              // option to sync github
+      syncGithub: true              // option to sync github commits
     },
     notifications: {
       email: 'youremail@gmail.com', // email to send reports
-      timeToEmail: '23:30',         // time to email the summary
+      dailyEmailsTime: '23:30',     // time to email the summary
       timeZoneCorrection: -3,       // difference from utc time
       emailNewRelease: true,        // email new version releases
       emailDailySummary: true,      // email summary daily at a specified time
@@ -174,7 +195,6 @@ function getGcalSync() {
     }
   };
 
-  // update the version in a regular basis to get the most recent updates
   const version = "1.2.4" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
@@ -202,9 +222,11 @@ After that, your data will be sync as you specified every 5 minutes.
 
 ### General tips
 
+- update the version in the above code in a regular basis to get the most recent updates;
+- in case of deleted tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well;
 - you can have a tikctick calendar for all your tasks and ignore certain kind of tasks and handle this ignored ones in other gcal;
-- before setting up the auto sync, you can use the `maintanceMode` to check if everything is okay from reading the app logs;
-- every update in ticktick may take 5 minutes to propagate to their ics calendars.
+- before setting up the auto sync, you can use the `maintanceMode` to check if everything is okay by reading the app logs;
+- every update in ticktick may take 5 minutes to propagate to its ics calendars.
 
 ## :wrench: Development<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
@@ -227,14 +249,7 @@ After download it, go to the project folder and run these commands:
 $ npm install
 ```
 
-If you want to contribute to the project, after you make the necessary changes, run these commands to check if everything is working fine:
-
-```bash
-# Compiles the typescript code into javascript
-$ npm run build
-```
-
-to load your work in apps scripts with almost no effort, push your code to a repository and then add the following code to the apps script:
+If you want to contribute to the project, after you make the necessary changes, you can load your work in apps scripts with almost no effort, by pushing your code to a repository and then add the following code to the apps script:
 
 ```js
 function getGcalSyncContent(mode){
@@ -256,7 +271,6 @@ function getGcalSyncContent(mode){
   return ''
 
 }
-
 
 function getGcalSync(){
   ...
@@ -397,10 +411,6 @@ So a typically valid commit message has this pattern:
 
 > 🔧 config: add lint-staged to the project (#2)
 
-### Tests
-
-> **Warning** :warning: This project does not have tests yet, but you in the future we will be adding some.
-
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
 ## :pray: Help<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
@@ -457,7 +467,7 @@ Any questions or suggestions? You are welcome to discuss it on:
 
 ## Acknowledgements
 
-This project is an idea of [@lucasvtiradentes](https://github.com/lucasvtiradentes) to `return some value to the world` after years of consuming a lot of useful tools provided by this `amazing open source community`.
+This is a [@lucasvtiradentes's](https://github.com/lucasvtiradentes) project to `return some value to the world` after years of consuming a lot of useful tools provided by this `amazing open source community`.
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 

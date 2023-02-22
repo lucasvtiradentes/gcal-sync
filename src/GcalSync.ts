@@ -26,7 +26,7 @@ type Config = {
   };
   notifications: {
     email: string;
-    timeToEmail: string;
+    dailyEmailsTime: string;
     timeZoneCorrection: number;
     emailDailySummary: boolean;
     emailNewRelease: boolean;
@@ -173,7 +173,7 @@ class GcalSync {
       { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'notifications', 'options'], name: 'configs' },
       { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncTicktick'], name: 'configs.ticktickSync' },
       { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'syncGithub', 'parseGithubEmojis'], name: 'configs.githubSync' },
-      { objToCheck: config.notifications, requiredKeys: ['email', 'timeToEmail', 'timeZoneCorrection', 'emailNewRelease', 'emailDailySummary', 'emailSession'], name: 'configs.notifications' },
+      { objToCheck: config.notifications, requiredKeys: ['email', 'dailyEmailsTime', 'timeZoneCorrection', 'emailNewRelease', 'emailDailySummary', 'emailSession'], name: 'configs.notifications' },
       { objToCheck: config.options, requiredKeys: ['syncFunction', 'updateFrequency', 'showLogs', 'maintanceMode'], name: 'configs.options' }
     ];
 
@@ -673,7 +673,7 @@ class GcalSync {
 
     const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
 
-    if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail) && !alreadySentTodayEmails) {
+    if (this.isCurrentTimeAfter(this.config.notifications.dailyEmailsTime) && !alreadySentTodayEmails) {
       this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
 
       if (this.config.notifications.emailDailySummary) {
@@ -1116,8 +1116,10 @@ class GcalSync {
         <li>new version: ${lastReleaseObj.tag_name}</li>
         <li>published at: ${lastReleaseObj.published_at}</li>
       </ul>
+      <br/>
+      to update just replace the old version number in your [apps scripts gcal sync project](https://script.google.com/) to the new version: ${lastReleaseObj.tag_name.replace('v', '')}<br/>
       you can check details <a href="https://github.com/${this.GITHUB_REPOSITORY}/releases">here</a>.
-      `;
+    `;
 
     const emailObj = {
       to: this.config.notifications.email,
