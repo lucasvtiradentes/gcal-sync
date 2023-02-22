@@ -15,7 +15,7 @@ export const gcalSyncConfig = {
   },
   notifications: {
     email: 'youremail@gmail.com',
-    timeToEmail: '23:00',
+    dailyEmailsTime: '23:00',
     timeZoneCorrection: -3,
     emailDailySummary: true,
     emailNewRelease: true,
