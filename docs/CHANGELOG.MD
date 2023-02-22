@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.3.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.3.0...v1.3.1) (2023-02-22)
+
+
+### 🐛 bugfix:
+
+* error when updating gcal events ([#56](https://github.com/lucasvtiradentes/gcal-sync/issues/56)) ([7711dcf](https://github.com/lucasvtiradentes/gcal-sync/commit/7711dcf5b2ab7495b35b0ccd8d8a4ab0659fbc42))
+
 ## [1.3.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.4...v1.3.0) (2023-02-22)
 
 
