@@ -551,6 +551,7 @@ class GcalSync {
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted);
+    this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
 
     this.logger(`${this.APPNAME} automation was removed from appscript!`);
   }
@@ -561,6 +562,8 @@ class GcalSync {
     this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, '');
     this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, '');
     this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, '');
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, '');
 
     this.logger(`${this.TODAY_DATE} stats were reseted!`);
   }
@@ -991,7 +994,7 @@ class GcalSync {
     const updatedTasks: GoogleEvent[] = [];
 
     const taskCalendar = this.getCalendarByName(gCalCorresponding);
-    const generateGcalDescription = (curIcsTask: ParsedIcsEvent) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}\n\n${curIcsTask.description.replace(/\\n/g, '\n')}`;
+    const generateGcalDescription = (curIcsTask: ParsedIcsEvent) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
 
     tasksFromIcs.forEach((curIcsTask) => {
       const taskOnGcal = tasksFromGoogleCalendars.find((item) => item.extendedProperties.private.tickTaskId === curIcsTask.id);
@@ -1116,10 +1119,12 @@ class GcalSync {
       <ul>
         <li>new version: ${lastReleaseObj.tag_name}</li>
         <li>published at: ${lastReleaseObj.published_at}</li>
+        <li>details: <a href="https://github.com/${this.GITHUB_REPOSITORY}/releases">here</a></li>
       </ul>
-      <br/>
-      to update just replace the old version number in your [apps scripts gcal sync project](https://script.google.com/) to the new version: ${lastReleaseObj.tag_name.replace('v', '')}<br/>
-      you can check details <a href="https://github.com/${this.GITHUB_REPOSITORY}/releases">here</a>.
+      to update just replace the old version number in your apps scripts <a href="https://script.google.com/">gcal sync project</a> to the new version: ${lastReleaseObj.tag_name.replace('v', '')}<br/>
+      <br /><br />
+      Regards,
+      your <a href='https://github.com/${this.GITHUB_REPOSITORY}'>${this.APPNAME}</a> bot
     `;
 
     const emailObj = {
@@ -1200,7 +1205,7 @@ class GcalSync {
     const githubTableHeader = `<tr ${tableRowStyle}">\n<th ${tableRowColumnStyle} width="80px">date</th><th ${tableRowColumnStyle} width="130px">repository</th><th ${tableRowColumnStyle} width="auto">commit</th>\n</tr>`;
 
     let content = '';
-    content = `Hi!<br/><br/>${this.APPNAME} made ${todayEventsCount} changes to your calendar:<br/>\n`;
+    content = `Hi!<br/><br/>there were ${todayEventsCount} changes made to your google calendar:<br/>\n`;
 
     content += addedTicktickTasks.length > 0 ? `<br/>added ticktick events    : ${addedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
     content += updatedTicktickTasks.length > 0 ? `<br/>updated ticktick events  : ${updatedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
@@ -1208,8 +1213,7 @@ class GcalSync {
     content += addedGithubCommits.length > 0 ? `<br/>added commits events     : ${addedGithubCommits.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(addedGithubCommits)}\n</table>\n</center>\n` : '';
     content += removedGithubCommits.length > 0 ? `<br/>removed commits events   : ${removedGithubCommits.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(removedGithubCommits)}\n</table>\n</center>\n` : '';
 
-    content += `<br/>If you want to share feedback, please contact us at <a href='https://github.com/${this.GITHUB_REPOSITORY}'>github</a>.`;
-
+    content += `<br/>Regards,<br/>your <a href='https://github.com/${this.GITHUB_REPOSITORY}'>${this.APPNAME}</a> bot`;
     return content;
   }
 
