@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.3.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.4...v1.3.0) (2023-02-22)
+
+
+### ✨ feature:
+
+* update gcal when end date changes ([#51](https://github.com/lucasvtiradentes/gcal-sync/issues/51)) ([aaf932d](https://github.com/lucasvtiradentes/gcal-sync/commit/aaf932ddab47757f4a4d7801de94e9fb69d50889))
+
 ## [1.2.4](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.2.3...v1.2.4) (2023-02-20)
 
 
