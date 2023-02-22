@@ -1012,10 +1012,10 @@ class GcalSync {
 
         const changedTaskName = curIcsTask.name !== gcalTask.summary;
         const changedDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
-        const changedAllDate = curIcsTask.start['date'] !== gcalTask.start['date'];
-        const changedSpecificDate = curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
+        const changedIntialDate = curIcsTask.start['date'] !== gcalTask.start['date'] || curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
+        const changedFinalDate = curIcsTask.end['date'] !== gcalTask.end['date'] || curIcsTask.end['dateTime'] !== gcalTask.end['dateTime'];
 
-        if (changedTaskName || changedDateFormat || changedAllDate || changedSpecificDate) {
+        if (changedTaskName || changedDateFormat || changedIntialDate || changedFinalDate) {
           const modifiedFields = {
             summary: curIcsTask.name,
             description: curIcsTask.description,
