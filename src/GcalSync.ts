@@ -671,21 +671,26 @@ class GcalSync {
       this.sendSessionEmail(curSession);
     }
 
-    const alreadySentTodayEmails = this.TODAY_DATE !== this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
-
-    console.log(`this.TODAY_DATE = ${this.TODAY_DATE}`);
-    console.log(`lastDailyEmailSentDate = ${this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate)}`);
-    console.log(`alreadySentTodayEmails = ${alreadySentTodayEmails}`);
+    const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
 
     if (this.isCurrentTimeAfter(this.config.notifications.timeToEmail) && !alreadySentTodayEmails) {
       this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
 
       if (this.config.notifications.emailDailySummary) {
         this.sendDailySummaryEmail(this.getTodayEvents());
+        this.cleanTodayEventsStats();
       }
 
       if (this.config.notifications.emailNewRelease) {
-        this.sendNewReleaseEmail();
+        const latestRelease = this.getLatestGcalSyncRelease();
+        const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
+        const currentVersion = this.parseGcalVersion(this.VERSION);
+        const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
+
+        if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
+          this.sendNewReleaseEmail(latestRelease);
+          this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, latestVersion.toString());
+        }
       }
     }
   }
@@ -1088,10 +1093,11 @@ class GcalSync {
 
   /* EMAIL FUNCTIONS ======================================================== */
 
-  private sendNewReleaseEmail() {
-    const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
-    const parseVersion = (v: string) => Number(v.replace('v', '').split('.').join(''));
+  private parseGcalVersion(v: string) {
+    return Number(v.replace('v', '').split('.').join(''));
+  }
 
+  private getLatestGcalSyncRelease() {
     const json_encoded = this.getGoogleFetch().fetch(`https://api.github.com/repos/${this.GITHUB_REPOSITORY}/releases?per_page=1`);
     const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
 
@@ -1099,11 +1105,11 @@ class GcalSync {
       return; // no releases were found
     }
 
-    const latestVersion = parseVersion(lastReleaseObj.tag_name);
-    const thisVersion = parseVersion(this.VERSION);
+    return lastReleaseObj;
+  }
 
-    if (latestVersion > thisVersion && latestVersion.toString() != lastAlertedVersion) {
-      const message = `Hi!
+  private sendNewReleaseEmail(lastReleaseObj: any) {
+    const message = `Hi!
       <br/><br/>
       a new <a href="https://github.com/${this.GITHUB_REPOSITORY}">${this.APPNAME}</a> version is available: <br/>
       <ul>
@@ -1113,18 +1119,15 @@ class GcalSync {
       you can check details <a href="https://github.com/${this.GITHUB_REPOSITORY}/releases">here</a>.
       `;
 
-      const emailObj = {
-        to: this.config.notifications.email,
-        name: `${this.APPNAME}`,
-        subject: `new version [${lastReleaseObj.tag_name}] was released - ${this.APPNAME}`,
-        htmlBody: message
-      };
+    const emailObj = {
+      to: this.config.notifications.email,
+      name: `${this.APPNAME}`,
+      subject: `new version [${lastReleaseObj.tag_name}] was released - ${this.APPNAME}`,
+      htmlBody: message
+    };
 
-      this.sendEmail(emailObj);
-
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, latestVersion.toString());
-      this.logger(`a new release email was sent to ${this.config.notifications.email}`);
-    }
+    this.sendEmail(emailObj);
+    this.logger(`new release email was sent to ${this.config.notifications.email}`);
   }
 
   private sendSessionEmail(sessionStats: SessionStats) {
@@ -1149,6 +1152,7 @@ class GcalSync {
     if (!content) {
       return;
     }
+
     const message = {
       to: this.config.notifications.email,
       name: `${this.APPNAME}`,
@@ -1159,8 +1163,6 @@ class GcalSync {
     this.sendEmail(message);
 
     this.logger(`summary email was sent to ${this.config.notifications.email}`);
-
-    this.cleanTodayEventsStats();
   }
 
   /* EMAIL HELPER FUNCTIONS ================================================= */
