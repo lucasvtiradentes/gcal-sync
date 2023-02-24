@@ -509,7 +509,10 @@ class GcalSync {
   }
 
   private moveEventToOtherCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent, newCalendar: GoogleAppsScript.Calendar.Schema.Calendar) {
-    this.getGoogleCalendarObj().Events.move(calendar.id, event.id, newCalendar.id);
+    this.removeCalendarEvent(calendar, event);
+    const newEvent = this.addEventToCalendar(newCalendar, event);
+    // this.getGoogleCalendarObj().Events.move(calendar.id, event.id, newCalendar.id);
+    return newEvent;
   }
 
   private removeCalendarEvent(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent) {
@@ -519,6 +522,16 @@ class GcalSync {
   private getEventById(calendar: GoogleAppsScript.Calendar.Schema.Calendar, eventId: string) {
     const event = this.getGoogleCalendarObj().Events.get(calendar.id, eventId);
     return event;
+  }
+
+  /* GOOGLE UTILTITIES FUNCTIONS ============================================ */
+
+  private getGoogleUtilities() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
+    return Utilities;
   }
 
   /* GOOGLE MAIL APP FUNCTIONS ============================================== */
@@ -608,6 +621,20 @@ class GcalSync {
     return TODAY_SESSION;
   }
 
+  private formatSessionStats(session: SessionStats) {
+    const countitems = (item: string) => item.split('\n').filter((item) => item.length > 0).length;
+
+    const formatedSession = {
+      addedTicktickTasks: countitems(session.addedTicktickTasks),
+      updatedTicktickTasks: countitems(session.updatedTicktickTasks),
+      completedTicktickTasks: countitems(session.completedTicktickTasks),
+      addedGithubCommits: countitems(session.addedGithubCommits),
+      deletedGithubCommits: countitems(session.deletedGithubCommits)
+    };
+
+    return formatedSession;
+  }
+
   /* GCALSYNC - SYNC ======================================================== */
 
   sync() {
@@ -686,6 +713,8 @@ class GcalSync {
     if (!this.config.options.maintanceMode) {
       this.sendAfterSyncEmails(CUR_SESSION);
     }
+
+    return this.formatSessionStats(CUR_SESSION);
   }
 
   /* PRE SYNC FUNCTIONS ========================== */
@@ -1048,8 +1077,9 @@ class GcalSync {
         const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.ticktickSync.gcalCompleted
 
         if (!this.config.options.maintanceMode) {
-          this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
-          completedTasks.push(gcalEvent);
+          const returnedEv = this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
+          this.getGoogleUtilities().sleep(2000);
+          completedTasks.push(returnedEv);
         }
 
         this.logger(`ticktick task was completed: ${gcalEvent.summary}`);

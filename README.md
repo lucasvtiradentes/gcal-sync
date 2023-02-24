@@ -120,7 +120,7 @@
         <p>In the image it is shown my current usage of this tool:
           <ul align="left">
             <li align="left"><b>black</b>: my past github commits (in public repositories);</li>
-            <li align="left"><b>green</b>: ticktick completed tasks are showned as green events;</li>
+            <li align="left"><b>green</b>: ticktick completed tasks;</li>
             <li align="left">the others collors are for ticktick tasks to do:
               <ul>
                 <li><b>red</b>: important tasks with pre-defined datetime;</li>
@@ -144,7 +144,8 @@
 &nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the event be moved to a compelted gcal agenda;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what gcalsync has done throughout the day;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags.<br>
+&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags<br>
+&nbsp;&nbsp;&nbsp;✔️ you can add a url link to run the sync function manually whenever you want.<br>
 
 ## :warning: Requirements<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
@@ -216,9 +217,23 @@ function remove() {
   const gcalSync = getGcalSync();
   gcalSync.uninstallGcalSync();
 }
+
+// bellow function runs at every http request in the provided link
+
+function doGet(e) {
+  const gcalSync = getGcalSync()
+  const content = gcalSync.sync()
+  return ContentService.createTextOutput(JSON.stringify(content)).setMimeType(ContentService.MimeType.JSON)
+}
 ```
 
 After that, your data will be sync as you specified every 5 minutes.
+
+Additionally, you can add a link to manually run the sync function whenever you want, by adding the following steps:
+
+1. on google apps script, click on the button upper right **implement** button and choose "new implementation";
+2. on the left menu, select "app web" as the type of the new implementation and hit enter;
+3. adter that, a **http link** will be provided so you can run the sync function by accessing it.
 
 ### General tips
 
