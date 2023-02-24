@@ -1,5 +1,18 @@
 # CHANGELOG HISTORY
 
+## [1.4.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.3.1...v1.4.0) (2023-02-24)
+
+
+### 🐛 bugfix:
+
+* daily emails sent more than once per day ([#58](https://github.com/lucasvtiradentes/gcal-sync/issues/58)) ([b621bd1](https://github.com/lucasvtiradentes/gcal-sync/commit/b621bd1269aa641ad95696d674baded86a94a5c8))
+
+
+### ✨ feature:
+
+* add a public link to sync ([#59](https://github.com/lucasvtiradentes/gcal-sync/issues/59)) ([eeb5f2a](https://github.com/lucasvtiradentes/gcal-sync/commit/eeb5f2ac0c61f6a42812cd2568e8caf604c37f30))
+* add gcal link to email tables ([#61](https://github.com/lucasvtiradentes/gcal-sync/issues/61)) ([e7605d5](https://github.com/lucasvtiradentes/gcal-sync/commit/e7605d56a79706a61daedd1bf5fece293ea5763e))
+
 ## [1.3.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.3.0...v1.3.1) (2023-02-22)
 
 

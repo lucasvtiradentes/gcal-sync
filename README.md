@@ -196,7 +196,7 @@ function getGcalSync() {
     }
   };
 
-  const version = "1.3.1" // version
+  const version = "1.4.0" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
   const gcalSync = new GcalSync(configs);
@@ -270,7 +270,7 @@ If you want to contribute to the project, after you make the necessary changes, 
 function getGcalSyncContent(mode){
 
   if (mode === 'production'){
-    const version = "1.3.1" // version
+    const version = "1.4.0" // version
     return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
   } else if (mode === 'development'){
     const repository = "lucasvtiradentes/gcal-sync" // remember to update this
