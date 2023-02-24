@@ -124,8 +124,8 @@ type ParsedGithubCommit = {
 };
 
 type GithubSessionStats = {
-  addedCommits: ParsedGithubCommit[];
-  deletedCommits: ParsedGithubCommit[];
+  addedCommits: GoogleEvent[];
+  deletedCommits: GoogleEvent[];
 };
 
 type GcalPrivateGithub = ParsedGithubCommit;
@@ -140,6 +140,7 @@ class GcalSync {
   GITHUB_REPOSITORY = 'lucasvtiradentes/gcal-sync';
   TODAY_DATE = new Date().toISOString().split('T')[0];
   ENVIRONMENT = this.detectEnvironment();
+  EVENTS_DIVIDER = ` | `;
   APPS_SCRIPTS_PROPERTIES = {
     todayTicktickAddedTasks: 'todayTicktickAddedTasks',
     todayTicktickUpdateTasks: 'todayTicktickUpdateTasks',
@@ -647,7 +648,7 @@ class GcalSync {
 
       const formatTicktickItem = (gcalEvent: GoogleEvent) => {
         const date = gcalEvent.start.date ? gcalEvent.start.date : gcalEvent.start.dateTime.split('T')[0];
-        return `${date} | ${gcalEvent.extendedProperties.private.calendar} | ${gcalEvent.summary}`;
+        return [date, gcalEvent.extendedProperties.private.calendar, gcalEvent.summary, gcalEvent.htmlLink].join(this.EVENTS_DIVIDER);
       };
 
       CUR_SESSION.addedTicktickTasks = ticktickSessionStats.addedEvents.map((item) => formatTicktickItem(item)).join('\n');
@@ -665,11 +666,12 @@ class GcalSync {
       const todayAddedGithubCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits);
       const todayDeletedGithubCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits);
 
-      const formatGithubCommitItem = (item: ParsedGithubCommit) => {
-        const date = item.commitDate.split('T')[0];
-        const repository = item.commitRepository.replace(`${this.config.githubSync.username}/`, '');
-        const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(item.commitMessage) : item.commitMessage;
-        return `${date} | ${repository} | ${commitMessage}`;
+      const formatGithubCommitItem = (gcalEvent: GoogleEvent) => {
+        const gcalPrivateProperties = gcalEvent.extendedProperties.private as GcalPrivateGithub;
+        const date = gcalPrivateProperties.commitDate.split('T')[0];
+        const repository = gcalPrivateProperties.commitRepository.replace(`${this.config.githubSync.username}/`, '');
+        const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(gcalPrivateProperties.commitMessage) : gcalPrivateProperties.commitMessage;
+        return [date, repository, commitMessage, gcalEvent.htmlLink].join(this.EVENTS_DIVIDER);
       };
 
       CUR_SESSION.addedGithubCommits = githubSessionStats.addedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
@@ -772,8 +774,8 @@ class GcalSync {
         };
 
         if (!this.config.options.maintanceMode) {
-          this.addEventToCalendar(githubCalendar, taskEvent);
-          githubSessionStats.addedCommits.push(githubItem);
+          const commitGcalEvent = this.addEventToCalendar(githubCalendar, taskEvent);
+          githubSessionStats.addedCommits.push(commitGcalEvent);
         }
 
         this.logger(`add commit to gcal: ${shortnedRepository} - ${commitMessage}`);
@@ -784,8 +786,9 @@ class GcalSync {
       const commitGithub = filteredCommitsByRepository.find((commit) => commit.commitUrl === item.extendedProperties.private.commitUrl);
       if (!commitGithub) {
         if (!this.config.options.maintanceMode) {
+          const commitGcalEvent = this.getEventById(githubCalendar, item.id);
           this.removeCalendarEvent(githubCalendar, item);
-          githubSessionStats.addedCommits.push(item.extendedProperties.private as ParsedGithubCommit);
+          githubSessionStats.addedCommits.push(commitGcalEvent);
         }
 
         this.logger(`commit ${item.extendedProperties.private.commitUrl} was deleted`);
@@ -998,10 +1001,10 @@ class GcalSync {
         };
 
         if (!this.config.options.maintanceMode) {
-          this.addEventToCalendar(taskCalendar, taskEvent);
+          const addedGcalEvent = this.addEventToCalendar(taskCalendar, taskEvent);
+          addedTasks.push(addedGcalEvent);
         }
 
-        addedTasks.push(taskEvent);
         this.logger(`ticktick task was added to gcal: ${taskEvent.summary}`);
       } else {
         const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
@@ -1021,11 +1024,11 @@ class GcalSync {
 
           if (!this.config.options.maintanceMode) {
             this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
+            const finalGcalEvent = { ...gcalTask, ...modifiedFields };
+            updatedTasks.push(finalGcalEvent);
           }
 
-          const finalGcalEvent = { ...gcalTask, ...modifiedFields };
-          updatedTasks.push(finalGcalEvent);
-          this.logger(`ticktick task was updated: ${finalGcalEvent.summary}`);
+          this.logger(`ticktick task was updated: ${modifiedFields.summary}`);
         }
       }
     });
@@ -1046,9 +1049,9 @@ class GcalSync {
 
         if (!this.config.options.maintanceMode) {
           this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
+          completedTasks.push(gcalEvent);
         }
 
-        completedTasks.push(gcalEvent);
         this.logger(`ticktick task was completed: ${gcalEvent.summary}`);
       }
     });
@@ -1205,8 +1208,17 @@ class GcalSync {
       if (!itemsArr || itemsArr.length === 0) {
         return ``;
       }
-      const arrSortedByDate = this.sortArrayByDate(itemsArr, 0);
-      const tableItems = arrSortedByDate.map((item: any[]) => `<tr ${tableRowStyle}">\n${item.map((it) => `<td ${tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n')}\n</tr>`).join('\n');
+
+      const arr = itemsArr.map((item) => item.split(this.EVENTS_DIVIDER));
+      const arrSortedByDate = arr.sort((a, b) => Number(new Date(a[0])) - Number(new Date(b[0])));
+
+      // prettier-ignore
+      const tableItems = arrSortedByDate.map((item: any[]) => {
+        const [date, category, message, link] = item;
+        const itemHtmlRow = [date, category, `<a href="${link}">${message}</a>`].map(it => `<td ${tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n')
+        return `<tr ${tableRowStyle}">\n${itemHtmlRow}\n</tr>`
+      }).join('\n');
+
       return `${tableItems}`;
     };
 
@@ -1233,16 +1245,5 @@ class GcalSync {
 
   private stringToArray(arrStr: string) {
     return arrStr.split('\n').filter((item) => item.length > 0);
-  }
-
-  private sortArrayByDate(arrToSortByDate: any[], indexToSort: number) {
-    if (!arrToSortByDate) {
-      return [];
-    }
-
-    const arr = arrToSortByDate.map((item) => item.split(' | '));
-    const sortedArr = arr.sort((a, b) => Number(new Date(a[indexToSort])) - Number(new Date(b[indexToSort])));
-
-    return sortedArr;
   }
 }
