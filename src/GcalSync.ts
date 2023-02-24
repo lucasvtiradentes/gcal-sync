@@ -20,7 +20,8 @@ type Config = {
   githubSync: {
     username: string;
     googleCalendar: string;
-    startDate: string;
+    personalToken: string;
+    ignoredRepos: string[];
     parseGithubEmojis: boolean;
     syncGithub: boolean;
   };
@@ -117,10 +118,17 @@ type ParsedResult = {
 /* GITHUB SYNC RELATED TYPES ------------------------------------------------ */
 
 type ParsedGithubCommit = {
-  commitUrl: string;
-  commitRepository: string;
-  commitMessage: string;
   commitDate: string;
+  commitMessage: string;
+  commitId: string;
+  commitUrl: string;
+  repository: string;
+  repositoryId: string;
+  repositoryName: string;
+  repositoryOwner: string;
+  repositoryDescription: string;
+  isRepositoryPrivate: boolean;
+  isRepositoryFork: boolean;
 };
 
 type GithubSessionStats = {
@@ -128,7 +136,7 @@ type GithubSessionStats = {
   deletedCommits: GoogleEvent[];
 };
 
-type GcalPrivateGithub = ParsedGithubCommit;
+type GcalPrivateGithub = Omit<ParsedGithubCommit, 'isRepositoryPrivate' | 'isRepositoryFork'>;
 
 /* MAIN CLASS --------------------------------------------------------------- */
 
@@ -173,7 +181,7 @@ class GcalSync {
     const validationArr = [
       { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'notifications', 'options'], name: 'configs' },
       { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncTicktick'], name: 'configs.ticktickSync' },
-      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'syncGithub', 'parseGithubEmojis'], name: 'configs.githubSync' },
+      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'personalToken', 'ignoredRepos', 'syncGithub', 'parseGithubEmojis'], name: 'configs.githubSync' },
       { objToCheck: config.notifications, requiredKeys: ['email', 'dailyEmailsTime', 'timeZoneCorrection', 'emailNewRelease', 'emailDailySummary', 'emailSession'], name: 'configs.notifications' },
       { objToCheck: config.options, requiredKeys: ['syncFunction', 'updateFrequency', 'showLogs', 'maintanceMode'], name: 'configs.options' }
     ];
@@ -696,7 +704,7 @@ class GcalSync {
       const formatGithubCommitItem = (gcalEvent: GoogleEvent) => {
         const gcalPrivateProperties = gcalEvent.extendedProperties.private as GcalPrivateGithub;
         const date = gcalPrivateProperties.commitDate.split('T')[0];
-        const repository = gcalPrivateProperties.commitRepository.replace(`${this.config.githubSync.username}/`, '');
+        const repository = gcalPrivateProperties.repository.replace(`${this.config.githubSync.username}/`, '');
         const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(gcalPrivateProperties.commitMessage) : gcalPrivateProperties.commitMessage;
         return [date, repository, commitMessage, gcalEvent.htmlLink].join(this.EVENTS_DIVIDER);
       };
@@ -720,12 +728,18 @@ class GcalSync {
   /* PRE SYNC FUNCTIONS ========================== */
 
   private createMissingGoogleCalendars(allGcalendarsNames: string[]) {
+    let createdCalendar = false;
     allGcalendarsNames.forEach((calName: string) => {
       if (!this.getCalendarByName(calName)) {
         this.createCalendar(calName);
         this.logger(`created google calendar: [${calName}]`);
+        createdCalendar = true;
       }
     });
+
+    if (createdCalendar) {
+      this.getGoogleUtilities().sleep(2000);
+    }
   }
 
   private getTasksFromGoogleCalendars(allCalendars: string[]) {
@@ -759,38 +773,50 @@ class GcalSync {
 
     const allCommitsInGithub = this.getAllGithubCommits();
 
-    const parsedCommits = allCommitsInGithub.map((item) => {
+    const parsedCommits = allCommitsInGithub.map((it) => {
       const commitObj: ParsedGithubCommit = {
-        commitUrl: item.html_url,
-        commitRepository: item.commit.tree.url.replace('https://api.github.com/repos/', '').split('/git')[0],
-        commitMessage: item.commit.message.split('\n')[0],
-        commitDate: item.commit.author.date
+        commitDate: it.commit.committer.date,
+        commitMessage: it.commit.message.split('\n')[0],
+        commitId: it.html_url.split('commit/')[1],
+        commitUrl: it.html_url,
+        repository: it.repository.full_name,
+        repositoryId: it.repository.id,
+        repositoryName: it.repository.name,
+        repositoryOwner: it.repository.owner.login,
+        repositoryDescription: it.repository.description,
+        isRepositoryPrivate: it.repository.private,
+        isRepositoryFork: it.repository.fork
       };
       return commitObj;
     });
 
     const filteredCommitsByRepository = parsedCommits.filter((item) => {
-      const itemSearch = item.commitRepository.search(this.config.githubSync.username);
+      const itemSearch = item.repository.search(this.config.githubSync.username);
       return itemSearch > -1;
     });
 
     filteredCommitsByRepository.forEach((githubItem) => {
-      const gcalEvent = allCommitsInGoogleCalendar.find((gcalItem) => gcalItem.extendedProperties.private.commitUrl === githubItem.commitUrl);
+      const gcalEvent = allCommitsInGoogleCalendar.find((gcalItem) => gcalItem.extendedProperties.private.commitId === githubItem.commitId);
 
-      const shortnedRepository = githubItem.commitRepository.replace(`${this.config.githubSync.username}/`, '');
       const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(githubItem.commitMessage) : githubItem.commitMessage;
+      const isIgnoredRepo = this.config.githubSync.ignoredRepos.includes(githubItem.repositoryName);
 
-      if (!gcalEvent) {
+      if (!gcalEvent && !isIgnoredRepo) {
         const extendProps: GcalPrivateGithub = {
-          commitUrl: githubItem.commitUrl,
-          commitRepository: githubItem.commitRepository,
+          commitDate: githubItem.commitDate,
           commitMessage: commitMessage,
-          commitDate: githubItem.commitDate
+          commitId: githubItem.commitId,
+          commitUrl: githubItem.commitUrl,
+          repository: githubItem.repository,
+          repositoryId: githubItem.repositoryId,
+          repositoryName: githubItem.repositoryName,
+          repositoryOwner: githubItem.repositoryOwner,
+          repositoryDescription: githubItem.repositoryDescription
         };
 
         const taskEvent: GoogleEvent = {
-          summary: `${shortnedRepository} - ${commitMessage}`,
-          description: `repository: https://github.com/${githubItem.commitRepository}\ncommit: ${githubItem.commitUrl}`,
+          summary: `${githubItem.repositoryName} - ${commitMessage}`,
+          description: `repository: https://github.com/${githubItem.repository}\ncommit: ${githubItem.commitUrl}`,
           start: { dateTime: githubItem.commitDate },
           end: { dateTime: githubItem.commitDate },
           reminders: {
@@ -807,7 +833,7 @@ class GcalSync {
           githubSessionStats.addedCommits.push(commitGcalEvent);
         }
 
-        this.logger(`add commit to gcal: ${shortnedRepository} - ${commitMessage}`);
+        this.logger(`add commit to gcal: ${githubItem.repositoryName} - ${commitMessage}`);
       }
     });
 
@@ -835,7 +861,7 @@ class GcalSync {
 
     while (shouldBreak === false) {
       const url = `https://api.github.com/search/commits?q=author:${this.config.githubSync.username}&page=${pageNumber}&sort=committer-date&per_page=100`;
-      const response = this.getGoogleFetch().fetch(url);
+      const response = this.config.githubSync.personalToken !== '' ? this.getGoogleFetch().fetch(url, { headers: { Authorization: `Bearer ${this.config.githubSync.personalToken}` } }) : this.getGoogleFetch().fetch(url);
       const data = JSON.parse(response.getContentText()) ?? {};
       const commits = data.items;
 
@@ -846,6 +872,11 @@ class GcalSync {
 
       allCommitsArr.push(...commits);
       pageNumber++;
+
+      if (pageNumber > 10) {
+        shouldBreak = true;
+        break;
+      }
     }
 
     return allCommitsArr;

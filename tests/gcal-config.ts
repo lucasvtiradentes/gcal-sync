@@ -10,6 +10,8 @@ export const gcalSyncConfig = {
   githubSync: {
     username: 'lucasvtiradentes',
     googleCalendar: 'gh_commits',
+    personalToken: '',
+    ignoredRepos: [],
     parseGithubEmojis: true,
     syncGithub: true
   },
