@@ -11,6 +11,7 @@ docs/
 ignore/
 node_modules/
 scripts/
+tests/
 src/*.ts
 
 # FILES #################################
