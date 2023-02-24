@@ -337,7 +337,7 @@ class GcalSync {
     return parsedIcsEvents;
   }
 
-  /* APPS SCRIPT PROPPERTIES ================================================ */
+  /* GOOGLE APPS SCRIPT PROPPERTIES ========================================= */
 
   private getGoogleAppsScriptsObject() {
     if (this.ENVIRONMENT === 'development') {
@@ -370,7 +370,7 @@ class GcalSync {
     scriptProperties.deleteProperty(propertyToDelete);
   }
 
-  /* APPS SCRIPTS TRIGGERS ================================================== */
+  /* GOOGLE APPS SCRIPTS FETCH ============================================== */
 
   private getGoogleFetch() {
     if (this.ENVIRONMENT === 'development') {
@@ -380,7 +380,7 @@ class GcalSync {
     return UrlFetchApp;
   }
 
-  /* APPS SCRIPTS TRIGGERS ================================================== */
+  /* GOOGLE APPS SCRIPTS TRIGGERS =========================================== */
 
   private getGoogleAppsScriptsTriggerObj() {
     if (this.ENVIRONMENT === 'development') {
@@ -417,7 +417,7 @@ class GcalSync {
     return Calendar;
   }
 
-  /* GCAL CALENDARS ======================== */
+  /* GOOGLE CALENDAR - CALENDARS ======================== */
 
   private getAllCalendars() {
     const calendars = this.getGoogleCalendarObj().CalendarList.list({ showHidden: true }).items;
@@ -464,7 +464,7 @@ class GcalSync {
     }
   }
 
-  /* GCAL EVENTS =========================== */
+  /* GOOGLE CALENDAR - EVENTS =========================== */
 
   private getEventsFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar) {
     const allEvents = this.getGoogleCalendarObj().Events.list(calendar.id, {}).items;
@@ -520,7 +520,7 @@ class GcalSync {
     return event;
   }
 
-  /* MAIL APP FUNCTIONS ===================================================== */
+  /* GOOGLE MAIL APP FUNCTIONS ============================================== */
 
   private getGoogleEmailObj() {
     if (this.ENVIRONMENT === 'development') {
@@ -534,11 +534,12 @@ class GcalSync {
     this.getGoogleEmailObj().sendEmail(emailObj);
   }
 
-  /* SETUP GCAL SYNC FUNCTIONS ============================================== */
+  /* GCALSYNC - SETUP / REMOVE ============================================== */
 
   installGcalSync() {
     this.removeAppsScriptsTrigger(this.config.options.syncFunction);
     this.addAppsScriptsTrigger(this.config.options.syncFunction, this.config.options.updateFrequency);
+    this.createMissingAppsScriptsProperties();
 
     this.logger(`${this.APPNAME} was set to run ${this.config.options.syncFunction} every ${this.config.options.updateFrequency} minutes`);
   }
@@ -554,6 +555,22 @@ class GcalSync {
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
 
     this.logger(`${this.APPNAME} automation was removed from appscript!`);
+  }
+
+  /* GCALSYNC - PROPERTIES ================================================== */
+
+  createMissingAppsScriptsProperties() {
+    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks)) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, '');
+
+      this.logger(`added missing apps script properties`);
+    }
   }
 
   cleanTodayEventsStats() {
@@ -581,7 +598,7 @@ class GcalSync {
     this.logger(`github sync   - deleted commits: ${this.stringToArray(TODAY_SESSION.deletedGithubCommits).length}${this.stringToArray(TODAY_SESSION.deletedGithubCommits).length > 0 ? `\n\n${formatEventsList(TODAY_SESSION.deletedGithubCommits)}` : ''}`);
   }
 
-  private getTodayEvents() {
+  getTodayEvents() {
     const TODAY_SESSION: SessionStats = {
       addedGithubCommits: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits),
       addedTicktickTasks: this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks),
@@ -592,7 +609,11 @@ class GcalSync {
     return TODAY_SESSION;
   }
 
+  /* GCALSYNC - SYNC ======================================================== */
+
   sync() {
+    this.createMissingAppsScriptsProperties();
+
     const ticktickSessionStats = this.syncTicktick();
     const sessionAddedEventsQuantity = ticktickSessionStats.addedEvents.length;
     const sessionUpdatedEventsQuantity = ticktickSessionStats.updatedEvents.length;
@@ -612,8 +633,6 @@ class GcalSync {
       this.logger(`github sync   - added commits  : ${addedCommitsQuantity}`);
       this.logger(`github sync   - deleted commits: ${deletedCommitsQuantity}`);
     }
-
-    /* -------------------------------------------------- */
 
     const CUR_SESSION: SessionStats = {
       addedTicktickTasks: '',
@@ -669,36 +688,30 @@ class GcalSync {
     }
   }
 
-  private sendAfterSyncEmails(curSession: SessionStats) {
-    if (this.config.notifications.emailSession) {
-      this.sendSessionEmail(curSession);
-    }
+  /* PRE SYNC FUNCTIONS ========================== */
 
-    const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
-
-    if (this.isCurrentTimeAfter(this.config.notifications.dailyEmailsTime) && !alreadySentTodayEmails) {
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
-
-      if (this.config.notifications.emailDailySummary) {
-        this.sendDailySummaryEmail(this.getTodayEvents());
-        this.cleanTodayEventsStats();
+  private createMissingGoogleCalendars(allGcalendarsNames: string[]) {
+    allGcalendarsNames.forEach((calName: string) => {
+      if (!this.getCalendarByName(calName)) {
+        this.createCalendar(calName);
+        this.logger(`created google calendar: [${calName}]`);
       }
-
-      if (this.config.notifications.emailNewRelease) {
-        const latestRelease = this.getLatestGcalSyncRelease();
-        const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
-        const currentVersion = this.parseGcalVersion(this.VERSION);
-        const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
-
-        if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
-          this.sendNewReleaseEmail(latestRelease);
-          this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, latestVersion.toString());
-        }
-      }
-    }
+    });
   }
 
-  /* GITHUB SYNC FUNCTIONS ================================================== */
+  private getTasksFromGoogleCalendars(allCalendars: string[]) {
+    const tasks: ParsedGoogleEvent[] = allCalendars.reduce((acc, cur) => {
+      const taskCalendar = cur;
+      const calendar = this.getCalendarByName(taskCalendar);
+      const tasksArray = this.getEventsFromCalendar(calendar);
+      acc = [].concat.apply(acc, tasksArray);
+      return acc;
+    }, []);
+
+    return tasks;
+  }
+
+  /* GITHUB SYNC FUNCTIONS ======================= */
 
   private syncGihub() {
     const githubSessionStats: GithubSessionStats = {
@@ -710,13 +723,10 @@ class GcalSync {
       return githubSessionStats;
     }
 
-    if (!this.getCalendarByName(this.config.githubSync.googleCalendar)) {
-      this.createCalendar(this.config.githubSync.googleCalendar);
-      this.logger(`created google calendar: [${this.config.githubSync.googleCalendar}]`);
-    }
+    this.createMissingGoogleCalendars([this.config.githubSync.googleCalendar]);
 
     const githubCalendar = this.getCalendarByName(this.config.githubSync.googleCalendar);
-    const allCommitsInGoogleCalendar = this.getEventsFromCalendar(githubCalendar);
+    const allCommitsInGoogleCalendar = this.getTasksFromGoogleCalendars([this.config.githubSync.googleCalendar]);
 
     const allCommitsInGithub = this.getAllGithubCommits();
 
@@ -896,7 +906,7 @@ class GcalSync {
     return curString;
   }
 
-  /* TICKTICK SYNC FUNCTIONS ================================================ */
+  /* TICKTICK SYNC FUNCTIONS ===================== */
 
   private syncTicktick() {
     const sessionStats: TicktickSessionStats = {
@@ -909,10 +919,10 @@ class GcalSync {
       return sessionStats;
     }
 
-    this.createMissingGoogleCalendars();
-    this.createMissingAppsScriptsProperties();
+    const allGcalendarsNames = [...new Set([...this.config.ticktickSync.icsCalendars.map((item) => item[1]), ...this.config.ticktickSync.icsCalendars.map((item) => item[2])])];
+    this.createMissingGoogleCalendars(allGcalendarsNames);
 
-    const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars();
+    const tasksFromGoogleCalendars = this.getTasksFromGoogleCalendars(this.config.ticktickSync.icsCalendars.map((item) => item[1]));
 
     const taggedCalendars = this.config.ticktickSync.icsCalendars.filter((item) => typeof item[3]?.tag === 'string');
     const taggedResults = taggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars));
@@ -928,36 +938,6 @@ class GcalSync {
     sessionStats.updatedEvents = [...taggedTmp.updated, ...nonTaggedTmp.updated];
 
     return sessionStats;
-  }
-
-  private createMissingGoogleCalendars() {
-    const allGcalendarsNames = [...new Set([...this.config.ticktickSync.icsCalendars.map((item) => item[1]), ...this.config.ticktickSync.icsCalendars.map((item) => item[2])])];
-    allGcalendarsNames.forEach((calName: string) => {
-      if (!this.getCalendarByName(calName)) {
-        this.createCalendar(calName);
-        this.logger(`created google calendar: [${calName}]`);
-      }
-    });
-  }
-
-  private createMissingAppsScriptsProperties() {
-    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks)) {
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, '');
-    }
-  }
-
-  private getTasksFromGoogleCalendars() {
-    const tasks: ParsedGoogleEvent[] = this.config.ticktickSync.icsCalendars.reduce((acc, cur) => {
-      const taskCalendar = cur[1];
-      const calendar = this.getCalendarByName(taskCalendar);
-      const tasksArray = this.getEventsFromCalendar(calendar);
-      acc = [].concat.apply(acc, tasksArray);
-      return acc;
-    }, []);
-
-    return tasks;
   }
 
   private checkCalendarItem(calendarItem: CalendarItem, tasksFromGoogleCalendars: ParsedGoogleEvent[], taggedCalendarsResults?: IcsCalendarResult[]) {
@@ -1095,22 +1075,38 @@ class GcalSync {
     return taggedTmp;
   }
 
-  /* EMAIL FUNCTIONS ======================================================== */
+  /* GCALSYNC - EMAIL ======================================================= */
 
-  private parseGcalVersion(v: string) {
-    return Number(v.replace('v', '').split('.').join(''));
-  }
-
-  private getLatestGcalSyncRelease() {
-    const json_encoded = this.getGoogleFetch().fetch(`https://api.github.com/repos/${this.GITHUB_REPOSITORY}/releases?per_page=1`);
-    const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
-
-    if (Object.keys(lastReleaseObj).length === 0) {
-      return; // no releases were found
+  private sendAfterSyncEmails(curSession: SessionStats) {
+    if (this.config.notifications.emailSession) {
+      this.sendSessionEmail(curSession);
     }
 
-    return lastReleaseObj;
+    const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
+
+    if (this.isCurrentTimeAfter(this.config.notifications.dailyEmailsTime) && !alreadySentTodayEmails) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
+
+      if (this.config.notifications.emailDailySummary) {
+        this.sendDailySummaryEmail(this.getTodayEvents());
+        this.cleanTodayEventsStats();
+      }
+
+      if (this.config.notifications.emailNewRelease) {
+        const latestRelease = this.getLatestGcalSyncRelease();
+        const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
+        const currentVersion = this.parseGcalVersion(this.VERSION);
+        const lastAlertedVersion = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted) ?? '';
+
+        if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
+          this.sendNewReleaseEmail(latestRelease);
+          this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, latestVersion.toString());
+        }
+      }
+    }
   }
+
+  /* EMAIL FUNCTIONS ============================= */
 
   private sendNewReleaseEmail(lastReleaseObj: any) {
     const message = `Hi!
@@ -1173,7 +1169,22 @@ class GcalSync {
     this.logger(`summary email was sent to ${this.config.notifications.email}`);
   }
 
-  /* EMAIL HELPER FUNCTIONS ================================================= */
+  /* EMAIL HELPER FUNCTIONS ====================== */
+
+  private parseGcalVersion(v: string) {
+    return Number(v.replace('v', '').split('.').join(''));
+  }
+
+  private getLatestGcalSyncRelease() {
+    const json_encoded = this.getGoogleFetch().fetch(`https://api.github.com/repos/${this.GITHUB_REPOSITORY}/releases?per_page=1`);
+    const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
+
+    if (Object.keys(lastReleaseObj).length === 0) {
+      return; // no releases were found
+    }
+
+    return lastReleaseObj;
+  }
 
   private generateReportEmailContent(session: SessionStats) {
     const addedTicktickTasks = this.stringToArray(session.addedTicktickTasks);
