@@ -119,7 +119,7 @@
         <p>Track your progress over time with an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a>.</p>
         <p>In the image it is shown my current usage of this tool:
           <ul align="left">
-            <li align="left"><b>black</b>: my past github commits (in public repositories);</li>
+            <li align="left"><b>black</b>: my past github commits;</li>
             <li align="left"><b>green</b>: ticktick completed tasks;</li>
             <li align="left">the others collors are for ticktick tasks to do:
               <ul>
@@ -177,6 +177,8 @@ function getGcalSync() {
     githubSync: {
       username: "lucasvtiradentes", // github username
       googleCalendar: "gh_commits", // google calendar to isnert commits as events
+      personalToken: '',            // github token, required if you want to sync private repo commits
+      ignoredRepos: [],             // ignored repositories string array: ['repo1', 'repo2']
       parseGithubEmojis: true,      // parse string emojis to emojis
       syncGithub: true              // option to sync github commits
     },
@@ -241,6 +243,7 @@ Additionally, you can add a link to manually run the sync function whenever you 
 - in case of deleted tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well;
 - you can have a tikctick calendar for all your tasks and ignore certain kind of tasks and handle this ignored ones in other gcal;
 - before setting up the auto sync, you can use the `maintanceMode` to check if everything is okay by reading the app logs;
+- it is not necessary to generate a github token in order to sync commits, it is only required if you want to sync your contributions to private repos as well;
 - every update in ticktick may take 5 minutes to propagate to its ics calendars.
 
 ## :wrench: Development<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>

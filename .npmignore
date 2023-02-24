@@ -26,6 +26,7 @@ src/*.ts
 .prettierignore
 .prettierrc.json
 commitlint.config.js
+jest.config.js
 LICENSE
 # package.json
 pnpm-lock.yaml
