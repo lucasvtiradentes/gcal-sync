@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.5.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.4.0...v1.5.0) (2023-02-25)
+
+
+### ✨ feature:
+
+* add way to sync private repo commits ([#60](https://github.com/lucasvtiradentes/gcal-sync/issues/60)) ([df8b7e7](https://github.com/lucasvtiradentes/gcal-sync/commit/df8b7e719adc433ed63eced90f3ed6d944ad1ce2))
+
 ## [1.4.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.3.1...v1.4.0) (2023-02-24)
 
 
