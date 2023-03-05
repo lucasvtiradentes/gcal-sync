@@ -834,18 +834,19 @@ class GcalSync {
     });
 
     this.getEventsFromCalendar(githubCalendar).forEach((gcalItem) => {
-      const onlySameRepoCommits = onlyValidRepositories.filter((githubItem) => githubItem.repository === gcalItem.extendedProperties.private.repository);
-      const onlySameDateTimeCommits = onlySameRepoCommits.filter((githubItem) => githubItem.commitDate === gcalItem.extendedProperties.private.commitDate);
-      const commitGithub = onlySameDateTimeCommits.find((githubItem) => this.parseGithubEmojisString(githubItem.commitMessage) === this.parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage));
+      const gcalEventProperties = gcalItem.extendedProperties.private as GcalPrivateGithub;
+      const onlySameRepoCommits = onlyValidRepositories.filter((githubItem) => githubItem.repository === gcalEventProperties.repository);
+      const onlySameDateTimeCommits = onlySameRepoCommits.filter((githubItem) => githubItem.commitDate === gcalEventProperties.commitDate);
+      const commitGithub = onlySameDateTimeCommits.find((githubItem) => this.parseGithubEmojisString(githubItem.commitMessage) === this.parseGithubEmojisString(gcalEventProperties.commitMessage));
 
       if (!commitGithub) {
         if (!this.config.options.maintanceMode) {
           const commitGcalEvent = this.getEventById(githubCalendar, gcalItem.id);
           this.removeCalendarEvent(githubCalendar, gcalItem);
-          githubSessionStats.addedCommits.push(commitGcalEvent);
+          githubSessionStats.deletedCommits.push(commitGcalEvent);
         }
 
-        this.logger(`commit ${gcalItem.extendedProperties.private.commitUrl} was deleted`);
+        this.logger(`commit ${gcalItem.extendedProperties.private.commitUrl} was deleted! | ${onlySameRepoCommits.length} | ${onlySameDateTimeCommits.length}`);
       }
     });
 

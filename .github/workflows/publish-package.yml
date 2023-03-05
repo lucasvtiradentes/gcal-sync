@@ -2,11 +2,7 @@ name: 'publish npm package'
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    types:
-      - closed
+    branches: [ master ]
 
 permissions:
   actions: write
@@ -37,7 +33,12 @@ jobs:
           echo " - destination branch    : ${{ github.ref }}"
           echo " - is pull request merged: ${{ github.event.pull_request.merged }}"
 
+  nodejs-ci:
+    needs: [info]
+    uses: lucasvtiradentes/gcal-sync/.github/workflows/reusable-nodejs-ci.yml@master
+
   publish:
+    needs: [nodejs-ci]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
