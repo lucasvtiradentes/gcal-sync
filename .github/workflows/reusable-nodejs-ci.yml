@@ -1,4 +1,4 @@
-name: Node.js CI
+name: reusable - node.js CI
 
 on:
   workflow_call:

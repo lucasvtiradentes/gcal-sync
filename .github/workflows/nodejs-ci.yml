@@ -1,4 +1,4 @@
-name: Node.js CI
+name: '1 - node.js CI'
 
 on:
   pull_request:
