@@ -7,49 +7,15 @@
 <div align="center">
   <a href="https://www.npmjs.com/package/gcal-sync"><img src="https://img.shields.io/npm/v/gcal-sync.svg?style=flat" alt="npm version"></a>
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/made%20with-node-1f425f?logo=node.js&.svg" /></a>
-  <a href="https://www.github.com/lucasvtiradentes/gcal-sync/commits/master"><img src="https://img.shields.io/github/last-commit/lucasvtiradentes/gcal-sync?color=green&label=updated"></a>
-  <br>
-  <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
-  <a href="https://www.github.com/lucasvtiradentes"><img src="https://img.shields.io/badge/maintainer-%40lucasvtiradentes-yellow"></a>
   <a href="https://github.com/lucasvtiradentes/gcal-sync#contributing"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions" /></a>
+  <br>
+  <a href="https://github.com/semantic-release/semantic-release"><img src="https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg?style=flat-square" alt="semantic-release"/></a>
+  <a href="https://gitmoji.dev"><img src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67.svg?style=flat-square" alt="Gitmoji" /></a>
 </div>
 
 <p align="center">
-  <a href="#dart-features">Features</a> • <a href="#warning-requirements">Requirements</a> • <a href="#bulb-usage">Usage</a> • <a href="#wrench-development">Development</a> • <a href="#pray-help">Help</a> • <a href="#books-about">About</a> • <a href="#family-community">Community</a>
+  <a href="#dart-features">Features</a> • <a href="#warning-requirements">Requirements</a> • <a href="#bulb-usage">Usage</a> • <a href="#wrench-development">Development</a> • <a href="#books-about">About</a> • <a href="#family-community">Community</a>
 </p>
-
-<details>
-  <summary align="center"><span>see <b>all badges</b></span></summary>
-  <p align="center">
-    <br>
-    <a href="#"><img src="https://img.shields.io/badge/maintained%3F-yes-green.svg" alt="maintance" /></a>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/graphs/contributors"><img src="https://img.shields.io/github/contributors/lucasvtiradentes/gcal-sync.svg" /></a>
-    <br>
-    <a href="#"><img src="https://badges.frapsoft.com/os/v2/open-source.svg?v=103"></a>
-    <a href="https://saythanks.io/to/lucasvtiradentes"><img src="https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg"></a>
-    <a href="#"><img src="https://img.shields.io/github/sponsors/lucasvtiradentes?label=Github%20Sponsors" /></a>
-  </p>
-  <p align="center">
-    <br>
-    <a href="https://github.com/commitizen/cz-cli"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg?style=flat-square" alt="commitzen" /></a>
-    <a href="https://gitmoji.dev"><img src="https://img.shields.io/badge/gitmoji-%20😜%20😍-FFDD67.svg?style=flat-square" alt="Gitmoji" /></a>
-    <a href="https://github.com/semantic-release/semantic-release"><img src="https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg?style=flat-square" alt="semantic-release"/></a>
-    <br>
-    <a href="https://git-scm.com/"><img src="https://badgen.net/badge/icon/git?icon=git&label"></a>
-    <a href="https://github.com/"><img src="https://badgen.net/badge/icon/github?icon=github&label"></a>
-    <a href="https://www.typescriptlang.org/"><img src="https://badgen.net/badge/icon/typescript?icon=typescript&label"></a>
-  </p>
-  <p align="center">
-    <br>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/releases"><img src="https://img.shields.io/github/v/release/lucasvtiradentes/gcal-sync.svg" /></a>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/tags" target="_blank"><img src="https://img.shields.io/github/tag/lucasvtiradentes/gcal-sync.svg" alt="GitHub tag (latest SemVer)"></a>
-    <br>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/pulls" target="_blank"><img src="https://badgen.net/github/prs/lucasvtiradentes/gcal-sync?label=open%20PR" alt="GitHub"></a>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/commits/master" target="_blank"><img src="https://badgen.net/github/commits/lucasvtiradentes/gcal-sync" alt="GitHub"></a>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/issues"><img src="https://img.shields.io/github/issues-raw/lucasvtiradentes/gcal-sync" /></a>
-    <a href="https://github.com/lucasvtiradentes/gcal-sync/issues?q=is%3Aissue+is%3Aclosed"><img src="https://img.shields.io/github/issues-closed-raw/lucasvtiradentes/gcal-sync" /></a>
-  </p>
-</details>
 
 <details>
   <summary align="center"><span>see <b>table of content</b></span></summary>
@@ -70,17 +36,7 @@
         <a href="#wrench-development">Development</a>
         <ul>
           <li><a href="#development-setup">Development setup</a></li>
-          <li><a href="#folders-and-files-structure">Folders and files structure</a></li>
           <li><a href="#used-technologies">Used technologies</a></li>
-          <li><a href="#code-style">Code style</a></li>
-          <li><a href="#commit-messages-style">Commit messages style</a></li>
-        </ul>
-      </li>
-      <li>
-        <a href="#pray-help">Help</a>
-        <ul>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#docs-and-support">Docs and support</a></li>
         </ul>
       </li>
       <li>
@@ -95,7 +51,6 @@
         <ul>
           <li><a href="#contributing">Contributing</a></li>
           <li><a href="#feedback">Feedback</a></li>
-          <li><a href="#acknowledgements">Acknowledgements</a></li>
         </ul>
       </li>
     </ul>
@@ -297,44 +252,9 @@ function getGcalSync(){
 }
 ```
 
-### Folders and files structure
-
-The project has the following folder strucure:
-
-```plain
-|-- .github         # contains CI-CD workflows, github templates, DOCS and images.
-|-- .husky          # contains git hooks configurations files.
-|-- .vscode         # contains vscode settings for this project.
-|-- dist            # (dev only) build folder
-|-- docs            # documentation folder
-|-- node_modules    # (dev only) dependencies folder
-|-- scripts         # scripts to help development
-|-- src             # application source code
-```
-
-and the filles present in root folder are the following:
-
-```plain
-.czrc                 # commitizen settings
-.editorconfig         # editorconfig settings
-.eslintignore         # eslint ignored items
-.eslintrc.json        # eslint settings
-.gitignore            # git ignored items
-.lintstagedrc         # lintstaged settings
-.npmignore            # npm package ignored items
-.prettierignore       # prettier ignored items
-.prettierrc.json      # prettier settings
-commitlint.config.js  # commitlint settings
-LICENSE               # application license
-package.json          # project specifications
-README.md             # project description markdown file
-release.config.js     # ci-cd npm package deployment configs
-tsconfig.json         # typescript settings
-```
-
 ### Used technologies
 
-gcal-sync uses the following thechnologies:
+this project uses the following thechnologies:
 
 <div align="center">
   <table>
@@ -382,67 +302,6 @@ gcal-sync uses the following thechnologies:
   </table>
 </div>
 
-And also this project used the following packages:
-
-```plain
-# DEV DEPENDENCIES (skiped @types/*)
-
-- semantic-release                   # semantic-release packages
-- @semantic-release/changelog
-- @semantic-release/commit-analyzer
-- @semantic-release/git
-- @semantic-release/release-notes-generator
-
-- @commitlint/cli                    # commitlint packages
-- @commitlint/config-conventional
-
-- commitizen                         # commitzen packages
-- commitizen-emoji
-
-- prettier                           # code styling packages
-- eslint
-- lint-staged
-- eslint-config-prettier
-- eslint-plugin-prettier
-- @typescript-eslint/eslint-plugin
-- @typescript-eslint/parser
-
-- husky                              # git hooks automation;
-- minify                             # minify files
-- rimraf                             # crossref delete files/folder
-- ts-node                            # typescript runner;
-- typescript                         # javascript superset tool;
-```
-
-### Code style
-
-There's not a named convention used in this project (like [airbnb](https://github.com/airbnb/javascript), for instance), instead we specified he settings we like the most in prettier. You can check these settings in the [.prettierrc](./.prettierrc.json) file.
-
-### Commit messages style
-
-This project uses the best of two main conventions to commit messages validation:
-
-- [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/): it's powerfull messages structure;
-- [gitmoji](https://gitmoji.dev/): it's beutiful and visual way to display commits.
-
-So a typically valid commit message has this pattern:
-
-> 🔧 config: add lint-staged to the project (#2)
-
-<a href="#"><img src="./.github/images/divider.png" /></a>
-
-## :pray: Help<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
-
-## FAQ
-
-You can check our most common questions and awnsers in this [link](./docs/FAQ.MD).
-
-## Docs and support
-
-The first point of call should be our [Github discussions](https://github.com/lucasvtiradentes/gcal-sync/discussions).
-Ask your questions about bugs or specific use cases, and someone I will respond as soon as possible.
-Or, if you prefer, [open an issue](https://github.com/lucasvtiradentes/gcal-sync/issues) on our GitHub repo.
-
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
 ## :books: About<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
@@ -482,10 +341,6 @@ Any questions or suggestions? You are welcome to discuss it on:
 
 - [Github issues](https://github.com/lucasvtiradentes/gcal-sync/issues)
 - [Email](mailto:lucasvtiradentes@gmail.com)
-
-## Acknowledgements
-
-This is a [@lucasvtiradentes's](https://github.com/lucasvtiradentes) project to `return some value to the world` after years of consuming a lot of useful tools provided by this `amazing open source community`.
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
