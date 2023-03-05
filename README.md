@@ -222,35 +222,34 @@ After download it, go to the project folder and run these commands:
 $ npm install
 ```
 
-If you want to contribute to the project, after you make the necessary changes, you can load your work in apps scripts with almost no effort, by pushing your code to a repository and then add the following code to the apps script:
+If you want to contribute to the project, fork the project, make the necessary changes, and to test your work you can load your version in apps scripts with almost no effort: add the following code to the apps script:
 
 ```js
-function getGcalSyncContent(mode){
-
-  if (mode === 'production'){
-    const version = "1.5.0" // version
-    return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
-  } else if (mode === 'development'){
-    const repository = "lucasvtiradentes/gcal-sync" // remember to update this
-    const filePath = "dist/GcalSync.min.js"
-    const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}`
-    const response = UrlFetchApp.fetch(final_link, {'method' : 'get', 'contentType': 'application/json'})
-    const base64Content = JSON.parse(response.toString()).content
-    const decodedArr = Utilities.base64Decode(base64Content);
-    const decodedAsString = Utilities.newBlob(decodedArr).getDataAsString()
-    return decodedAsString
-  }
-
-  return ''
-
-}
-
 function getGcalSync(){
   ...
-  const gcalSyncContent = getGcalSyncContent('development') // 'production'
+  const gcalSyncContent = getGcalSyncDevelopment('develop')
+  // const gcalSyncContent = getGcalSyncProduction()
   ...
 }
+
+function getGcalSyncProduction(){
+  const version = "1.5.0" // version
+  return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
+}
+
+function getGcalSyncDevelopment(branch){
+  const repository = "lucasvtiradentes/gcal-sync" // change to your user/repository
+  const filePath = "dist/GcalSync.min.js"
+  const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}${branch ? `?ref=${branch}` : ''}`
+  const response = UrlFetchApp.fetch(final_link, {'method' : 'get', 'contentType': 'application/json'})
+  const base64Content = JSON.parse(response.toString()).content
+  const decodedArr = Utilities.base64Decode(base64Content);
+  const decodedAsString = Utilities.newBlob(decodedArr).getDataAsString()
+  return decodedAsString
+}
 ```
+
+This will make you be able to change the loaded gcal-sync version.
 
 ### Used technologies
 
@@ -351,7 +350,7 @@ Any questions or suggestions? You are welcome to discuss it on:
     <a target="_blank" href="https://discord.com/users/262326726892191744"><img src="https://img.shields.io/badge/discord-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
     <a target="_blank" href="https://github.com/lucasvtiradentes/"><img src="https://img.shields.io/badge/github-gray?logo=github&logoColor=white" alt="Github"></a>
   </p>
-  <p>Made with ❤️ by Lucas Vieira.</p>
+  <p>Made with ❤️ by <b>Lucas Vieira</b></p>
   <p>👉 See also all <a href="https://github.com/lucasvtiradentes/lucasvtiradentes/blob/master/portfolio/PROJECTS.md#TOC">my projects</a></p>
-  <p>👉 See also all <a href="https://github.com/lucasvtiradentes/my-tutorials#readme">my articles</a></p>
+  <p>👉 See also all <a href="https://github.com/lucasvtiradentes/my-tutorials/blob/master/README.md#TOC">my articles</a></p>
 </div>

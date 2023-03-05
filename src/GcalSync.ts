@@ -476,7 +476,7 @@ class GcalSync {
   /* GOOGLE CALENDAR - EVENTS =========================== */
 
   private getEventsFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar) {
-    const allEvents = this.getGoogleCalendarObj().Events.list(calendar.id, {}).items;
+    const allEvents = this.getGoogleCalendarObj().Events.list(calendar.id, { maxResults: 2500 }).items;
     const parsedEventsArr = allEvents.map((ev) => this.parseGoogleEvent(ev));
     return parsedEventsArr;
   }
@@ -519,7 +519,6 @@ class GcalSync {
   private moveEventToOtherCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent, newCalendar: GoogleAppsScript.Calendar.Schema.Calendar) {
     this.removeCalendarEvent(calendar, event);
     const newEvent = this.addEventToCalendar(newCalendar, event);
-    // this.getGoogleCalendarObj().Events.move(calendar.id, event.id, newCalendar.id);
     return newEvent;
   }
 
@@ -747,8 +746,7 @@ class GcalSync {
       const taskCalendar = cur;
       const calendar = this.getCalendarByName(taskCalendar);
       const tasksArray = this.getEventsFromCalendar(calendar);
-      acc = [].concat.apply(acc, tasksArray);
-      return acc;
+      return [...acc, ...tasksArray];
     }, []);
 
     return tasks;
@@ -770,12 +768,11 @@ class GcalSync {
 
     const githubCalendar = this.getCalendarByName(this.config.githubSync.googleCalendar);
     const allCommitsInGoogleCalendar = this.getTasksFromGoogleCalendars([this.config.githubSync.googleCalendar]);
-
     const allCommitsInGithub = this.getAllGithubCommits();
 
     const parsedCommits = allCommitsInGithub.map((it) => {
       const commitObj: ParsedGithubCommit = {
-        commitDate: it.commit.committer.date,
+        commitDate: it.commit.author.date,
         commitMessage: it.commit.message.split('\n')[0],
         commitId: it.html_url.split('commit/')[1],
         commitUrl: it.html_url,
@@ -790,18 +787,17 @@ class GcalSync {
       return commitObj;
     });
 
-    const filteredCommitsByRepository = parsedCommits.filter((item) => {
-      const itemSearch = item.repository.search(this.config.githubSync.username);
-      return itemSearch > -1;
-    });
+    const filteredCommitsByRepository = parsedCommits.filter((item) => item.repository.search(this.config.githubSync.username) > -1);
+    const onlyValidRepositories = filteredCommitsByRepository.filter((githubItem) => this.config.githubSync.ignoredRepos.includes(githubItem.repositoryName) === false);
 
-    filteredCommitsByRepository.forEach((githubItem) => {
-      const gcalEvent = allCommitsInGoogleCalendar.find((gcalItem) => gcalItem.extendedProperties.private.commitId === githubItem.commitId);
+    onlyValidRepositories.forEach((githubItem) => {
+      const onlySameRepoCommits = allCommitsInGoogleCalendar.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubItem.repository);
+      const onlySameDateTimeCommits = onlySameRepoCommits.filter((gcalItem) => gcalItem.extendedProperties.private.commitDate === githubItem.commitDate);
+      const gcalEvent = onlySameDateTimeCommits.find((gcalItem) => this.parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage) === this.parseGithubEmojisString(githubItem.commitMessage));
 
-      const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(githubItem.commitMessage) : githubItem.commitMessage;
-      const isIgnoredRepo = this.config.githubSync.ignoredRepos.includes(githubItem.repositoryName);
+      if (!gcalEvent) {
+        const commitMessage = this.config.githubSync.parseGithubEmojis ? this.parseGithubEmojisString(githubItem.commitMessage) : githubItem.commitMessage;
 
-      if (!gcalEvent && !isIgnoredRepo) {
         const extendProps: GcalPrivateGithub = {
           commitDate: githubItem.commitDate,
           commitMessage: commitMessage,
@@ -837,16 +833,19 @@ class GcalSync {
       }
     });
 
-    this.getEventsFromCalendar(githubCalendar).forEach((item) => {
-      const commitGithub = filteredCommitsByRepository.find((commit) => commit.commitUrl === item.extendedProperties.private.commitUrl);
+    this.getEventsFromCalendar(githubCalendar).forEach((gcalItem) => {
+      const onlySameRepoCommits = onlyValidRepositories.filter((githubItem) => githubItem.repository === gcalItem.extendedProperties.private.repository);
+      const onlySameDateTimeCommits = onlySameRepoCommits.filter((githubItem) => githubItem.commitDate === gcalItem.extendedProperties.private.commitDate);
+      const commitGithub = onlySameDateTimeCommits.find((githubItem) => this.parseGithubEmojisString(githubItem.commitMessage) === this.parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage));
+
       if (!commitGithub) {
         if (!this.config.options.maintanceMode) {
-          const commitGcalEvent = this.getEventById(githubCalendar, item.id);
-          this.removeCalendarEvent(githubCalendar, item);
+          const commitGcalEvent = this.getEventById(githubCalendar, gcalItem.id);
+          this.removeCalendarEvent(githubCalendar, gcalItem);
           githubSessionStats.addedCommits.push(commitGcalEvent);
         }
 
-        this.logger(`commit ${item.extendedProperties.private.commitUrl} was deleted`);
+        this.logger(`commit ${gcalItem.extendedProperties.private.commitUrl} was deleted`);
       }
     });
 
