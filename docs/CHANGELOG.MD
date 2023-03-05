@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.5.2](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.5.1...v1.5.2) (2023-03-05)
+
+
+### 🐛 bugfix:
+
+* github delete commits sync ([#68](https://github.com/lucasvtiradentes/gcal-sync/issues/68)) ([5b067d2](https://github.com/lucasvtiradentes/gcal-sync/commit/5b067d2a97f4326cfa5438cc6d7237ced4485741))
+
 ## [1.5.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.5.0...v1.5.1) (2023-03-05)
 
 
