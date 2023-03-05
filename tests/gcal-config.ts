@@ -1,14 +1,14 @@
 export const gcalSyncConfig = {
   ticktickSync: {
     icsCalendars: [
-      ['webcal://ticktick.com/5bm/basic.ics', 'tick_fun', 'tick_done', { tag: '#LAZER' }],
-      ['webcal://ticktick.com/jlu/basic.ics', 'tick_imp', 'tick_done', { tag: '#IMP' }],
-      ['webcal://ticktick.com/amw/basic.ics', 'tick_tasks', 'tick_done', { ignoredTags: ['#LAZER', '#IMP'] }]
+      ['webcal://ticktick.com/123/basic.ics', 'tick_fun', 'tick_done', { tag: '#FUN' }],
+      ['webcal://ticktick.com/321/basic.ics', 'tick_imp', 'tick_done', { tag: '#IMP' }],
+      ['webcal://ticktick.com/132/basic.ics', 'tick_tasks', 'tick_done', { ignoredTags: ['#FUN', '#IMP'] }]
     ],
     syncTicktick: true
   },
   githubSync: {
-    username: 'lucasvtiradentes',
+    username: 'yourgithubusername',
     googleCalendar: 'gh_commits',
     personalToken: '',
     ignoredRepos: [],

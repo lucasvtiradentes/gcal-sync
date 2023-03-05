@@ -5,12 +5,15 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
   const DIST_FILE = `./dist/GcalSync.js`;
   const VERSION_UPDATE = `// version`;
 
+  // replace current version in all files
   const packageJson = JSON.parse(readFileSync('./package.json', { encoding: 'utf8' }));
-
   replaceFileContent(DIST_FILE, VERSION_UPDATE, `this.VERSION = '${packageJson.version}'; ${VERSION_UPDATE}`);
   replaceFileContent(`./README.md`, VERSION_UPDATE, `const version = "${packageJson.version}" ${VERSION_UPDATE}`);
 
+  // minify dist file
   await minifyFile(DIST_FILE, DIST_FILE.replace(`js`, `min.js`));
+
+  // delete original dist file
   unlinkSync(DIST_FILE);
 })();
 
