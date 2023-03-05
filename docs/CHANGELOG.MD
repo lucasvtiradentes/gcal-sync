@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.5.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.5.0...v1.5.1) (2023-03-05)
+
+
+### 🐛 bugfix:
+
+* github syncing bug ([#66](https://github.com/lucasvtiradentes/gcal-sync/issues/66)) ([e5424fa](https://github.com/lucasvtiradentes/gcal-sync/commit/e5424fa6c950c3c2c428aa9a4c9303a098bde603))
+
 ## [1.5.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.4.0...v1.5.0) (2023-02-25)
 
 
