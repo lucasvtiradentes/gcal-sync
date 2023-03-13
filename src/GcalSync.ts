@@ -164,10 +164,10 @@ class GcalSync {
   ERRORS = {
     productionOnly: 'This method cannot run in non-production environments',
     mustSpecifyConfig: 'You must specify the settings when starting the class',
-    incorrectIcsCalendar: 'The provided ics/ical URL is incorrect: ',
-    httpsError: 'There was a HTTP error when accessing: ',
-    invalidGithubToken: 'You provided a invalid github token',
-    invalidGithubUsername: 'You provided a invalid github username'
+    incorrectIcsCalendar: 'The link you provided is not a valid ICS calendar: ',
+    httpsError: 'You provided an invalid ICS calendar link: ',
+    invalidGithubToken: 'You provided an invalid github token',
+    invalidGithubUsername: 'You provided an invalid github username'
   };
 
   constructor(config: Config) {
@@ -256,18 +256,17 @@ class GcalSync {
   /* ICS CALENDARS FUNCTIONS ================================================ */
 
   private getIcsCalendarStr(icsCalendarLink: IcsCalendarLink) {
-    let icalStr = '';
-
     const url = icsCalendarLink.replace('webcal://', 'https://');
     const urlResponse = this.getGoogleFetch().fetch(url, { validateHttpsCertificates: false, muteHttpExceptions: true });
-    if (urlResponse.getResponseCode() == 200) {
-      icalStr = urlResponse.getContentText();
 
-      if (icalStr.search('BEGIN:VCALENDAR') === -1) {
-        throw new Error(this.ERRORS.incorrectIcsCalendar + url);
-      }
-    } else {
+    if (urlResponse.getResponseCode() !== 200) {
       throw new Error(this.ERRORS.httpsError + url);
+    }
+
+    const icalStr = urlResponse.getContentText() || '';
+
+    if (icalStr.search('BEGIN:VCALENDAR') === -1) {
+      throw new Error(this.ERRORS.incorrectIcsCalendar + url);
     }
 
     return icalStr;
@@ -453,7 +452,7 @@ class GcalSync {
   }
 
   private createCalendar(calName: string) {
-    const callendarObj = this.getGoogleCalendarObj();
+    const calendarObj = this.getGoogleCalendarObj();
     const doesCalendarExists = this.getAllOwnedCalendars()
       .map((cal) => cal.summary)
       .includes(calName);
@@ -462,20 +461,20 @@ class GcalSync {
       throw new Error(`calendar ${calName} already exists!`);
     }
 
-    const tmpCalendar = callendarObj.newCalendar();
+    const tmpCalendar = calendarObj.newCalendar();
     tmpCalendar.summary = calName;
-    tmpCalendar.timeZone = callendarObj.Settings.get('timezone').value;
+    tmpCalendar.timeZone = calendarObj.Settings.get('timezone').value;
 
-    const calendar = callendarObj.Calendars.insert(tmpCalendar);
+    const calendar = calendarObj.Calendars.insert(tmpCalendar);
     return calendar;
   }
 
   private deleteCalendar(calName: string) {
-    const callendarObj = this.getGoogleCalendarObj();
+    const calendarObj = this.getGoogleCalendarObj();
     const calendar = this.getCalendarByName(calName);
 
     if (calendar) {
-      callendarObj.Calendars.remove(calendar.id);
+      calendarObj.Calendars.remove(calendar.id);
       this.logger(`deleted calendar ${calendar.summary}`);
     }
   }
