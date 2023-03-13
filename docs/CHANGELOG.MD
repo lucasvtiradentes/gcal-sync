@@ -1,5 +1,13 @@
 # CHANGELOG HISTORY
 
+## [1.6.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.5.2...v1.6.0) (2023-03-13)
+
+
+### ✨ feature:
+
+* add a confirmation step in github sync ([#70](https://github.com/lucasvtiradentes/gcal-sync/issues/70)) ([8ccdfa4](https://github.com/lucasvtiradentes/gcal-sync/commit/8ccdfa4a548db337a42a2e07049bcba19253dd85))
+* send error emails ([#72](https://github.com/lucasvtiradentes/gcal-sync/issues/72)) ([cce494a](https://github.com/lucasvtiradentes/gcal-sync/commit/cce494ad19ec70eaa38c84b10169e0cf35f914ba))
+
 ## [1.5.2](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.5.1...v1.5.2) (2023-03-05)
 
 
