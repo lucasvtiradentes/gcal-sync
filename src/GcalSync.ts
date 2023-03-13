@@ -1236,6 +1236,34 @@ class GcalSync {
     this.logger(`summary email was sent to ${this.config.userData.email}`);
   }
 
+  sendErrorEmail(errorMessage: string) {
+    if (!this.config.options.emailErrors || !errorMessage) {
+      return;
+    }
+    this.logger(`an error occurred: `);
+    this.logger(errorMessage);
+
+    const content = `Hi!
+    <br/><br/>
+    an error recently occurred: <br/><br/>
+    <b>${errorMessage}</b>
+    <br /><br />
+    Regards,
+    your <a href='https://github.com/${this.GITHUB_REPOSITORY}'>${this.APPNAME}</a> bot
+  `;
+
+    const message = {
+      to: this.config.userData.email,
+      name: `${this.APPNAME}`,
+      subject: `an error occurred - ${this.APPNAME}`,
+      htmlBody: content
+    };
+
+    this.sendEmail(message);
+
+    this.logger(`error email was sent to ${this.config.userData.email}`);
+  }
+
   /* EMAIL HELPER FUNCTIONS ====================== */
 
   private parseGcalVersion(v: string) {
