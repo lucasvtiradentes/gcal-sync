@@ -165,7 +165,9 @@ class GcalSync {
     productionOnly: 'This method cannot run in non-production environments',
     mustSpecifyConfig: 'You must specify the settings when starting the class',
     incorrectIcsCalendar: 'The provided ics/ical URL is incorrect: ',
-    httpsError: 'There was a HTTP error when accessing: '
+    httpsError: 'There was a HTTP error when accessing: ',
+    invalidGithubToken: 'You provided a invalid github token',
+    invalidGithubUsername: 'You provided a invalid github username'
   };
 
   constructor(config: Config) {
@@ -866,8 +868,29 @@ class GcalSync {
 
     while (shouldBreak === false) {
       const url = `https://api.github.com/search/commits?q=author:${this.config.githubSync.username}&page=${pageNumber}&sort=committer-date&per_page=100`;
-      const response = this.config.githubSync.personalToken !== '' ? this.getGoogleFetch().fetch(url, { headers: { Authorization: `Bearer ${this.config.githubSync.personalToken}` } }) : this.getGoogleFetch().fetch(url);
+
+      let response: GoogleAppsScript.URL_Fetch.HTTPResponse;
+
+      if (this.config.githubSync.personalToken !== '') {
+        response = this.getGoogleFetch().fetch(url, { muteHttpExceptions: true, headers: { Authorization: `Bearer ${this.config.githubSync.personalToken}` } });
+      } else {
+        response = this.getGoogleFetch().fetch(url, { muteHttpExceptions: true });
+      }
+
       const data = JSON.parse(response.getContentText()) ?? {};
+
+      if (response.getResponseCode() !== 200) {
+        if (data.message === 'Validation Failed') {
+          throw new Error(this.ERRORS.invalidGithubUsername);
+        }
+
+        if (data.message === 'Bad credentials') {
+          throw new Error(this.ERRORS.invalidGithubToken);
+        }
+
+        throw new Error(data.message);
+      }
+
       const commits = data.items;
 
       if (commits.length === 0) {
