@@ -15,7 +15,6 @@ type CalendarItem = [IcsCalendarLink, IcsTaskGcal, IcsCompletedTaskGcal, Calenda
 type Config = {
   ticktickSync: {
     icsCalendars: CalendarItem[];
-    syncTicktick: boolean;
   };
   githubSync: {
     username: string;
@@ -23,21 +22,25 @@ type Config = {
     personalToken: string;
     ignoredRepos: string[];
     parseGithubEmojis: boolean;
-    syncGithub: boolean;
   };
-  notifications: {
+  userData: {
     email: string;
     dailyEmailsTime: string;
     timeZoneCorrection: number;
+  };
+  options: {
+    syncTicktick: boolean;
+    syncGithub: boolean;
+    showLogs: boolean;
+    maintanceMode: boolean;
     emailDailySummary: boolean;
     emailNewRelease: boolean;
     emailSession: boolean;
+    emailErrors: boolean;
   };
-  options: {
+  settings: {
     syncFunction: string;
     updateFrequency: number;
-    showLogs: boolean;
-    maintanceMode: boolean;
   };
 };
 
@@ -146,7 +149,7 @@ class GcalSync {
   VERSION = ''; // version
   APPNAME = 'gcal-sync';
   GITHUB_REPOSITORY = 'lucasvtiradentes/gcal-sync';
-  TODAY_DATE = new Date().toISOString().split('T')[0];
+  TODAY_DATE = '';
   ENVIRONMENT = this.detectEnvironment();
   EVENTS_DIVIDER = ` | `;
   APPS_SCRIPTS_PROPERTIES = {
@@ -168,6 +171,7 @@ class GcalSync {
   constructor(config: Config) {
     this.validateConfigs(config);
     this.config = config;
+    this.TODAY_DATE = this.getDateFixedByTimezone(this.config.userData.timeZoneCorrection).toISOString().split('T')[0];
 
     this.logger(`${this.APPNAME} is running at version ${this.VERSION} in ${this.ENVIRONMENT} environment`);
     this.logger(`check the docs for your version here: ${`https://github.com/${this.GITHUB_REPOSITORY}/tree/v${this.VERSION}#readme`}`);
@@ -179,11 +183,12 @@ class GcalSync {
     }
 
     const validationArr = [
-      { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'notifications', 'options'], name: 'configs' },
-      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars', 'syncTicktick'], name: 'configs.ticktickSync' },
-      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'personalToken', 'ignoredRepos', 'syncGithub', 'parseGithubEmojis'], name: 'configs.githubSync' },
-      { objToCheck: config.notifications, requiredKeys: ['email', 'dailyEmailsTime', 'timeZoneCorrection', 'emailNewRelease', 'emailDailySummary', 'emailSession'], name: 'configs.notifications' },
-      { objToCheck: config.options, requiredKeys: ['syncFunction', 'updateFrequency', 'showLogs', 'maintanceMode'], name: 'configs.options' }
+      { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'userData', 'options', 'settings'], name: 'configs' },
+      { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars'], name: 'configs.ticktickSync' },
+      { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'personalToken', 'ignoredRepos', 'parseGithubEmojis'], name: 'configs.githubSync' },
+      { objToCheck: config.userData, requiredKeys: ['email', 'dailyEmailsTime', 'timeZoneCorrection'], name: 'configs.notifications' },
+      { objToCheck: config.options, requiredKeys: ['syncTicktick', 'syncGithub', 'showLogs', 'maintanceMode', 'emailNewRelease', 'emailDailySummary', 'emailSession', 'emailErrors'], name: 'configs.options' },
+      { objToCheck: config.settings, requiredKeys: ['syncFunction', 'updateFrequency'], name: 'config.settings' }
     ];
 
     validationArr.forEach((item) => {
@@ -237,7 +242,7 @@ class GcalSync {
   }
 
   private isCurrentTimeAfter(timeToCompare: string) {
-    const dateFixedByTimezone = this.getDateFixedByTimezone(this.config.notifications.timeZoneCorrection);
+    const dateFixedByTimezone = this.getDateFixedByTimezone(this.config.userData.timeZoneCorrection);
     const curStamp = Number(dateFixedByTimezone.getHours()) * 60 + Number(dateFixedByTimezone.getMinutes());
 
     const timeArr = timeToCompare.split(':');
@@ -558,15 +563,15 @@ class GcalSync {
   /* GCALSYNC - SETUP / REMOVE ============================================== */
 
   installGcalSync() {
-    this.removeAppsScriptsTrigger(this.config.options.syncFunction);
-    this.addAppsScriptsTrigger(this.config.options.syncFunction, this.config.options.updateFrequency);
+    this.removeAppsScriptsTrigger(this.config.settings.syncFunction);
+    this.addAppsScriptsTrigger(this.config.settings.syncFunction, this.config.settings.updateFrequency);
     this.createMissingAppsScriptsProperties();
 
-    this.logger(`${this.APPNAME} was set to run ${this.config.options.syncFunction} every ${this.config.options.updateFrequency} minutes`);
+    this.logger(`${this.APPNAME} was set to run ${this.config.settings.syncFunction} every ${this.config.settings.updateFrequency} minutes`);
   }
 
   uninstallGcalSync() {
-    this.removeAppsScriptsTrigger(this.config.options.syncFunction);
+    this.removeAppsScriptsTrigger(this.config.settings.syncFunction);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks);
     this.removeAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks);
@@ -652,7 +657,7 @@ class GcalSync {
     const sessionUpdatedEventsQuantity = ticktickSessionStats.updatedEvents.length;
     const sessionCompletedEventsQuantity = ticktickSessionStats.completedEvents.length;
 
-    if (this.config.ticktickSync.syncTicktick) {
+    if (this.config.options.syncTicktick) {
       this.logger(`ticktick sync - added tasks    : ${sessionAddedEventsQuantity}`);
       this.logger(`ticktick sync - updated tasks  : ${sessionUpdatedEventsQuantity}`);
       this.logger(`ticktick sync - completed tasks: ${sessionCompletedEventsQuantity}`);
@@ -662,7 +667,7 @@ class GcalSync {
     const addedCommitsQuantity = githubSessionStats.addedCommits.length;
     const deletedCommitsQuantity = githubSessionStats.deletedCommits.length;
 
-    if (this.config.githubSync.syncGithub) {
+    if (this.config.options.syncGithub) {
       this.logger(`github sync   - added commits  : ${addedCommitsQuantity}`);
       this.logger(`github sync   - deleted commits: ${deletedCommitsQuantity}`);
     }
@@ -760,7 +765,7 @@ class GcalSync {
       deletedCommits: []
     };
 
-    if (!this.config.githubSync.syncGithub) {
+    if (!this.config.options.syncGithub) {
       return githubSessionStats;
     }
 
@@ -976,7 +981,7 @@ class GcalSync {
       completedEvents: []
     };
 
-    if (!this.config.ticktickSync.syncTicktick) {
+    if (!this.config.options.syncTicktick) {
       return sessionStats;
     }
 
@@ -1140,21 +1145,21 @@ class GcalSync {
   /* GCALSYNC - EMAIL ======================================================= */
 
   private sendAfterSyncEmails(curSession: SessionStats) {
-    if (this.config.notifications.emailSession) {
+    if (this.config.options.emailSession) {
       this.sendSessionEmail(curSession);
     }
 
     const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
 
-    if (this.isCurrentTimeAfter(this.config.notifications.dailyEmailsTime) && !alreadySentTodayEmails) {
+    if (this.isCurrentTimeAfter(this.config.userData.dailyEmailsTime) && !alreadySentTodayEmails) {
       this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
 
-      if (this.config.notifications.emailDailySummary) {
+      if (this.config.options.emailDailySummary) {
         this.sendDailySummaryEmail(this.getTodayEvents());
         this.cleanTodayEventsStats();
       }
 
-      if (this.config.notifications.emailNewRelease) {
+      if (this.config.options.emailNewRelease) {
         const latestRelease = this.getLatestGcalSyncRelease();
         const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
         const currentVersion = this.parseGcalVersion(this.VERSION);
@@ -1186,14 +1191,14 @@ class GcalSync {
     `;
 
     const emailObj = {
-      to: this.config.notifications.email,
+      to: this.config.userData.email,
       name: `${this.APPNAME}`,
       subject: `new version [${lastReleaseObj.tag_name}] was released - ${this.APPNAME}`,
       htmlBody: message
     };
 
     this.sendEmail(emailObj);
-    this.logger(`new release email was sent to ${this.config.notifications.email}`);
+    this.logger(`new release email was sent to ${this.config.userData.email}`);
   }
 
   private sendSessionEmail(sessionStats: SessionStats) {
@@ -1202,7 +1207,7 @@ class GcalSync {
       return;
     }
     const message = {
-      to: this.config.notifications.email,
+      to: this.config.userData.email,
       name: `${this.APPNAME}`,
       subject: `session report - ${this.getTotalSessionEvents(sessionStats)} modifications - ${this.APPNAME}`,
       htmlBody: content
@@ -1210,7 +1215,7 @@ class GcalSync {
 
     this.sendEmail(message);
 
-    this.logger(`session email was sent to ${this.config.notifications.email}`);
+    this.logger(`session email was sent to ${this.config.userData.email}`);
   }
 
   private sendDailySummaryEmail(todaySession: SessionStats) {
@@ -1220,7 +1225,7 @@ class GcalSync {
     }
 
     const message = {
-      to: this.config.notifications.email,
+      to: this.config.userData.email,
       name: `${this.APPNAME}`,
       subject: `daily report for ${this.TODAY_DATE} - ${this.getTotalSessionEvents(todaySession)} modifications - ${this.APPNAME}`,
       htmlBody: content
@@ -1228,7 +1233,7 @@ class GcalSync {
 
     this.sendEmail(message);
 
-    this.logger(`summary email was sent to ${this.config.notifications.email}`);
+    this.logger(`summary email was sent to ${this.config.userData.email}`);
   }
 
   /* EMAIL HELPER FUNCTIONS ====================== */
