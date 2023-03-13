@@ -123,9 +123,9 @@ function getGcalSync() {
   const configs = {
     ticktickSync: {
       icsCalendars: [
-        ['webcal://othercalendar1.ics', 'gcal_1', 'gcal_completed'], // everything will be synced
-        ['webcal://othercalendar2.ics', 'gcal_2', 'gcal_completed', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
-        ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
+        ['webcal://icscal1.ics', 'gcal_1', 'gcal_completed'],                             // everything will be synced
+        ['webcal://icscal2.ics', 'gcal_2', 'gcal_completed', { tag: '#FUN' }],            // everything will be synced, but marks all tasks with a label
+        ['webcal://icscal3.ics', 'gcal_all', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ]
     },
     githubSync: {
@@ -145,7 +145,7 @@ function getGcalSync() {
       syncGithub: true,             // option to sync github commits
       showLogs: true,               // show runtime information
       maintanceMode: false,         // option to not create, delete, update anything
-      emailNewRelease: true,        // email new version releases
+      emailNewRelease: true,        // email if there is a new version available
       emailDailySummary: true,      // email daily summary at a specified time
       emailSession: false,          // email sessions with modifications
       emailErrors: false            // email runtime errors
@@ -342,7 +342,7 @@ Another ways to positivily impact this project is to:
 - **:star: Star this repository**: my goal is to impact the maximum number of developers around the world;
 - ✍️ **Fix english mistakes** I might have made in this project, may it be in the DOCS or even in the code (I'm a portuguese natural speaker);
 - [:heart: Say thanks](https://saythanks.io/to/lucasvtiradentes): kind words have a huge impact in anyone's life;
-- [💰 Donate](https://github.com/lucasvtiradentes): if you want to support my work even more, consider make a small donation. I would be really happy!
+- [💰 Donate](https://github.com/sponsors/lucasvtiradentes): if you want to support my work even more, consider make a small donation. I would be really happy!
 
 ## Feedback
 
