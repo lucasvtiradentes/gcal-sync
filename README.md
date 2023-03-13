@@ -163,11 +163,6 @@ function getGcalSync() {
   return gcalSync;
 }
 
-function sync() {
-  const gcalSync = getGcalSync();
-  gcalSync.sync()
-}
-
 function setup() {
   const gcalSync = getGcalSync();
   gcalSync.installGcalSync();
@@ -178,7 +173,19 @@ function remove() {
   gcalSync.uninstallGcalSync();
 }
 
-// bellow function runs at every http request in the provided link
+function sync(){
+  let gcalSync;
+  try{
+    gcalSync = getGcalSync()
+    gcalSync.sync()
+  } catch(e){
+    if (gcalSync){
+      gcalSync.sendErrorEmail(e.message)
+    }
+  }
+}
+
+// bellow function runs at every http request in the generated link
 
 function doGet(e) {
   const gcalSync = getGcalSync()
