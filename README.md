@@ -126,30 +126,33 @@ function getGcalSync() {
         ['webcal://othercalendar1.ics', 'gcal_1', 'gcal_completed'], // everything will be synced
         ['webcal://othercalendar2.ics', 'gcal_2', 'gcal_completed', { tag: '#FUN' }], // everything will be synced, but marks all tasks with a label
         ['webcal://yourticktickcal.ics', 'gcal_all_tasks', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
-      ],
-      syncTicktick: true            // option to sync ticktick tasks
+      ]
     },
     githubSync: {
       username: "lucasvtiradentes", // github username
       googleCalendar: "gh_commits", // google calendar to isnert commits as events
       personalToken: '',            // github token, required if you want to sync private repo commits
       ignoredRepos: [],             // ignored repositories string array: ['repo1', 'repo2']
-      parseGithubEmojis: true,      // parse string emojis to emojis
-      syncGithub: true              // option to sync github commits
+      parseGithubEmojis: true       // parse string emojis to emojis
     },
-    notifications: {
+    userData: {
       email: 'youremail@gmail.com', // email to send reports
       dailyEmailsTime: '23:30',     // time to email the summary
-      timeZoneCorrection: -3,       // difference from utc time
-      emailNewRelease: true,        // email new version releases
-      emailDailySummary: true,      // email summary daily at a specified time
-      emailSession: true            // email sessions with modifications
+      timeZoneCorrection: -3        // difference from utc time
     },
     options: {
-      syncFunction: 'sync',         // function name to run every x minutes
-      updateFrequency: 5,           // wait time between sync checks
+      syncTicktick: true,           // option to sync ticktick tasks
+      syncGithub: true,             // option to sync github commits
       showLogs: true,               // show runtime information
-      maintanceMode: false          // option to not create, delete, update anything
+      maintanceMode: false,         // option to not create, delete, update anything
+      emailNewRelease: true,        // email new version releases
+      emailDailySummary: true,      // email daily summary at a specified time
+      emailSession: false,          // email sessions with modifications
+      emailErrors: false            // email runtime errors
+    },
+    settings: {
+      syncFunction: 'sync',         // function name to run every x minutes
+      updateFrequency: 5            // wait time between sync checks
     }
   };
 

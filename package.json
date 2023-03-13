@@ -24,7 +24,7 @@
     "pub:check": "npm publish --dry-run",
     "pub:build": "npm pack && tar -xvzf *.tgz",
     "postversion": "echo writing new version in the dist file && npm run build",
-    "dev": "ts-node ./tests/dev.ts",
+    "dev": "npm run build && ts-node ./tests/dev.ts",
     "test": "jest --passWithNoTests --verbose",
     "test:watch": "jest --passWithNoTests --watchAll",
     "test:staged": "jest --passWithNoTests --findRelatedTests",
