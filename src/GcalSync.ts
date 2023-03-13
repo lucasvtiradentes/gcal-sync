@@ -152,14 +152,19 @@ class GcalSync {
   TODAY_DATE = '';
   ENVIRONMENT = this.detectEnvironment();
   EVENTS_DIVIDER = ` | `;
+  GITHUB_REQUIRED_VALIDATIONS = 3; // it takes 'x' syncs with the same changed data in order to update in the google calendar
   APPS_SCRIPTS_PROPERTIES = {
+    lastReleasedVersionAlerted: 'lastReleasedVersionAlerted',
+    lastDailyEmailSentDate: 'lastDailyEmailSentDate',
     todayTicktickAddedTasks: 'todayTicktickAddedTasks',
     todayTicktickUpdateTasks: 'todayTicktickUpdateTasks',
     todayTicktickCompletedTasks: 'todayTicktickCompletedTasks',
     todayGithubAddedCommits: 'todayGithubAddedCommits',
     todayGithubDeletedCommits: 'todayGithubDeletedCommits',
-    lastReleasedVersionAlerted: 'lastReleasedVersionAlerted',
-    lastDailyEmailSentDate: 'lastDailyEmailSentDate'
+
+    githubCommitChangesCount: 'githubCommitChangesCount',
+    githubLastAddedCommits: 'githubLastAddedCommits',
+    githubLastDeletedCommits: 'githubLastDeletedCommits'
   };
   ERRORS = {
     productionOnly: 'This method cannot run in non-production environments',
@@ -167,7 +172,8 @@ class GcalSync {
     incorrectIcsCalendar: 'The link you provided is not a valid ICS calendar: ',
     httpsError: 'You provided an invalid ICS calendar link: ',
     invalidGithubToken: 'You provided an invalid github token',
-    invalidGithubUsername: 'You provided an invalid github username'
+    invalidGithubUsername: 'You provided an invalid github username',
+    abusiveGoogleCalendarApiUse: 'Due to the numerous operations in the last few hours, the google api is not responding.'
   };
 
   constructor(config: Config) {
@@ -568,7 +574,7 @@ class GcalSync {
     this.addAppsScriptsTrigger(this.config.settings.syncFunction, this.config.settings.updateFrequency);
     this.createMissingAppsScriptsProperties();
 
-    this.logger(`${this.APPNAME} was set to run ${this.config.settings.syncFunction} every ${this.config.settings.updateFrequency} minutes`);
+    this.logger(`${this.APPNAME} was set to run function "${this.config.settings.syncFunction}" every ${this.config.settings.updateFrequency} minutes`);
   }
 
   uninstallGcalSync() {
@@ -587,17 +593,13 @@ class GcalSync {
   /* GCALSYNC - PROPERTIES ================================================== */
 
   createMissingAppsScriptsProperties() {
-    if (!this.getAppsScriptsProperties().includes(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks)) {
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, '');
-      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastReleasedVersionAlerted, '');
-
-      this.logger(`added missing apps script properties`);
-    }
+    Object.keys(this.APPS_SCRIPTS_PROPERTIES).forEach((key) => {
+      const doesPropertyExist = this.getAppsScriptsProperties().includes(key);
+      if (!doesPropertyExist) {
+        this.logger(`created missing apps script property: ${key}`);
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES[key], '');
+      }
+    });
   }
 
   cleanTodayEventsStats() {
@@ -761,6 +763,23 @@ class GcalSync {
   /* GITHUB SYNC FUNCTIONS ======================= */
 
   private syncGihub() {
+    const resetProperties = () => {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount, '1');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits, '');
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits, '');
+    };
+
+    if (this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount) === '') {
+      resetProperties();
+    }
+
+    if (Number(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount)) > this.GITHUB_REQUIRED_VALIDATIONS) {
+      resetProperties();
+    }
+
+    const currentGithubSyncIndex = Number(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount));
+    this.logger(`checking commit changes: ${currentGithubSyncIndex}/${this.GITHUB_REQUIRED_VALIDATIONS}`);
+
     const githubSessionStats: GithubSessionStats = {
       addedCommits: [],
       deletedCommits: []
@@ -770,6 +789,7 @@ class GcalSync {
       return githubSessionStats;
     }
 
+    this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount, (Number(currentGithubSyncIndex) + 1).toString());
     this.createMissingGoogleCalendars([this.config.githubSync.googleCalendar]);
 
     const githubCalendar = this.getCalendarByName(this.config.githubSync.googleCalendar);
@@ -796,6 +816,8 @@ class GcalSync {
     const filteredCommitsByRepository = parsedCommits.filter((item) => item.repository.search(this.config.githubSync.username) > -1);
     const onlyValidRepositories = filteredCommitsByRepository.filter((githubItem) => this.config.githubSync.ignoredRepos.includes(githubItem.repositoryName) === false);
 
+    const addedTmpCommits: GoogleAppsScript.Calendar.Schema.Event[] = [];
+
     onlyValidRepositories.forEach((githubItem) => {
       const onlySameRepoCommits = allCommitsInGoogleCalendar.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubItem.repository);
       const onlySameDateTimeCommits = onlySameRepoCommits.filter((gcalItem) => gcalItem.extendedProperties.private.commitDate === githubItem.commitDate);
@@ -813,7 +835,7 @@ class GcalSync {
           repositoryId: githubItem.repositoryId,
           repositoryName: githubItem.repositoryName,
           repositoryOwner: githubItem.repositoryOwner,
-          repositoryDescription: githubItem.repositoryDescription
+          repositoryDescription: githubItem.repositoryDescription ?? ''
         };
 
         const taskEvent: GoogleEvent = {
@@ -830,14 +852,41 @@ class GcalSync {
           }
         };
 
-        if (!this.config.options.maintanceMode) {
-          const commitGcalEvent = this.addEventToCalendar(githubCalendar, taskEvent);
-          githubSessionStats.addedCommits.push(commitGcalEvent);
-        }
-
-        this.logger(`add commit to gcal: ${githubItem.repositoryName} - ${commitMessage}`);
+        addedTmpCommits.push(taskEvent);
+        this.logger(`detect a new commit to be added: ${githubItem.repositoryName} - ${commitMessage}`);
       }
     });
+
+    if (!this.config.options.maintanceMode) {
+      const curTmpAddedCommits = addedTmpCommits.map((event) => `${event.summary} - ${event.start.dateTime}`).join('\n');
+      if (currentGithubSyncIndex === 1) {
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits, curTmpAddedCommits);
+      } else {
+        const lastAddedCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits);
+        if (curTmpAddedCommits !== lastAddedCommits) {
+          this.logger(`reset github commit properties due differences in added commits`);
+          resetProperties();
+          return githubSessionStats;
+        }
+      }
+
+      if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
+        addedTmpCommits.forEach((event) => {
+          try {
+            const commitGcalEvent = this.addEventToCalendar(githubCalendar, event);
+            githubSessionStats.addedCommits.push(commitGcalEvent);
+            this.logger(`add new commit to gcal: ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
+          } catch (e: any) {
+            resetProperties();
+            throw new Error(e.message);
+          }
+        });
+      }
+    }
+
+    /* ---------------------------------------------------------------------- */
+
+    const deletedTmpCommits: GoogleAppsScript.Calendar.Schema.Event[] = [];
 
     this.getEventsFromCalendar(githubCalendar).forEach((gcalItem) => {
       const gcalEventProperties = gcalItem.extendedProperties.private as GcalPrivateGithub;
@@ -846,15 +895,44 @@ class GcalSync {
       const commitGithub = onlySameDateTimeCommits.find((githubItem) => this.parseGithubEmojisString(githubItem.commitMessage) === this.parseGithubEmojisString(gcalEventProperties.commitMessage));
 
       if (!commitGithub) {
-        if (!this.config.options.maintanceMode) {
-          const commitGcalEvent = this.getEventById(githubCalendar, gcalItem.id);
-          this.removeCalendarEvent(githubCalendar, gcalItem);
-          githubSessionStats.deletedCommits.push(commitGcalEvent);
-        }
-
-        this.logger(`commit ${gcalItem.extendedProperties.private.commitUrl} was deleted! | ${onlySameRepoCommits.length} | ${onlySameDateTimeCommits.length}`);
+        deletedTmpCommits.push(gcalItem);
+        this.logger(`detect a commit to be deleted in gcal: ${gcalItem.extendedProperties.private.repositoryName} - ${gcalItem.extendedProperties.private.commitMessage}`);
       }
     });
+
+    if (!this.config.options.maintanceMode) {
+      const curTmpDeletedCommits = deletedTmpCommits.map((event) => `${event.summary} - ${event.start.dateTime}`).join('\n');
+
+      if (currentGithubSyncIndex === 1) {
+        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits, curTmpDeletedCommits);
+      } else {
+        const lastDeletedCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits);
+        if (curTmpDeletedCommits !== lastDeletedCommits) {
+          this.logger(`reset github commit properties due differences in deleted commits`);
+          resetProperties();
+          return githubSessionStats;
+        }
+      }
+
+      if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
+        deletedTmpCommits.forEach((event) => {
+          const commitGcalEvent = this.getEventById(githubCalendar, event.id);
+          this.removeCalendarEvent(githubCalendar, event);
+          githubSessionStats.deletedCommits.push(commitGcalEvent);
+          this.logger(`deleted new commit to gcal: ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
+        });
+      }
+    }
+
+    if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
+      this.logger(`reset github commit properties since the changes were made`);
+      resetProperties();
+    }
+
+    if (addedTmpCommits.length + deletedTmpCommits.length === 0) {
+      this.logger(`reset github commit properties since there are no changes to track`);
+      resetProperties();
+    }
 
     return githubSessionStats;
   }
@@ -1088,8 +1166,16 @@ class GcalSync {
         };
 
         if (!this.config.options.maintanceMode) {
-          const addedGcalEvent = this.addEventToCalendar(taskCalendar, taskEvent);
-          addedTasks.push(addedGcalEvent);
+          try {
+            const addedGcalEvent = this.addEventToCalendar(taskCalendar, taskEvent);
+            addedTasks.push(addedGcalEvent);
+          } catch (e: any) {
+            if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
+              throw new Error(this.ERRORS.abusiveGoogleCalendarApiUse);
+            } else {
+              throw new Error(e.message);
+            }
+          }
         }
 
         this.logger(`ticktick task was added to gcal: ${taskEvent.summary}`);
