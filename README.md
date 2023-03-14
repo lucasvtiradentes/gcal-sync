@@ -135,20 +135,19 @@ function getGcalSync() {
       ignoredRepos: [],             // ignored repositories string array: ['repo1', 'repo2']
       parseGithubEmojis: true       // parse string emojis to emojis
     },
-    userData: {
-      email: 'youremail@gmail.com', // email to send reports
+    datetime: {
       dailyEmailsTime: '23:30',     // time to email the summary
       timeZoneCorrection: -3        // difference from utc time
     },
     options: {
       syncTicktick: true,           // option to sync ticktick tasks
       syncGithub: true,             // option to sync github commits
-      showLogs: true,               // show runtime information
-      maintanceMode: false,         // option to not create, delete, update anything
-      emailNewRelease: true,        // email if there is a new version available
-      emailDailySummary: true,      // email daily summary at a specified time
+      emailErrors: false,           // email runtime errors
       emailSession: false,          // email sessions with modifications
-      emailErrors: false            // email runtime errors
+      emailDailySummary: true,      // email daily summary at a specified time
+      emailNewRelease: true,        // email if there is a new version available
+      showLogs: true,               // show runtime information
+      maintanceMode: false          // option to not create, delete, update anything
     },
     settings: {
       syncFunction: 'sync',         // function name to run every x minutes

@@ -23,20 +23,19 @@ type Config = {
     ignoredRepos: string[];
     parseGithubEmojis: boolean;
   };
-  userData: {
-    email: string;
+  datetime: {
     dailyEmailsTime: string;
     timeZoneCorrection: number;
   };
   options: {
     syncTicktick: boolean;
     syncGithub: boolean;
-    showLogs: boolean;
-    maintanceMode: boolean;
+    emailErrors: boolean;
+    emailSession: boolean;
     emailDailySummary: boolean;
     emailNewRelease: boolean;
-    emailSession: boolean;
-    emailErrors: boolean;
+    showLogs: boolean;
+    maintanceMode: boolean;
   };
   settings: {
     syncFunction: string;
@@ -150,6 +149,7 @@ class GcalSync {
   APPNAME = 'gcal-sync';
   GITHUB_REPOSITORY = 'lucasvtiradentes/gcal-sync';
   TODAY_DATE = '';
+  USER_EMAIL = '';
   ENVIRONMENT = this.detectEnvironment();
   EVENTS_DIVIDER = ` | `;
   GITHUB_REQUIRED_VALIDATIONS = 3; // it takes 'x' syncs with the same changed data in order to update in the google calendar
@@ -179,7 +179,11 @@ class GcalSync {
   constructor(config: Config) {
     this.validateConfigs(config);
     this.config = config;
-    this.TODAY_DATE = this.getDateFixedByTimezone(this.config.userData.timeZoneCorrection).toISOString().split('T')[0];
+    this.TODAY_DATE = this.getDateFixedByTimezone(this.config.datetime.timeZoneCorrection).toISOString().split('T')[0];
+
+    if (this.ENVIRONMENT === 'production') {
+      this.USER_EMAIL = this.getUserEmail();
+    }
 
     this.logger(`${this.APPNAME} is running at version ${this.VERSION} in ${this.ENVIRONMENT} environment`);
     this.logger(`check the docs for your version here: ${`https://github.com/${this.GITHUB_REPOSITORY}/tree/v${this.VERSION}#readme`}`);
@@ -191,10 +195,10 @@ class GcalSync {
     }
 
     const validationArr = [
-      { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'userData', 'options', 'settings'], name: 'configs' },
+      { objToCheck: config, requiredKeys: ['ticktickSync', 'githubSync', 'datetime', 'options', 'settings'], name: 'configs' },
       { objToCheck: config.ticktickSync, requiredKeys: ['icsCalendars'], name: 'configs.ticktickSync' },
       { objToCheck: config.githubSync, requiredKeys: ['username', 'googleCalendar', 'personalToken', 'ignoredRepos', 'parseGithubEmojis'], name: 'configs.githubSync' },
-      { objToCheck: config.userData, requiredKeys: ['email', 'dailyEmailsTime', 'timeZoneCorrection'], name: 'configs.notifications' },
+      { objToCheck: config.datetime, requiredKeys: ['dailyEmailsTime', 'timeZoneCorrection'], name: 'configs.datetime' },
       { objToCheck: config.options, requiredKeys: ['syncTicktick', 'syncGithub', 'showLogs', 'maintanceMode', 'emailNewRelease', 'emailDailySummary', 'emailSession', 'emailErrors'], name: 'configs.options' },
       { objToCheck: config.settings, requiredKeys: ['syncFunction', 'updateFrequency'], name: 'config.settings' }
     ];
@@ -250,7 +254,7 @@ class GcalSync {
   }
 
   private isCurrentTimeAfter(timeToCompare: string) {
-    const dateFixedByTimezone = this.getDateFixedByTimezone(this.config.userData.timeZoneCorrection);
+    const dateFixedByTimezone = this.getDateFixedByTimezone(this.config.datetime.timeZoneCorrection);
     const curStamp = Number(dateFixedByTimezone.getHours()) * 60 + Number(dateFixedByTimezone.getMinutes());
 
     const timeArr = timeToCompare.split(':');
@@ -356,6 +360,20 @@ class GcalSync {
     const icsEvents = icsString.search('SUMMARY:No task.') > 0 ? [] : this.getIcsEvents(icsString);
     const parsedIcsEvents = this.parseIcsEvents(icsEvents);
     return parsedIcsEvents;
+  }
+
+  /* GOOGL APSS SCRIPT EMAIL ================================================ */
+  private getGoogleSessionObject() {
+    if (this.ENVIRONMENT === 'development') {
+      throw new Error(this.ERRORS.productionOnly);
+    }
+
+    const Obj = Session;
+    return Obj;
+  }
+
+  private getUserEmail() {
+    return this.getGoogleSessionObject().getActiveUser().getEmail();
   }
 
   /* GOOGLE APPS SCRIPT PROPPERTIES ========================================= */
@@ -1270,7 +1288,7 @@ class GcalSync {
 
     const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate);
 
-    if (this.isCurrentTimeAfter(this.config.userData.dailyEmailsTime) && !alreadySentTodayEmails) {
+    if (this.isCurrentTimeAfter(this.config.datetime.dailyEmailsTime) && !alreadySentTodayEmails) {
       this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.lastDailyEmailSentDate, this.TODAY_DATE);
 
       if (this.config.options.emailDailySummary) {
@@ -1310,14 +1328,14 @@ class GcalSync {
     `;
 
     const emailObj = {
-      to: this.config.userData.email,
+      to: this.USER_EMAIL,
       name: `${this.APPNAME}`,
       subject: `new version [${lastReleaseObj.tag_name}] was released - ${this.APPNAME}`,
       htmlBody: message
     };
 
     this.sendEmail(emailObj);
-    this.logger(`new release email was sent to ${this.config.userData.email}`);
+    this.logger(`new release email was sent to ${this.USER_EMAIL}`);
   }
 
   private sendSessionEmail(sessionStats: SessionStats) {
@@ -1326,7 +1344,7 @@ class GcalSync {
       return;
     }
     const message = {
-      to: this.config.userData.email,
+      to: this.USER_EMAIL,
       name: `${this.APPNAME}`,
       subject: `session report - ${this.getTotalSessionEvents(sessionStats)} modifications - ${this.APPNAME}`,
       htmlBody: content
@@ -1334,7 +1352,7 @@ class GcalSync {
 
     this.sendEmail(message);
 
-    this.logger(`session email was sent to ${this.config.userData.email}`);
+    this.logger(`session email was sent to ${this.USER_EMAIL}`);
   }
 
   private sendDailySummaryEmail(todaySession: SessionStats) {
@@ -1344,7 +1362,7 @@ class GcalSync {
     }
 
     const message = {
-      to: this.config.userData.email,
+      to: this.USER_EMAIL,
       name: `${this.APPNAME}`,
       subject: `daily report for ${this.TODAY_DATE} - ${this.getTotalSessionEvents(todaySession)} modifications - ${this.APPNAME}`,
       htmlBody: content
@@ -1352,7 +1370,7 @@ class GcalSync {
 
     this.sendEmail(message);
 
-    this.logger(`summary email was sent to ${this.config.userData.email}`);
+    this.logger(`summary email was sent to ${this.USER_EMAIL}`);
   }
 
   sendErrorEmail(errorMessage: string) {
@@ -1372,7 +1390,7 @@ class GcalSync {
   `;
 
     const message = {
-      to: this.config.userData.email,
+      to: this.USER_EMAIL,
       name: `${this.APPNAME}`,
       subject: `an error occurred - ${this.APPNAME}`,
       htmlBody: content
@@ -1380,7 +1398,7 @@ class GcalSync {
 
     this.sendEmail(message);
 
-    this.logger(`error email was sent to ${this.config.userData.email}`);
+    this.logger(`error email was sent to ${this.USER_EMAIL}`);
   }
 
   /* EMAIL HELPER FUNCTIONS ====================== */
