@@ -1,5 +1,18 @@
 # CHANGELOG HISTORY
 
+## [1.7.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.6.0...v1.7.0) (2023-03-14)
+
+
+### 🐛 bugfix:
+
+* not specified ignored-tags ([#77](https://github.com/lucasvtiradentes/gcal-sync/issues/77)) ([3fc2aa4](https://github.com/lucasvtiradentes/gcal-sync/commit/3fc2aa4406b32e1211f0aa1b31093db8ea528d7b))
+
+
+### ✨ feature:
+
+* get user email automatically  ([#78](https://github.com/lucasvtiradentes/gcal-sync/issues/78)) ([c350c27](https://github.com/lucasvtiradentes/gcal-sync/commit/c350c2757f508e1ab3f43f8f2b8c9a29029f98f7))
+* store logs in a variable to show in api runs ([#80](https://github.com/lucasvtiradentes/gcal-sync/issues/80)) ([0b4da49](https://github.com/lucasvtiradentes/gcal-sync/commit/0b4da4926fb0340494bc02c78011aebc2939c9d7))
+
 ## [1.6.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.5.2...v1.6.0) (2023-03-13)
 
 
