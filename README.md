@@ -61,9 +61,6 @@
 
 ## :trumpet: Overview
 
-
-
-
 <div align="center">
   <table>
     <tr>
@@ -85,7 +82,7 @@
             </li>
           </ul>
         </p>
-        <p>This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to move the completed ticktick tasks to a 'completed_tasks' google calendar, so that I'd be able to track my progress.</p>
+        <p>This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project.</p>
       </td>
     </tr>
   </table>
@@ -93,33 +90,59 @@
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
-&nbsp;&nbsp;&nbsp;✔️ add github commits to google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ add ticktick tasks to google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ update ticktick tasks in its corresponding event in gcal agenda in case of changes in dates and title;<br>
-&nbsp;&nbsp;&nbsp;✔️ every completed task (or deleted) in ticktick will make the event be moved to a compelted gcal agenda;<br>
+&nbsp;&nbsp;&nbsp;✔️ sync your ticktick tasks to google calendar;<br>
+&nbsp;&nbsp;&nbsp;✔️ sync your github commits to google calendar;<br>
+&nbsp;&nbsp;&nbsp;✔️ every completed task in ticktick will be moved to its corresponding completed google calendar;<br>
+&nbsp;&nbsp;&nbsp;✔️ updates corresponding google calendar event in case of changes in ticktick task date or title;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what gcalsync has done throughout the day;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick calendar to a different google calendar agenda;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags<br>
+&nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick list to a different google calendar agenda;<br>
+&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags;<br>
 &nbsp;&nbsp;&nbsp;✔️ you can add a url link to run the sync function manually whenever you want.<br>
 
 ## :warning: Requirements<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
-The only thing you need to use this solution is a `google account`.
+The only thing you need to use this solution is a `gmail/google account`.
 
 ## :bulb: Usage<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 ### Installation
 
-To effectivily use this project, do the following steps:
+To effectively use this project, do the following steps:
 
-- get all your calendars from ticktick in this [link](https://ticktick.com/webapp/#settings/subscribe);
-- go to [google apps script](https://script.google.com/home) and create a new project;
-- copy and past the code below and save the file;
-- change the variable `configs` acording to your needs and data;
-- select the function `setup` in the upfront menu and run it: it will setup the function to run every `5 minutes`;
+<details>
+  <summary>1 - setup the ticktick ics calendars</summary>
+  <div>
+    <br>
+    <p>Go to <a href="https://ticktick.com/webapp/#settings/subscribe">this page</a> and create as many ics calendars as you want to sync. You can create a ics calendar to sync everything, or one calendar per list.<br>
+    Leave this browser tab open because you'll need the ics links in the next steps.
+    </p>
+    <p align="center"><img width="500" src="./.github/images/tutorial/tut1.webp" /></p>
+  </div>
+</details>
 
-```javascript
-function getGcalSync() {
+<details>
+  <summary>2 - create a Google Apps Scripts (GAS) project</summary>
+  <div>
+    <br>
+    <p>Go to the <a href="">google apps script</a> and create a new project by clicking in the button showed in the next image.<br>
+    It would be a good idea to rename the project to something like "gcal-sync".</p>
+    <p align="center"><img width="500" src="./.github/images/tutorial/tut2.png" /></p>
+  </div>
+</details>
+
+<details>
+  <summary>3 - setup the gcal-sync on GAS</summary>
+  <div>
+    <br>
+    <p>Click on the initial file, which is the <b>rectangle-1</b> on the image.</p>
+    <p align="center"><img width="500" src="./.github/images/tutorial/tut3.png" /></p>
+    <p>Replace the initial content present in the <b>rectangle-2</b> with the gcal-sync code provided bellow.</p>
+    <blockquote>
+      <p><span>⚠️ Warning</span><br>
+       Remember to update the <code>configs</code> object according to your data and needs.</p>
+    </blockquote>
+    <pre>
+function getConfigs() {
   const configs = {
     ticktickSync: {
       icsCalendars: [
@@ -129,7 +152,7 @@ function getGcalSync() {
       ]
     },
     githubSync: {
-      username: "lucasvtiradentes", // github username
+      username: "githubusername",   // github username
       googleCalendar: "gh_commits", // google calendar to isnert commits as events
       personalToken: '',            // github token, required if you want to sync private repo commits
       ignoredRepos: [],             // ignored repositories string array: ['repo1', 'repo2']
@@ -153,25 +176,25 @@ function getGcalSync() {
       syncFunction: 'sync',         // function name to run every x minutes
       updateFrequency: 5            // wait time between sync checks
     }
-  };
-
+  }
+  return config
+}
+function getGcalSync(){
   const version = "1.6.0" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
+  const configs = getConfigs()
   const gcalSync = new GcalSync(configs);
   return gcalSync;
 }
-
 function setup() {
   const gcalSync = getGcalSync();
   gcalSync.installGcalSync();
 }
-
 function remove() {
   const gcalSync = getGcalSync();
   gcalSync.uninstallGcalSync();
 }
-
 function sync(){
   let gcalSync;
   try{
@@ -183,38 +206,106 @@ function sync(){
     }
   }
 }
-
-// bellow function runs at every http request in the generated link
-
 function doGet(e) {
-  const gcalSync = getGcalSync()
-  const content = gcalSync.sync()
-  return ContentService.createTextOutput(JSON.stringify(content)).setMimeType(ContentService.MimeType.JSON)
-}
-```
+  let response = {}
+  try{
+    const gcalSync = getGcalSync()
+    const content = gcalSync.sync()
+    const logs = gcalSync.SESSION_LOGS
+    response = {...content, logs}
+  } catch(e){
+    response = {error: e.message}
+  }
+  return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON)
+}</pre>
+  </div>
+</details>
 
-After that, your data will be sync as you specified every 5 minutes.
+<details>
+  <summary>4 - allow the required google permissions</summary>
+  <div>
+    <br>
+    <p>Go to the project settings by clicking on the <b>first image rectangle</b>. After that, check the option to show the <code>appsscript.json</code> in our project, a file that manages the required google api access.</p>
+    <div align="center">
+      <table>
+        <tr>
+          <td width="400">
+            <img width="400" src="./.github/images/tutorial/tut4.1.png" />
+          </td>
+          <td width="400">
+            <img width="400" src="./.github/images/tutorial/tut4.2.png" />
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>Go back to the project files, and replace the content present in the <code>appsscript.json</code> with the following code:</p>    <p align="center"><img width="500" src="./.github/images/tutorial/tut5.png" /></p>
+    <pre>
+{
+  "timeZone": "Etc/GMT",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Calendar",
+        "serviceId": "calendar",
+        "version": "v3"
+      }
+    ]
+  },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.send_mail",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/calendar"
+  ],
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "webapp": {
+    "executeAs": "USER_DEPLOYING",
+    "access": "ANYONE_ANONYMOUS"
+  }
+}</pre>
+  </div>
+</details>
 
-Additionally, you can add a link to manually run the sync function whenever you want, by adding the following steps:
+<details>
+  <summary>6 - setup the gcal-sync to run automatically every x minutes</summary>
+  <div>
+    <br>
+    <p>Just follow what the bellow image shows, which is to select the <code>setup</code> function and run it.<br>
+    After, a popup will appear asking your permission, and you'll have to accept it.</p>
+    <p align="center"><img width="500" src="./.github/images/tutorial/tut6.webp" /></p>
+  </div>
+</details>
 
-1. on google apps script, click on the button upper right **implement** button and choose "new implementation";
-2. on the left menu, select "app web" as the type of the new implementation and hit enter;
-3. adter that, a **http link** will be provided so you can run the sync function by accessing it.
+<details>
+  <summary>7 - deploy an api to manually run the sync function (optional)</summary>
+  <div>
+    <br>
+    <p>It will allow you to sync whenever you go to a generated link.<br>
+    Just do as the image shows.</p>
+    <p align="center"><img width="500" src="./.github/images/tutorial/tut7.webp" /></p>
+  </div>
+</details>
 
 ### General tips
 
-- update the version in the above code in a regular basis to get the most recent updates;
-- in case of deleted tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well;
-- you can have a tikctick calendar for all your tasks and ignore certain kind of tasks and handle this ignored ones in other gcal;
+- to use a newer version of gcal-sync, you just have to update the version number in the code;
+- in case of deleted ticktick tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well. If not, they will be moved to its corresponding completed calendar;
 - before setting up the auto sync, you can use the `maintanceMode` to check if everything is okay by reading the app logs;
 - it is not necessary to generate a github token in order to sync commits, it is only required if you want to sync your contributions to private repos as well;
-- every update in ticktick may take 5 minutes to propagate to its ics calendars.
+- every update in ticktick may take 5 minutes to propagate to its ics calendars;
+- if you dont want the sync anymore, you can remove its automation by running the <code>remove</code> function in the GAS project.
 
 ## :wrench: Development<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 ### Development setup
 
-To setup this project in your computer, download it in this link or run the following commands:
+<details>
+  <summary align="center">Instructions for development setup</summary>
+  <div>
+<br>
+To setup this project in your computer, run the following commands:
 
 ```bash
 # Clone this repository
@@ -231,23 +322,24 @@ After download it, go to the project folder and run these commands:
 $ npm install
 ```
 
-If you want to contribute to the project, fork the project, make the necessary changes, and to test your work you can load your version in apps scripts with almost no effort: add the following code to the apps script:
+If you want to contribute to the project, fork the project, make the necessary changes, and to test your work you can load your version in apps scripts with almost no effort: replace the content of the <code>getGcalSync</code> with the following code to the apps script:
 
 ```js
 function getGcalSync(){
-  ...
-  const gcalSyncContent = getGcalSyncDevelopment('develop')
-  // const gcalSyncContent = getGcalSyncProduction()
-  ...
+  const configs = getConfigs()
+  const version = "1.6.0" // version
+  // const gcalSyncContent = getGcalSyncProduction(version)
+  const gcalSyncContent = getGcalSyncDevelopment('yourgithub/gcalsync-fork', 'develop')
+  eval(`this.GcalSync = ` + gcalSyncContent);
+  const gcalSync = new GcalSync(configs)
+  return gcalSync
 }
 
-function getGcalSyncProduction(){
-  const version = "1.6.0" // version
+function getGcalSyncProduction(version){
   return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText()
 }
 
-function getGcalSyncDevelopment(branch){
-  const repository = "lucasvtiradentes/gcal-sync" // change to your user/repository
+function getGcalSyncDevelopment(repository, branch){
   const filePath = "dist/GcalSync.min.js"
   const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}${branch ? `?ref=${branch}` : ''}`
   const response = UrlFetchApp.fetch(final_link, {'method' : 'get', 'contentType': 'application/json'})
@@ -259,10 +351,13 @@ function getGcalSyncDevelopment(branch){
 ```
 
 This will make you be able to change the loaded gcal-sync version.
+  </div>
+</details>
+
 
 ### Used technologies
 
-this project uses the following thechnologies:
+This project uses the following thechnologies:
 
 <div align="center">
   <table>
@@ -333,8 +428,8 @@ This project is distributed under the terms of the MIT License Version 2.0. A co
 
 If you are a typescript developer, we would kind and happy accept your help:
 
-- The best way to get started is to select any issue from the [`good-first-issue`](https://github.com/lucasvtiradentes/gcal-sync/labels/good%20first%20issue) label;
-- If you would like to contribute, please review our [Contributing Guide](docs/CONTRIBUTING.md) for all relevant details.
+- The best way to get started is to select any issue from the [`good-first-issue`](https://github.com/lucasvtiradentes/gcal-sync/issues) label;
+- If you would like to contribute, please review our [Contributing guide](docs/CONTRIBUTING.md) for all relevant details.
 
 Another ways to positivily impact this project is to:
 
