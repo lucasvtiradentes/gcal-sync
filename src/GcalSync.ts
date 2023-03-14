@@ -148,9 +148,10 @@ class GcalSync {
   VERSION = ''; // version
   APPNAME = 'gcal-sync';
   GITHUB_REPOSITORY = 'lucasvtiradentes/gcal-sync';
-  TODAY_DATE = '';
-  USER_EMAIL = '';
   ENVIRONMENT = this.detectEnvironment();
+  TODAY_DATE = '';
+  SESSION_LOGS = [];
+  USER_EMAIL = this.ENVIRONMENT === 'production' ? this.getUserEmail() : '';
   EVENTS_DIVIDER = ` | `;
   GITHUB_REQUIRED_VALIDATIONS = 3; // it takes 'x' syncs with the same changed data in order to update in the google calendar
   APPS_SCRIPTS_PROPERTIES = {
@@ -180,11 +181,6 @@ class GcalSync {
     this.validateConfigs(config);
     this.config = config;
     this.TODAY_DATE = this.getDateFixedByTimezone(this.config.datetime.timeZoneCorrection).toISOString().split('T')[0];
-
-    if (this.ENVIRONMENT === 'production') {
-      this.USER_EMAIL = this.getUserEmail();
-    }
-
     this.logger(`${this.APPNAME} is running at version ${this.VERSION} in ${this.ENVIRONMENT} environment`);
     this.logger(`check the docs for your version here: ${`https://github.com/${this.GITHUB_REPOSITORY}/tree/v${this.VERSION}#readme`}`);
   }
@@ -222,6 +218,8 @@ class GcalSync {
   }
 
   private logger(message: string) {
+    this.SESSION_LOGS.push(message);
+
     if (this.config.options.showLogs) {
       console.log(message);
     }
