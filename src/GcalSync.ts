@@ -763,6 +763,15 @@ class GcalSync {
   /* GITHUB SYNC FUNCTIONS ======================= */
 
   private syncGihub() {
+    const githubSessionStats: GithubSessionStats = {
+      addedCommits: [],
+      deletedCommits: []
+    };
+
+    if (!this.config.options.syncGithub) {
+      return githubSessionStats;
+    }
+
     const resetProperties = () => {
       this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount, '1');
       this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits, '');
@@ -778,15 +787,8 @@ class GcalSync {
     }
 
     const currentGithubSyncIndex = Number(this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount));
-    this.logger(`checking commit changes: ${currentGithubSyncIndex}/${this.GITHUB_REQUIRED_VALIDATIONS}`);
-
-    const githubSessionStats: GithubSessionStats = {
-      addedCommits: [],
-      deletedCommits: []
-    };
-
-    if (!this.config.options.syncGithub) {
-      return githubSessionStats;
+    if (currentGithubSyncIndex > 1) {
+      this.logger(`checking commit changes: ${currentGithubSyncIndex}/${this.GITHUB_REQUIRED_VALIDATIONS}`);
     }
 
     this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubCommitChangesCount, (Number(currentGithubSyncIndex) + 1).toString());
@@ -1099,6 +1101,7 @@ class GcalSync {
     const nonTaggedTmp = this.parseResults(nonTaggedResults);
 
     const allTickTickTasks: ParsedIcsEvent[] = [...taggedTmp.taggedIcsTasks, ...nonTaggedTmp.taggedIcsTasks];
+
     sessionStats.completedEvents = this.checkCalendarCompletedTasks(tasksFromGoogleCalendars, allTickTickTasks);
     sessionStats.addedEvents = [...taggedTmp.added, ...nonTaggedTmp.added];
     sessionStats.updatedEvents = [...taggedTmp.updated, ...nonTaggedTmp.updated];
@@ -1110,8 +1113,8 @@ class GcalSync {
     const [icsCal, gCalCorresponding, completedCal, calendarOptions] = calendarItem;
     let tasksFromIcs = this.getEventsFromIcsCalendar(icsCal);
 
-    if (calendarOptions.ignoredTags && taggedCalendarsResults) {
-      calendarOptions.ignoredTags.forEach((tagIgnored) => {
+    if (calendarOptions?.ignoredTags && taggedCalendarsResults) {
+      calendarOptions?.ignoredTags?.forEach((tagIgnored) => {
         const ignoredCalendarInfo = taggedCalendarsResults.find((item) => item.calendarOptions.tag === tagIgnored);
         if (ignoredCalendarInfo) {
           const ignoredCalTasksIds = ignoredCalendarInfo.tasksFromIcs.map((item) => item.id);
@@ -1125,7 +1128,7 @@ class GcalSync {
       icsCal,
       gCalCorresponding,
       completedCal,
-      calendarOptions,
+      calendarOptions: calendarOptions ?? {},
       tasksFromIcs,
       addedTasks,
       updatedTasks
@@ -1233,7 +1236,15 @@ class GcalSync {
     return completedTasks;
   }
 
-  private parseResults(taggedResults: IcsCalendarResult[]) {
+  private parseResults(taggedResults: IcsCalendarResult[]): ParsedResult {
+    if (taggedResults.length === 0) {
+      return {
+        added: [],
+        taggedIcsTasks: [],
+        updated: []
+      };
+    }
+
     const taggedTmp = taggedResults.reduce((acc, cur) => {
       if (!acc['added']) {
         acc.added = [];
