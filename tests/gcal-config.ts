@@ -13,20 +13,19 @@ export const gcalSyncConfig = {
     ignoredRepos: [],
     parseGithubEmojis: true
   },
-  userData: {
-    email: 'youremail@gmail.com',
+  datetime: {
     dailyEmailsTime: '23:00',
     timeZoneCorrection: -3
   },
   options: {
     syncTicktick: true,
     syncGithub: true,
-    showLogs: true,
-    maintanceMode: false,
+    emailErrors: true,
+    emailSession: true,
     emailDailySummary: true,
     emailNewRelease: true,
-    emailSession: true,
-    emailErrors: true
+    showLogs: true,
+    maintanceMode: false
   },
   settings: {
     syncFunction: 'sync',
