@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.7.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.0...v1.7.1) (2023-04-04)
+
+
+### 🐛 bugfix:
+
+* google calendar api error ([ecd15e8](https://github.com/lucasvtiradentes/gcal-sync/commit/ecd15e859fdcba0216e2414e56798683739fdce5))
+
 ## [1.7.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.6.0...v1.7.0) (2023-03-14)
 
 

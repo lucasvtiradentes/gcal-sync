@@ -180,7 +180,7 @@ function getConfigs() {
   return config
 }
 function getGcalSync(){
-  const version = "1.7.0" // version
+  const version = "1.7.1" // version
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(`this.GcalSync = ` + gcalSyncContent);
   const configs = getConfigs()
@@ -327,7 +327,7 @@ If you want to contribute to the project, fork the project, make the necessary c
 ```js
 function getGcalSync(){
   const configs = getConfigs()
-  const version = "1.7.0" // version
+  const version = "1.7.1" // version
   // const gcalSyncContent = getGcalSyncProduction(version)
   const gcalSyncContent = getGcalSyncDevelopment('yourgithub/gcalsync-fork', 'develop')
   eval(`this.GcalSync = ` + gcalSyncContent);
