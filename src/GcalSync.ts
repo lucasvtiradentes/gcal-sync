@@ -169,8 +169,8 @@ class GcalSync {
   };
   ERRORS = {
     productionOnly: 'This method cannot run in non-production environments',
-    mustSpecifyConfig: 'You must specify the settings when starting the class',
     incorrectIcsCalendar: 'The link you provided is not a valid ICS calendar: ',
+    mustSpecifyConfig: 'You must specify the settings when starting the class',
     httpsError: 'You provided an invalid ICS calendar link: ',
     invalidGithubToken: 'You provided an invalid github token',
     invalidGithubUsername: 'You provided an invalid github username',
@@ -1115,7 +1115,6 @@ class GcalSync {
     const nonTaggedCalendars = this.config.ticktickSync.icsCalendars.filter((item) => !item[3] || (item[3] && !item[3].tag));
     const nonTaggedResults = nonTaggedCalendars.map((item) => this.checkCalendarItem(item, tasksFromGoogleCalendars, taggedResults));
     const nonTaggedTmp = this.parseResults(nonTaggedResults);
-
     const allTickTickTasks: ParsedIcsEvent[] = [...taggedTmp.taggedIcsTasks, ...nonTaggedTmp.taggedIcsTasks];
 
     sessionStats.completedEvents = this.checkCalendarCompletedTasks(tasksFromGoogleCalendars, allTickTickTasks);
@@ -1154,14 +1153,14 @@ class GcalSync {
   }
 
   private checkTicktickAddedAndUpdatedTasks(icsItem: CalendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
-    const [icsCal, gCalCorresponding, completedCal, ignoredTags] = icsItem;
+    const [_icsCal, gCalCorresponding, completedCal, _ignoredTags] = icsItem;
     const addedTasks: GoogleEvent[] = [];
     const updatedTasks: GoogleEvent[] = [];
 
     const taskCalendar = this.getCalendarByName(gCalCorresponding);
     const generateGcalDescription = (curIcsTask: ParsedIcsEvent) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
 
-    tasksFromIcs.forEach((curIcsTask) => {
+    tasksFromIcs.forEach((curIcsTask, index) => {
       const taskOnGcal = tasksFromGoogleCalendars.find((item) => item.extendedProperties.private.tickTaskId === curIcsTask.id);
 
       if (!taskOnGcal) {
@@ -1200,20 +1199,37 @@ class GcalSync {
         this.logger(`ticktick task was added to gcal: ${taskEvent.summary}`);
       } else {
         const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
-
         const changedTaskName = curIcsTask.name !== gcalTask.summary;
         const changedDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
         const changedIntialDate = curIcsTask.start['date'] !== gcalTask.start['date'] || curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
         const changedFinalDate = curIcsTask.end['date'] !== gcalTask.end['date'] || curIcsTask.end['dateTime'] !== gcalTask.end['dateTime'];
+        const changedCalendar = gCalCorresponding !== taskOnGcal.extendedProperties.private.calendar;
 
-        if (changedTaskName || changedDateFormat || changedIntialDate || changedFinalDate) {
-          const modifiedFields = {
-            summary: curIcsTask.name,
-            description: generateGcalDescription(curIcsTask),
-            start: curIcsTask.start,
-            end: curIcsTask.end
-          };
+        const extendProps: GcalPrivateTicktick = {
+          tickTaskId: curIcsTask.id,
+          calendar: gCalCorresponding,
+          completedCalendar: completedCal
+        };
 
+        const modifiedFields = {
+          summary: curIcsTask.name,
+          description: generateGcalDescription(curIcsTask),
+          start: curIcsTask.start,
+          end: curIcsTask.end,
+          extendedProperties: {
+            private: extendProps
+          }
+        };
+
+        if (changedCalendar) {
+          if (!this.config.options.maintanceMode) {
+            const finalGcalEvent = { ...gcalTask, ...modifiedFields };
+            const oldCalendar = this.getCalendarByName(taskOnGcal.extendedProperties.private.calendar);
+            this.moveEventToOtherCalendar(oldCalendar, finalGcalEvent, this.getCalendarByName(gCalCorresponding));
+            updatedTasks.push(finalGcalEvent);
+          }
+          this.logger(`ticktick task was moved to other calendar: ${modifiedFields.summary}`);
+        } else if (changedTaskName || changedDateFormat || changedIntialDate || changedFinalDate) {
           if (!this.config.options.maintanceMode) {
             this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
             const finalGcalEvent = { ...gcalTask, ...modifiedFields };
