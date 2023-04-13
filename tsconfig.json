@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ES2016",
     "skipLibCheck": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "esModuleInterop": true
   },
   "include": ["src"]
 }

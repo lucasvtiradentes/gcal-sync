@@ -1,4 +1,4 @@
-import * as minify from 'minify'; // ignore if an error appears
+import minify from 'minify'; // ignore if an error appears
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
 (async () => {

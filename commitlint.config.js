@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 const VALID_COMMIT_MESSAGE = ':tada: init: initial commit (#1)';
 const VALID_COMMIT_TYPES = getValidCommitTypes().map((commit) => commit.type);
 const VALID_EMOJI_TYPES = getValidCommitTypes().reduce((acc, cur) => {

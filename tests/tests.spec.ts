@@ -1,5 +1,5 @@
-import GcalSync from './export-gcal';
-import { gcalSyncConfig } from './gcal-config';
+import GcalSync from '../resources/export-gcal';
+import { gcalSyncConfig } from '../resources/gcal-config';
 
 it('should throw an error when initializing without configs', () => {
   expect(() => {

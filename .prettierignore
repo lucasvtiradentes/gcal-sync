@@ -5,34 +5,13 @@
 .github/
 .husky/
 .vscode/
-build/
 dist/
 docs/
 ignore/
 node_modules/
+# resources
 # scripts
 # src
 # tests
 
 # FILES #################################
-
-.czrc
-.editorconfig
-.eslintignore
-.eslintrc.json
-.gitignore
-.lintstagedrc
-.npmignore
-.prettierignore
-.prettierrc.json
-commitlint.config.js
-jest.config.js
-LICENSE
-package.json
-README.md
-release.config.js
-tsconfig.json
-
-package-lock.json
-pnpm-lock.yaml
-yarn.lock

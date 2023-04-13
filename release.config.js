@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 module.exports = {
   branches: ['master'],
   repository: 'https://github.com/lucasvtiradentes/gcal-sync',

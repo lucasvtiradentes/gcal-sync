@@ -5,11 +5,11 @@
 .github/
 .husky/
 .vscode/
-build/
 # dist/
 docs/
 ignore/
 node_modules/
+resources/
 scripts/
 src/*.ts
 tests/
