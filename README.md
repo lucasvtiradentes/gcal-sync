@@ -463,8 +463,8 @@ This project was deeply inspired by <a href="https://github.com/derekantrican/GA
 
 - [online-ics](https://larrybolt.github.io/online-ics-feed-viewer/): online tool to view the content of ICS calendars;
 - [gas-ics-sync](https://github.com/derekantrican/GAS-ICS-Sync): A Google Apps Script for syncing ICS/ICAL files faster than the current Google Calendar speed. This was my main inspiration;
-- [twitch-notifier](https://github.com/lucasvtiradentes/twitch-notifier): get email notifications when _only your favorite_ twitch streamers go live;
-- [esports-notifier](https://github.com/lucasvtiradentes/esports-notifier): get an daily email whenever one of your favorite eSports team has a match at day in games such as csgo, valorant and rainbow six siege.
+- [esports-notifier](https://github.com/lucasvtiradentes/esports-notifier): get an daily email whenever one of your favorite eSports team has a match at day in games such as csgo, valorant and rainbow six siege;
+- [twitch-notifier](https://github.com/lucasvtiradentes/twitch-notifier): get email notifications when _only your favorite_ twitch streamers go live.
 
 ## License
 

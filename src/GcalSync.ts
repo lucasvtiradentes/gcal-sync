@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 type IcsCalendarLink = string;
 type IcsTaskGcal = string;
 type IcsCompletedTaskGcal = string;
@@ -1154,6 +1155,15 @@ export default class GcalSync {
     const taskCalendar = this.getCalendarByName(gCalCorresponding);
     const generateGcalDescription = (curIcsTask: ParsedIcsEvent) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
 
+    const getFixedTaskName = (str: string) => {
+      let fixedName = str;
+      fixedName = fixedName.replace(new RegExp('\\,', 'g'), ','); // fix ','
+      fixedName = fixedName.replace(new RegExp('\\;', 'g'), ';'); // fix ';'
+      fixedName = fixedName.replace(new RegExp('\\\\', 'g'), '\\'); // fix '\'
+      fixedName = fixedName.replace(new RegExp('\\"', 'g'), '"'); // fix '\'
+      return fixedName;
+    };
+
     tasksFromIcs.forEach((curIcsTask, index) => {
       const taskOnGcal = tasksFromGoogleCalendars.find((item) => item.extendedProperties.private.tickTaskId === curIcsTask.id);
 
@@ -1165,7 +1175,7 @@ export default class GcalSync {
         };
 
         const taskEvent: GoogleEvent = {
-          summary: curIcsTask.name,
+          summary: getFixedTaskName(curIcsTask.name),
           description: generateGcalDescription(curIcsTask),
           start: curIcsTask.start,
           end: curIcsTask.end,
@@ -1193,7 +1203,7 @@ export default class GcalSync {
         this.logger(`ticktick task was added to gcal: ${taskEvent.summary}`);
       } else {
         const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
-        const changedTaskName = curIcsTask.name !== gcalTask.summary;
+        const changedTaskName = getFixedTaskName(curIcsTask.name) !== gcalTask.summary;
         const changedDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
         const changedIntialDate = curIcsTask.start['date'] !== gcalTask.start['date'] || curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
         const changedFinalDate = curIcsTask.end['date'] !== gcalTask.end['date'] || curIcsTask.end['dateTime'] !== gcalTask.end['dateTime'];
