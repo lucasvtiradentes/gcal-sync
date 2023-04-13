@@ -6,6 +6,7 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
   const FILES = {
     package: './package.json',
     readme: './README.md',
+    configs: './resources/configs.ts',
     gasAppsScript: './dist/GAS-appsscript.json',
     gasSetup: './dist/GAS-setup.js',
     gcalSyncUmd: `./dist/UMD-GcalSync.js`,
@@ -20,12 +21,15 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
   const VERSION = JSON.parse(readFileSync(FILES.package, { encoding: 'utf8' })).version;
 
-  createSetupGasFile(FILES.gasSetup, VERSION);
-  createAppscriptFile(FILES.gasAppsScript);
+  const setupGcalSyncContent = getSetupGcalSyncFileContent(FILES.configs, VERSION);
+  writeFileSync(FILES.gasSetup, setupGcalSyncContent, { encoding: 'utf-8' });
+
+  const appsScriptAllowPermissionContent = getAppsScriptAllowPermissionFileContent();
+  writeFileSync(FILES.gasAppsScript, appsScriptAllowPermissionContent, { encoding: 'utf-8' });
 
   const readmeFile = new DynMarkdown(FILES.readme);
-  readmeFile.updateField(README_FIELDS.gasSetupContent, readFileSync(FILES.gasSetup, { encoding: 'utf-8' }));
-  readmeFile.updateField(README_FIELDS.gasAppsScriptContent, readFileSync(FILES.gasAppsScript, { encoding: 'utf-8' }));
+  readmeFile.updateField(README_FIELDS.gasSetupContent, `<pre>\n${setupGcalSyncContent}\n</pre>`);
+  readmeFile.updateField(README_FIELDS.gasAppsScriptContent, `<pre>\n${appsScriptAllowPermissionContent}\n</pre>`);
   readmeFile.saveFile();
 
   const VERSION_UPDATE = `// version`;
@@ -38,7 +42,7 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
   unlinkSync(FILES.gcalSyncUmd);
 })();
 
-function createAppscriptFile(outFile: string) {
+function getAppsScriptAllowPermissionFileContent() {
   const appsScript = `{
   "timeZone": "Etc/GMT",
   "dependencies": {
@@ -66,11 +70,11 @@ function createAppscriptFile(outFile: string) {
   }
 }`;
 
-  writeFileSync(outFile, `<pre>\n${appsScript}\n</pre>`, { encoding: 'utf-8' });
+  return appsScript;
 }
 
-function createSetupGasFile(outFile: string, version: string) {
-  let configContent = readFileSync('./resources/configs.ts', { encoding: 'utf-8' });
+function getSetupGcalSyncFileContent(configFile: string, version: string) {
+  let configContent = readFileSync(configFile, { encoding: 'utf-8' });
   configContent = configContent.replace('export const configs = ', '');
   configContent = configContent.replace('as any', '');
   configContent = configContent.replace('// prettier-ignore\n', '');
@@ -125,7 +129,7 @@ function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON)
 }`;
 
-  writeFileSync(outFile, `<pre>\n${gasSetupContent}\n</pre>`, { encoding: 'utf-8' });
+  return gasSetupContent;
 }
 
 /* ========================================================================== */

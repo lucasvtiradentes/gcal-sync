@@ -76,7 +76,7 @@ Track your progress over time with an one way synchronization from <a href="http
       <tr>
         <td><img width="100%" src="./.github/images/gcalsync_alt.png"></td>
         <td>
-          <img width="200px" src="./.github/images/gcalsync.webp" />
+          <img width="250px" src="./.github/images/gcalsync.webp" />
         </td>
       </tr>
     </tbody>
@@ -172,14 +172,14 @@ function getConfigs() {
     },
     githubSync: {
       username: "githubusername",   // github username
-      googleCalendar: "gh_commits", // google calendar to isnert commits as events
+      googleCalendar: "gh_commits", // google calendar to insert commits as events
       personalToken: '',            // github token, required if you want to sync private repo commits
       ignoredRepos: [],             // ignored repositories string array: ['repo1', 'repo2']
-      parseGithubEmojis: true       // parse string emojis to emojis
+      parseGithubEmojis: true       // parse string emojis (:tada:) to emojis (✨)
     },
     datetime: {
       dailyEmailsTime: '23:30',     // time to email the summary
-      timeZoneCorrection: -3        // difference from utc time
+      timeZoneCorrection: -3        // hour difference from your timezone to utc timezone | https://www.utctime.net/
     },
     options: {
       syncTicktick: true,           // option to sync ticktick tasks
@@ -188,12 +188,12 @@ function getConfigs() {
       emailSession: false,          // email sessions with modifications
       emailDailySummary: true,      // email daily summary at a specified time
       emailNewRelease: true,        // email if there is a new version available
-      showLogs: true,               // show runtime information
-      maintanceMode: false          // option to not create, delete, update anything
+      showLogs: true,               // development option, dont need to change
+      maintanceMode: false          // development option, dont need to change
     },
     settings: {
       syncFunction: 'sync',         // function name to run every x minutes
-      updateFrequency: 5            // wait time between sync checks
+      updateFrequency: 5            // wait time between sync checks (must be multiple of 5: 10, 15, etc)
     }
   }
   return configs
@@ -342,6 +342,8 @@ function getGcalSync(){
 </pre>
 
 So if your instance is running at version "1.0.0" and the latest is "3.6.1", just replace those numbers in the `version` variable.
+
+It is a good practice to go to the [dist folder](./dist/) everytime you update your instance to check if your files in GAS are the same as the new version; if they're not this may cause erros.
 
 ### Uninstall
 

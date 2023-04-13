@@ -9,14 +9,14 @@ export const configs = {
   },
   githubSync: {
     username: "githubusername",   // github username
-    googleCalendar: "gh_commits", // google calendar to isnert commits as events
+    googleCalendar: "gh_commits", // google calendar to insert commits as events
     personalToken: '',            // github token, required if you want to sync private repo commits
     ignoredRepos: [],             // ignored repositories string array: ['repo1', 'repo2']
-    parseGithubEmojis: true       // parse string emojis to emojis
+    parseGithubEmojis: true       // parse string emojis (:tada:) to emojis (✨)
   },
   datetime: {
     dailyEmailsTime: '23:30',     // time to email the summary
-    timeZoneCorrection: -3        // difference from utc time
+    timeZoneCorrection: -3        // hour difference from your timezone to utc timezone | https://www.utctime.net/
   },
   options: {
     syncTicktick: true,           // option to sync ticktick tasks
@@ -25,11 +25,11 @@ export const configs = {
     emailSession: false,          // email sessions with modifications
     emailDailySummary: true,      // email daily summary at a specified time
     emailNewRelease: true,        // email if there is a new version available
-    showLogs: true,               // show runtime information
-    maintanceMode: false          // option to not create, delete, update anything
+    showLogs: true,               // development option, dont need to change
+    maintanceMode: false          // development option, dont need to change
   },
   settings: {
     syncFunction: 'sync',         // function name to run every x minutes
-    updateFrequency: 5            // wait time between sync checks
+    updateFrequency: 5            // wait time between sync checks (must be multiple of 5: 10, 15, etc)
   }
 }
