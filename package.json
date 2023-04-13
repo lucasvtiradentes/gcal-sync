@@ -1,7 +1,7 @@
 {
   "name": "gcal-sync",
   "description": "🔄 add an one way synchronization from ticktick tasks and github commits to google calendar and track your progress effortlessly.",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "keywords": [
     "google-calendar",
     "github",

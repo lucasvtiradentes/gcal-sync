@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.7.2](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.1...v1.7.2) (2023-04-13)
+
+
+### 🐛 bugfix:
+
+* escape special characters in tasks names ([#87](https://github.com/lucasvtiradentes/gcal-sync/issues/87)) ([c6077b5](https://github.com/lucasvtiradentes/gcal-sync/commit/c6077b5b4b808fb612e47b7ee7ff55687fe42853))
+
 ## [1.7.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.0...v1.7.1) (2023-04-04)
 
 
