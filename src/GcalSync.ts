@@ -1339,7 +1339,8 @@ export default class GcalSync {
         <li>published at: ${lastReleaseObj.published_at}</li>
         <li>details: <a href="https://github.com/${this.GITHUB_REPOSITORY}/releases">here</a></li>
       </ul>
-      to update just replace the old version number in your apps scripts <a href="https://script.google.com/">gcal sync project</a> to the new version: ${lastReleaseObj.tag_name.replace('v', '')}<br/>
+      to update, replace the old version number in your apps scripts <a href="https://script.google.com/">gcal sync project</a> to the new version: ${lastReleaseObj.tag_name.replace('v', '')}<br/>
+      and also check if you need to change the setup code in the <a href='https://github.com/${this.GITHUB_REPOSITORY}#installation'>installation section</a>.
       <br /><br />
       Regards,
       your <a href='https://github.com/${this.GITHUB_REPOSITORY}'>${this.APPNAME}</a> bot
