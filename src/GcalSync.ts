@@ -1157,10 +1157,10 @@ export default class GcalSync {
 
     const getFixedTaskName = (str: string) => {
       let fixedName = str;
-      fixedName = fixedName.replace(new RegExp('\\,', 'g'), ','); // fix ','
-      fixedName = fixedName.replace(new RegExp('\\;', 'g'), ';'); // fix ';'
-      fixedName = fixedName.replace(new RegExp('\\\\', 'g'), '\\'); // fix '\'
-      fixedName = fixedName.replace(new RegExp('\\"', 'g'), '"'); // fix '\'
+      fixedName = fixedName.replace(/\\,/g, ',');
+      fixedName = fixedName.replace(/\\;/g, ';');
+      fixedName = fixedName.replace(/\\"/g, '"');
+      fixedName = fixedName.replace(/\\\\/g, '\\');
       return fixedName;
     };
 
