@@ -13,4 +13,4 @@ jobs:
       - uses: actions/add-to-project@v0.4.1
         with:
           project-url: https://github.com/users/lucasvtiradentes/projects/8 # gcal-sync project
-          github-token: ${{ secrets.MOVE_TO_PROJEC_TOKEN }}
+          github-token: ${{ secrets.MOVE_TO_PROJECT_TOKEN }}
