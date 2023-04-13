@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-/* CONFIGS TYPES ------------------------------------------------------------ */
-
 type IcsCalendarLink = string;
 type IcsTaskGcal = string;
 type IcsCompletedTaskGcal = string;
@@ -140,9 +136,7 @@ type GithubSessionStats = {
 
 type GcalPrivateGithub = Omit<ParsedGithubCommit, 'isRepositoryPrivate' | 'isRepositoryFork'>;
 
-/* MAIN CLASS --------------------------------------------------------------- */
-
-class GcalSync {
+export default class GcalSync {
   public config: Config;
 
   VERSION = ''; // version

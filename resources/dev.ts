@@ -1,7 +1,7 @@
-import GcalSync from './export-gcal';
-import { gcalSyncConfig } from './gcal-config';
+import GcalSync from '../src/GcalSync';
+import { configs } from './configs';
 
-const gcalsync = new GcalSync(gcalSyncConfig);
+const gcalsync = new GcalSync(configs);
 console.log(gcalsync);
 
 // gcalsync.sync();

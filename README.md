@@ -83,7 +83,7 @@ Track your progress over time with an one way synchronization from <a href="http
  </table>
 </div>
 
-In the image it is shown my current usage of this tool:
+In the above images it is shown my current usage of this tool:
 
 <ul align="left">
   <li align="left"><b>black</b>: my past github commits;</li>
@@ -158,7 +158,9 @@ To effectively use this project, do the following steps:
       <p><span>⚠️ Warning</span><br>
        Remember to update the <code>configs</code> object according to your data and needs.</p>
     </blockquote>
-    <pre>
+
+<!-- <DYNFIELD:GAS_SETUP> -->
+<pre>
 function getConfigs() {
   const configs = {
     ticktickSync: {
@@ -166,7 +168,7 @@ function getConfigs() {
         ['webcal://icscal1.ics', 'gcal_1', 'gcal_completed'],                             // everything will be synced
         ['webcal://icscal2.ics', 'gcal_2', 'gcal_completed', { tag: '#FUN' }],            // everything will be synced, but marks all tasks with a label
         ['webcal://icscal3.ics', 'gcal_all', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
-      ]
+      ] 
     },
     githubSync: {
       username: "githubusername",   // github username
@@ -194,24 +196,28 @@ function getConfigs() {
       updateFrequency: 5            // wait time between sync checks
     }
   }
-  return config
+  return configs
 }
+
 function getGcalSync(){
-  const version = "1.7.1" // version
+  const version = "1.7.2"
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
-  eval(`this.GcalSync = ` + gcalSyncContent);
+  eval(gcalSyncContent)
   const configs = getConfigs()
   const gcalSync = new GcalSync(configs);
   return gcalSync;
 }
+
 function setup() {
   const gcalSync = getGcalSync();
   gcalSync.installGcalSync();
 }
-function remove() {
+
+function uninstall() {
   const gcalSync = getGcalSync();
   gcalSync.uninstallGcalSync();
 }
+
 function sync(){
   let gcalSync;
   try{
@@ -223,6 +229,7 @@ function sync(){
     }
   }
 }
+
 function doGet(e) {
   let response = {}
   try{
@@ -234,7 +241,9 @@ function doGet(e) {
     response = {error: e.message}
   }
   return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON)
-}</pre>
+}
+</pre>
+<!-- </DYNFIELD:GAS_SETUP> -->
   </div>
 </details>
 
@@ -256,7 +265,8 @@ function doGet(e) {
       </table>
     </div>
     <p>Go back to the project files, and replace the content present in the <code>appsscript.json</code> with the following code:</p>    <p align="center"><img width="500" src="./.github/images/tutorial/tut5.png" /></p>
-    <pre>
+<!-- <DYNFIELD:GAS_APPSSCRIPT> -->
+<pre>
 {
   "timeZone": "Etc/GMT",
   "dependencies": {
@@ -271,9 +281,10 @@ function doGet(e) {
   "oauthScopes": [
     "https://www.googleapis.com/auth/script.scriptapp",
     "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/tasks",
     "https://www.googleapis.com/auth/script.send_mail",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/calendar"
+    "https://www.googleapis.com/auth/userinfo.email"
   ],
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
@@ -281,7 +292,9 @@ function doGet(e) {
     "executeAs": "USER_DEPLOYING",
     "access": "ANYONE_ANONYMOUS"
   }
-}</pre>
+}
+</pre>
+<!-- </DYNFIELD:GAS_APPSSCRIPT> -->
   </div>
 </details>
 
@@ -360,10 +373,10 @@ If you want to [contribute](./docs/CONTRIBUTING.md) to the project, fork the pro
 ```js
 function getGcalSync() {
   const configs = getConfigs();
-  const version = "1.7.1" // version
+  // const version = "1.7.2" // version
   // const gcalSyncContent = getGcalSyncProduction(version)
   const gcalSyncContent = getGcalSyncDevelopment('yourgithub/gcalsync-fork', 'develop');
-  eval(`this.GcalSync = ` + gcalSyncContent);
+  eval(gcalSyncContent);
   const gcalSync = new GcalSync(configs);
   return gcalSync;
 }
@@ -459,7 +472,7 @@ This project is distributed under the terms of the MIT License Version 2.0. A co
 
 ## Feedback
 
-If you have any questions or suggestions you are welcome to discuss it on [github issues](https://github.com/lucasvtiradentes/esports-notifier/issues) or, if you prefer, you can reach me in my social media provided bellow.
+If you have any questions or suggestions you are welcome to discuss it on [github issues](https://github.com/lucasvtiradentes/gcal-sync/issues) or, if you prefer, you can reach me in my social media provided bellow.
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
