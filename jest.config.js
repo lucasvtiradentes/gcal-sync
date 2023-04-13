@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 module.exports = {
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   collectCoverageFrom: ['<rootDir>/src/**/*.ts'],

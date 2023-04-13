@@ -1,9 +1,10 @@
 ## FOLDERS ##########################
-node_modules/
-build/
+
 ignore/
+node_modules/
 
 ## FILES ############################
+
 pnpm-lock.yaml
 package-lock.json
 yarn.lock

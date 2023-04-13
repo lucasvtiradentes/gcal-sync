@@ -1,0 +1,16 @@
+name: move issues/PRs to project
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  add-issue-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v0.4.1
+        with:
+          project-url: https://github.com/users/lucasvtiradentes/projects/8 # gcal-sync project
+          github-token: ${{ secrets.MOVE_TO_PROJEC_TOKEN }}
