@@ -6,6 +6,7 @@ type IcsCompletedTaskGcal = string;
 type CalendarOptions = {
   tag?: string;
   ignoredTags?: string[];
+  color?: number;
 };
 
 type CalendarItem = [IcsCalendarLink, IcsTaskGcal, IcsCompletedTaskGcal, CalendarOptions];
@@ -57,7 +58,7 @@ type SessionStats = {
 
 type GoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
 
-type ParsedGoogleEvent = Pick<GoogleEvent, 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+type ParsedGoogleEvent = Pick<GoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
 
 /* TICKTICK TYPES ----------------------------------------------------------- */
 
@@ -518,6 +519,7 @@ export default class GcalSync {
       end: ev.end,
       created: ev.created,
       updated: ev.updated,
+      colorId: ev.colorId,
       extendedProperties: ev.extendedProperties ?? {}
     };
 
@@ -667,6 +669,20 @@ export default class GcalSync {
   sync() {
     this.createMissingAppsScriptsProperties();
 
+    if (this.config.options.syncTicktick) {
+      const allGcalendarsNames = [...new Set([...this.config.ticktickSync.icsCalendars.map((item) => item[1]), ...this.config.ticktickSync.icsCalendars.map((item) => item[2])])];
+      this.createMissingGoogleCalendars(allGcalendarsNames);
+    }
+
+    if (this.config.options.syncGithub) {
+      this.createMissingGoogleCalendars([this.config.githubSync.googleCalendar]);
+    }
+
+    if (this.config.options.maintanceMode) {
+      this.logger('sync skiped due to maintance mode');
+      return;
+    }
+
     const ticktickSessionStats = this.syncTicktick();
     const sessionAddedEventsQuantity = ticktickSessionStats.addedEvents.length;
     const sessionUpdatedEventsQuantity = ticktickSessionStats.updatedEvents.length;
@@ -709,11 +725,9 @@ export default class GcalSync {
       CUR_SESSION.updatedTicktickTasks = ticktickSessionStats.updatedEvents.map((item) => formatTicktickItem(item)).join('\n');
       CUR_SESSION.completedTicktickTasks = ticktickSessionStats.completedEvents.map((item) => formatTicktickItem(item)).join('\n');
 
-      if (!this.config.options.maintanceMode) {
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${CUR_SESSION.addedTicktickTasks}`);
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${CUR_SESSION.updatedTicktickTasks}`);
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${CUR_SESSION.completedTicktickTasks}`);
-      }
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickAddedTasks, `${todayAddedEvents ? todayAddedEvents + '\n' : ''}${CUR_SESSION.addedTicktickTasks}`);
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickUpdateTasks, `${todayUpdatedEvents ? todayUpdatedEvents + '\n' : ''}${CUR_SESSION.updatedTicktickTasks}`);
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayTicktickCompletedTasks, `${todayCompletedEvents ? todayCompletedEvents + '\n' : ''}${CUR_SESSION.completedTicktickTasks}`);
     }
 
     if (addedCommitsQuantity + deletedCommitsQuantity > 0) {
@@ -731,15 +745,11 @@ export default class GcalSync {
       CUR_SESSION.addedGithubCommits = githubSessionStats.addedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
       CUR_SESSION.deletedGithubCommits = githubSessionStats.deletedCommits.map((item) => formatGithubCommitItem(item)).join('\n');
 
-      if (!this.config.options.maintanceMode) {
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, `${todayAddedGithubCommits ? todayAddedGithubCommits + '\n' : ''}${CUR_SESSION.addedGithubCommits}`);
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, `${todayDeletedGithubCommits ? todayDeletedGithubCommits + '\n' : ''}${CUR_SESSION.deletedGithubCommits}`);
-      }
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubAddedCommits, `${todayAddedGithubCommits ? todayAddedGithubCommits + '\n' : ''}${CUR_SESSION.addedGithubCommits}`);
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.todayGithubDeletedCommits, `${todayDeletedGithubCommits ? todayDeletedGithubCommits + '\n' : ''}${CUR_SESSION.deletedGithubCommits}`);
     }
 
-    if (!this.config.options.maintanceMode) {
-      this.sendAfterSyncEmails(CUR_SESSION);
-    }
+    this.sendAfterSyncEmails(CUR_SESSION);
 
     return this.formatSessionStats(CUR_SESSION);
   }
@@ -871,31 +881,29 @@ export default class GcalSync {
       }
     });
 
-    if (!this.config.options.maintanceMode) {
-      const curTmpAddedCommits = addedTmpCommits.map((event) => `${event.summary} - ${event.start.dateTime}`).join('\n');
-      if (currentGithubSyncIndex === 1) {
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits, curTmpAddedCommits);
-      } else {
-        const lastAddedCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits);
-        if (curTmpAddedCommits !== lastAddedCommits) {
-          this.logger(`reset github commit properties due differences in added commits`);
-          resetProperties();
-          return githubSessionStats;
-        }
+    const curTmpAddedCommits = addedTmpCommits.map((event) => `${event.summary} - ${event.start.dateTime}`).join('\n');
+    if (currentGithubSyncIndex === 1) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits, curTmpAddedCommits);
+    } else {
+      const lastAddedCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastAddedCommits);
+      if (curTmpAddedCommits !== lastAddedCommits) {
+        this.logger(`reset github commit properties due differences in added commits`);
+        resetProperties();
+        return githubSessionStats;
       }
+    }
 
-      if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
-        addedTmpCommits.forEach((event) => {
-          try {
-            const commitGcalEvent = this.addEventToCalendar(githubCalendar, event);
-            githubSessionStats.addedCommits.push(commitGcalEvent);
-            this.logger(`add new commit to gcal: ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
-          } catch (e: any) {
-            resetProperties();
-            throw new Error(e.message);
-          }
-        });
-      }
+    if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
+      addedTmpCommits.forEach((event) => {
+        try {
+          const commitGcalEvent = this.addEventToCalendar(githubCalendar, event);
+          githubSessionStats.addedCommits.push(commitGcalEvent);
+          this.logger(`add new commit to gcal: ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
+        } catch (e: any) {
+          resetProperties();
+          throw new Error(e.message);
+        }
+      });
     }
 
     /* ---------------------------------------------------------------------- */
@@ -914,28 +922,26 @@ export default class GcalSync {
       }
     });
 
-    if (!this.config.options.maintanceMode) {
-      const curTmpDeletedCommits = deletedTmpCommits.map((event) => `${event.summary} - ${event.start.dateTime}`).join('\n');
+    const curTmpDeletedCommits = deletedTmpCommits.map((event) => `${event.summary} - ${event.start.dateTime}`).join('\n');
 
-      if (currentGithubSyncIndex === 1) {
-        this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits, curTmpDeletedCommits);
-      } else {
-        const lastDeletedCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits);
-        if (curTmpDeletedCommits !== lastDeletedCommits) {
-          this.logger(`reset github commit properties due differences in deleted commits`);
-          resetProperties();
-          return githubSessionStats;
-        }
+    if (currentGithubSyncIndex === 1) {
+      this.updateAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits, curTmpDeletedCommits);
+    } else {
+      const lastDeletedCommits = this.getAppsScriptsProperty(this.APPS_SCRIPTS_PROPERTIES.githubLastDeletedCommits);
+      if (curTmpDeletedCommits !== lastDeletedCommits) {
+        this.logger(`reset github commit properties due differences in deleted commits`);
+        resetProperties();
+        return githubSessionStats;
       }
+    }
 
-      if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
-        deletedTmpCommits.forEach((event) => {
-          const commitGcalEvent = this.getEventById(githubCalendar, event.id);
-          this.removeCalendarEvent(githubCalendar, event);
-          githubSessionStats.deletedCommits.push(commitGcalEvent);
-          this.logger(`deleted new commit to gcal: ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
-        });
-      }
+    if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
+      deletedTmpCommits.forEach((event) => {
+        const commitGcalEvent = this.getEventById(githubCalendar, event.id);
+        this.removeCalendarEvent(githubCalendar, event);
+        githubSessionStats.deletedCommits.push(commitGcalEvent);
+        this.logger(`deleted new commit to gcal: ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
+      });
     }
 
     if (currentGithubSyncIndex === this.GITHUB_REQUIRED_VALIDATIONS) {
@@ -1149,7 +1155,7 @@ export default class GcalSync {
   }
 
   private checkTicktickAddedAndUpdatedTasks(icsItem: CalendarItem, tasksFromIcs: ParsedIcsEvent[], tasksFromGoogleCalendars: ParsedGoogleEvent[]) {
-    const [_icsCal, gCalCorresponding, completedCal, _ignoredTags] = icsItem;
+    const [_icsCal, gCalCorresponding, completedCal, calendarOptions] = icsItem;
     const addedTasks: GoogleEvent[] = [];
     const updatedTasks: GoogleEvent[] = [];
 
@@ -1175,6 +1181,8 @@ export default class GcalSync {
           completedCalendar: completedCal
         };
 
+        const otherOptions = calendarOptions?.color ? { colorId: calendarOptions.color.toString() } : {};
+
         const taskEvent: GoogleEvent = {
           summary: getFixedTaskName(curIcsTask.name),
           description: generateGcalDescription(curIcsTask),
@@ -1185,19 +1193,18 @@ export default class GcalSync {
           },
           extendedProperties: {
             private: extendProps
-          }
+          },
+          ...otherOptions
         };
 
-        if (!this.config.options.maintanceMode) {
-          try {
-            const addedGcalEvent = this.addEventToCalendar(taskCalendar, taskEvent);
-            addedTasks.push(addedGcalEvent);
-          } catch (e: any) {
-            if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
-              throw new Error(this.ERRORS.abusiveGoogleCalendarApiUse);
-            } else {
-              throw new Error(e.message);
-            }
+        try {
+          const addedGcalEvent = this.addEventToCalendar(taskCalendar, taskEvent);
+          addedTasks.push(addedGcalEvent);
+        } catch (e: any) {
+          if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
+            throw new Error(this.ERRORS.abusiveGoogleCalendarApiUse);
+          } else {
+            throw new Error(e.message);
           }
         }
 
@@ -1209,6 +1216,13 @@ export default class GcalSync {
         const changedIntialDate = curIcsTask.start['date'] !== gcalTask.start['date'] || curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
         const changedFinalDate = curIcsTask.end['date'] !== gcalTask.end['date'] || curIcsTask.end['dateTime'] !== gcalTask.end['dateTime'];
         const changedCalendar = gCalCorresponding !== taskOnGcal.extendedProperties.private.calendar;
+
+        let changedColor = false;
+        if (calendarOptions?.color === undefined) {
+          changedColor = gcalTask.colorId !== undefined;
+        } else {
+          changedColor = calendarOptions.color.toString() !== gcalTask.colorId;
+        }
 
         const extendProps: GcalPrivateTicktick = {
           tickTaskId: curIcsTask.id,
@@ -1223,23 +1237,20 @@ export default class GcalSync {
           end: curIcsTask.end,
           extendedProperties: {
             private: extendProps
-          }
+          },
+          colorId: calendarOptions?.color ? calendarOptions?.color.toString() : undefined
         };
 
         if (changedCalendar) {
-          if (!this.config.options.maintanceMode) {
-            const finalGcalEvent = { ...gcalTask, ...modifiedFields };
-            const oldCalendar = this.getCalendarByName(taskOnGcal.extendedProperties.private.calendar);
-            this.moveEventToOtherCalendar(oldCalendar, finalGcalEvent, this.getCalendarByName(gCalCorresponding));
-            updatedTasks.push(finalGcalEvent);
-          }
+          const finalGcalEvent = { ...gcalTask, ...modifiedFields };
+          const oldCalendar = this.getCalendarByName(taskOnGcal.extendedProperties.private.calendar);
+          this.moveEventToOtherCalendar(oldCalendar, finalGcalEvent, this.getCalendarByName(gCalCorresponding));
+          updatedTasks.push(finalGcalEvent);
           this.logger(`ticktick task was moved to other calendar: ${modifiedFields.summary}`);
-        } else if (changedTaskName || changedDateFormat || changedIntialDate || changedFinalDate) {
-          if (!this.config.options.maintanceMode) {
-            this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
-            const finalGcalEvent = { ...gcalTask, ...modifiedFields };
-            updatedTasks.push(finalGcalEvent);
-          }
+        } else if (changedTaskName || changedDateFormat || changedIntialDate || changedFinalDate || changedColor) {
+          this.updateEventFromCalendar(taskCalendar, gcalTask, modifiedFields);
+          const finalGcalEvent = { ...gcalTask, ...modifiedFields };
+          updatedTasks.push(finalGcalEvent);
 
           this.logger(`ticktick task was updated: ${modifiedFields.summary}`);
         }
@@ -1260,11 +1271,9 @@ export default class GcalSync {
         const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
         const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.ticktickSync.gcalCompleted
 
-        if (!this.config.options.maintanceMode) {
-          const returnedEv = this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
-          this.getGoogleUtilities().sleep(2000);
-          completedTasks.push(returnedEv);
-        }
+        const returnedEv = this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
+        this.getGoogleUtilities().sleep(2000);
+        completedTasks.push(returnedEv);
 
         this.logger(`ticktick task was completed: ${gcalEvent.summary}`);
       }

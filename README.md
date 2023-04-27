@@ -167,7 +167,8 @@ function getConfigs() {
       icsCalendars: [
         ['webcal://icscal1.ics', 'gcal_1', 'gcal_completed'],                             // everything will be synced
         ['webcal://icscal2.ics', 'gcal_2', 'gcal_completed', { tag: '#FUN' }],            // everything will be synced, but marks all tasks with a label
-        ['webcal://icscal3.ics', 'gcal_all', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
+        ['webcal://icscal3.ics', 'gcal_3', 'gcal_completed', { tag: '#IMP', color: 2 }],  // everything will be synced, but marks all tasks with a label amd changes the color of the gcal events [colors go from 1 to 12]
+        ['webcal://icscal4.ics', 'gcal_all', 'gcal_completed', { ignoredTags: ['#FUN'] }] // everything will be synced, excepts tasks with the specifieds labels
       ] 
     },
     githubSync: {
@@ -244,6 +245,21 @@ function doGet(e) {
 }
 </pre>
 <!-- </DYNFIELD:GAS_SETUP> -->
+
+if you want to change the google event color, you can choose from 12 options:
+
+- 1: blue
+- 2: green
+- 3: purple
+- 4: red
+- 5: yellow
+- 6: orange
+- 7: turquoise
+- 8: gray
+- 9: bold blue
+- 10: bold green
+- 11: bold red
+
   </div>
 </details>
 
