@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.7.5](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.4...v1.7.5) (2023-04-28)
+
+
+### 🐛 bugfix:
+
+* catch minor error when deleting events ([3bd1d24](https://github.com/lucasvtiradentes/gcal-sync/commit/3bd1d243acd75b726b0c2dae0d7707d26244bc6c))
+
 ## [1.7.4](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.3...v1.7.4) (2023-04-28)
 
 
