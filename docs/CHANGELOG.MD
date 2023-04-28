@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.7.4](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.3...v1.7.4) (2023-04-28)
+
+
+### 🐛 bugfix:
+
+* add option to change gcal event color ([#92](https://github.com/lucasvtiradentes/gcal-sync/issues/92)) ([2a5bae7](https://github.com/lucasvtiradentes/gcal-sync/commit/2a5bae79c7c1ae59fe1a444bc22ec296dea652d0))
+
 ## [1.7.3](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.2...v1.7.3) (2023-04-13)
 
 ## [1.7.2](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.1...v1.7.2) (2023-04-13)
