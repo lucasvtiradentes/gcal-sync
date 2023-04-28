@@ -527,8 +527,13 @@ export default class GcalSync {
   }
 
   private addEventToCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent) {
-    const eventFinal = this.getGoogleCalendarObj().Events.insert(event, calendar.id);
-    return eventFinal;
+    try {
+      const eventFinal = this.getGoogleCalendarObj().Events.insert(event, calendar.id);
+      return eventFinal;
+    } catch (e: any) {
+      this.logger(`error when adding event [${event.summary}] to gcal: ${e.message}`);
+      return event;
+    }
   }
 
   private updateEventFromCalendar(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent, updatedProps: any) {
@@ -552,7 +557,7 @@ export default class GcalSync {
     try {
       this.getGoogleCalendarObj().Events.remove(calendar.id, event.id);
     } catch (e: any) {
-      this.logger(`error when deleting event: ${e.message}`);
+      this.logger(`error when deleting event [${event.summary}] to gcal: ${e.message}`);
     }
   }
 
@@ -1273,9 +1278,9 @@ export default class GcalSync {
 
       if (!isTaskStillInTickTick) {
         const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
-        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar); // this.config.ticktickSync.gcalCompleted
+        const completedCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.completedCalendar);
 
-        const returnedEv = this.moveEventToOtherCalendar(oldCalendar, gcalEvent, completedCalendar);
+        const returnedEv = this.moveEventToOtherCalendar(oldCalendar, { ...gcalEvent, colorId: undefined }, completedCalendar);
         this.getGoogleUtilities().sleep(2000);
         completedTasks.push(returnedEv);
 
