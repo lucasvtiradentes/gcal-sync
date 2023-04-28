@@ -549,7 +549,11 @@ export default class GcalSync {
   }
 
   private removeCalendarEvent(calendar: GoogleAppsScript.Calendar.Schema.Calendar, event: GoogleEvent) {
-    this.getGoogleCalendarObj().Events.remove(calendar.id, event.id);
+    try {
+      this.getGoogleCalendarObj().Events.remove(calendar.id, event.id);
+    } catch (e: any) {
+      this.logger(`error when deleting event: ${e.message}`);
+    }
   }
 
   private getEventById(calendar: GoogleAppsScript.Calendar.Schema.Calendar, eventId: string) {
