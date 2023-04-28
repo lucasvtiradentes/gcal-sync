@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.7.6](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.5...v1.7.6) (2023-04-28)
+
+
+### 🐛 bugfix:
+
+* set completed tasks to default color ([56b3c0c](https://github.com/lucasvtiradentes/gcal-sync/commit/56b3c0c3d4724dee52340914fdacdaa41a1ed9d8))
+
 ## [1.7.5](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.4...v1.7.5) (2023-04-28)
 
 
