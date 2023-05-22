@@ -1181,7 +1181,7 @@ export default class GcalSync {
     };
 
     tasksFromIcs.forEach((curIcsTask, index) => {
-      const taskOnGcal = tasksFromGoogleCalendars.find((item) => item.extendedProperties.private.tickTaskId === curIcsTask.id);
+      const taskOnGcal = tasksFromGoogleCalendars.find((item) => item?.extendedProperties?.private?.tickTaskId === curIcsTask.id);
 
       if (!taskOnGcal) {
         const extendProps: GcalPrivateTicktick = {
@@ -1219,7 +1219,7 @@ export default class GcalSync {
 
         this.logger(`ticktick task was added to gcal: ${taskEvent.summary}`);
       } else {
-        const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent.extendedProperties.private.tickTaskId === curIcsTask.id);
+        const gcalTask = tasksFromGoogleCalendars.find((gevent) => gevent?.extendedProperties?.private?.tickTaskId === curIcsTask.id);
         const changedTaskName = getFixedTaskName(curIcsTask.name) !== gcalTask.summary;
         const changedDateFormat = Object.keys(curIcsTask.start).length !== Object.keys(gcalTask.start).length;
         const changedIntialDate = curIcsTask.start['date'] !== gcalTask.start['date'] || curIcsTask.start['dateTime'] !== gcalTask.start['dateTime'];
@@ -1271,10 +1271,10 @@ export default class GcalSync {
 
   private checkCalendarCompletedTasks(tasksFromGoogleCalendars: ParsedGoogleEvent[], allTickTickTasks: ParsedIcsEvent[]) {
     const completedTasks: GoogleEvent[] = [];
-    const onlyTickEventsInGcal = tasksFromGoogleCalendars.filter((item) => item.extendedProperties.private.tickTaskId);
+    const onlyTickEventsInGcal = tasksFromGoogleCalendars.filter((item) => item?.extendedProperties?.private?.tickTaskId);
 
     onlyTickEventsInGcal.forEach((gcalEvent) => {
-      const isTaskStillInTickTick = allTickTickTasks.map((item) => item.id).includes(gcalEvent.extendedProperties.private.tickTaskId);
+      const isTaskStillInTickTick = allTickTickTasks.map((item) => item.id).includes(gcalEvent?.extendedProperties?.private?.tickTaskId);
 
       if (!isTaskStillInTickTick) {
         const oldCalendar = this.getCalendarByName(gcalEvent.extendedProperties.private.calendar);
