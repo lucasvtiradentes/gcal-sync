@@ -201,7 +201,7 @@ function getConfigs() {
 }
 
 function getGcalSync(){
-  const version = "1.7.6"
+  const version = "1.7.7"
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(gcalSyncContent)
   const configs = getConfigs()
@@ -393,7 +393,7 @@ If you want to [contribute](./docs/CONTRIBUTING.md) to the project, fork the pro
 ```js
 function getGcalSync() {
   const configs = getConfigs();
-  // const version = "1.7.6" // version
+  // const version = "1.7.7" // version
   // const gcalSyncContent = getGcalSyncProduction(version)
   const gcalSyncContent = getGcalSyncDevelopment('yourgithub/gcalsync-fork', 'develop');
   eval(gcalSyncContent);
