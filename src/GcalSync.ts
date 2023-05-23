@@ -317,12 +317,21 @@ export default class GcalSync {
     } else {
       const startDateObj = this.getParsedTimeStamp(finalDtstart);
       const endDateObj = this.getParsedTimeStamp(finalDtend);
+
+      const getTimeZoneFixedString = (fixer: number) => {
+        if (fixer === 0) {
+          return '';
+        }
+        return `${fixer < 0 ? '-' : '+'}${String(Math.abs(fixer)).padStart(2, '0')}:00`;
+      };
+      const timezoneFixedString = getTimeZoneFixedString(this.config.datetime.timeZoneCorrection);
+
       finalDtstart = {
-        dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}-03:00`,
+        dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}${timezoneFixedString}`,
         timeZone: timezone
       };
       finalDtend = {
-        dateTime: `${endDateObj.year}-${endDateObj.month}-${endDateObj.day}T${endDateObj.hours}:${endDateObj.minutes}:${endDateObj.seconds}-03:00`,
+        dateTime: `${endDateObj.year}-${endDateObj.month}-${endDateObj.day}T${endDateObj.hours}:${endDateObj.minutes}:${endDateObj.seconds}${timezoneFixedString}`,
         timeZone: timezone
       };
     }
