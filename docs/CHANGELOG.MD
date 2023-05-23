@@ -1,5 +1,7 @@
 # CHANGELOG HISTORY
 
+## [1.7.8](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.7...v1.7.8) (2023-05-23)
+
 ## [1.7.7](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.6...v1.7.7) (2023-05-22)
 
 ## [1.7.6](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.5...v1.7.6) (2023-04-28)
