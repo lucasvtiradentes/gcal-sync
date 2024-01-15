@@ -1,5 +1,5 @@
 import { DynMarkdown } from 'dyn-markdown';
-import minify from 'minify';
+// import minify from 'minify';
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
 (async () => {
@@ -36,10 +36,9 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
   replaceFileContent(FILES.gcalSyncUmd, VERSION_UPDATE, `this.VERSION = '${VERSION}'; ${VERSION_UPDATE}`);
   replaceFileContent(FILES.readme, VERSION_UPDATE, `// const version = "${VERSION}" ${VERSION_UPDATE}`);
 
-  await minifyFile(FILES.gcalSyncUmd, FILES.gcalSyncMin);
-
-  unlinkSync(FILES.gcalSync);
-  unlinkSync(FILES.gcalSyncUmd);
+  // await minifyFile(FILES.gcalSyncUmd, FILES.gcalSyncMin);
+  // unlinkSync(FILES.gcalSync);
+  // unlinkSync(FILES.gcalSyncUmd);
 })();
 
 function getAppsScriptAllowPermissionFileContent() {
@@ -146,6 +145,6 @@ function replaceFileContent(file: string, strToFind: string, strToReplace: strin
 }
 
 async function minifyFile(filePath: string, distPath: string) {
-  const minifiedContent = await minify(filePath);
-  writeFileSync(distPath, minifiedContent);
+  // const minifiedContent = await minify(filePath);
+  // writeFileSync(distPath, minifiedContent);
 }
