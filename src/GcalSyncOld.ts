@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 type IcsCalendarLink = string;
 type IcsTaskGcal = string;
 type IcsCompletedTaskGcal = string;

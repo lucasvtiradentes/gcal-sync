@@ -21,9 +21,10 @@
   "main": "dist/GcalSync.min.js",
   "scripts": {
     "start": "node ./dist/GcalSync.min.js",
-    "dev": "tsx ./resources/dev.ts",
+    "dev": "tsx ./src/index.ts",
+    "dev1": "tsx ./resources/dev.ts",
     "build": "rimraf ./dist && tsc && npm run umdfy && npm run scripts:postbuild",
-    "umdfy": "rollup ./dist/GcalSync.js --file ./dist/UMD-GcalSync.js --format umd --name \"GcalSync\"",
+    "umdfy": "echo rollup ./dist/GcalSync.js --file ./dist/UMD-GcalSync.js --format umd --name \"GcalSync\"",
     "test": "jest --passWithNoTests --verbose",
     "postversion": "echo writing new version in the dist file && npm run build",
     "pub": "semantic-release",
@@ -31,7 +32,7 @@
     "prepare": "husky install",
     "commit": "cz",
     "lint:staged": "lint-staged --concurrent false --quiet",
-    "scripts:postbuild": "tsx ./scripts/post-build.ts"
+    "scripts:postbuild": "echo tsx ./scripts/post-build.ts"
   },
   "dependencies": {
     "dyn-markdown": "^1.4.0",
