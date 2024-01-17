@@ -6,7 +6,7 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
-    "package.json": ".czrc, .editorconfig, commitlint.config.js, .eslintignore, .eslintrc.json, .lintstagedrc, .prettierignore, .prettierrc.json, jest.config.js, tsconfig.json, package-lock.json, yarn.lock, pnpm-lock.yaml",
+    "package.json": ".czrc, .editorconfig, rollup.config.js, commitlint.config.js, .eslintignore, .eslintrc.json, .lintstagedrc, .prettierignore, .prettierrc.json, jest.config.js, tsconfig.json, package-lock.json, yarn.lock, pnpm-lock.yaml",
     "release.config.js": ".npmignore",
     "README.md": "LICENSE",
   },

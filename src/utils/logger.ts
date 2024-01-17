@@ -8,7 +8,7 @@ export const logger = {
   },
   error: (message: any, ...optionalParams: any[]) => {
     if (CONFIGS.DEBUG_MODE) {
-      console.trace(message, ...optionalParams);
+      console.error(message, ...optionalParams);
     }
   }
 };

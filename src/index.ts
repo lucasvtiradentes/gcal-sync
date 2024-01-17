@@ -1,11 +1,14 @@
 import { checkIfisGASEnvironment } from './classes/GAS';
+import { getAllGithubCommits } from './classes/Github';
+import { getIcsCalendarTasks } from './classes/ICS';
 import { APP_INFO } from './consts/app_info';
-import { TConfigs } from './schemas/configs.schema';
+import { TConfigs, githubConfigsKey, ticktickConfigsKey } from './schemas/configs.schema';
 import { validateConfigs } from './schemas/validate_configs';
+import { mergeArraysOfArrays } from './utils/array_utils';
 import { getDateFixedByTimezone } from './utils/date_utils';
 import { logger } from './utils/logger';
 
-export default class GcalSync {
+class GcalSync {
   today_date: string;
   isGASEnvironment: boolean = checkIfisGASEnvironment();
 
@@ -21,23 +24,34 @@ export default class GcalSync {
   showConfigs() {
     console.log(this.configs);
   }
+
+  async sync() {
+    const shouldSyncGithub = this.configs[githubConfigsKey];
+    const shouldSyncTicktick = this.configs[ticktickConfigsKey];
+
+    // prettier-ignore
+    const allGoogleCalendars: string[] = [... new Set([]
+      .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar, this.configs[githubConfigsKey].issues_configs.issues_calendar] : [])
+      .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.dcal_done)] : []))]
+
+    console.log(allGoogleCalendars);
+    // createMissingCalendars(allGoogleCalendars);
+
+    const allIcsLinks = this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.link);
+    const ticktickTasks = mergeArraysOfArrays(
+      await Promise.all(
+        allIcsLinks.map(async (ics) => {
+          const tasks = await getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
+          return tasks;
+        })
+      )
+    );
+    console.log(ticktickTasks);
+
+    const githubCommits = await getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
+    console.log(githubCommits);
+  }
 }
 
-const gcalSync = new GcalSync({
-  settings: {
-    sync_function: '',
-    timezone_correction: -3,
-    update_frequency: 4
-  },
-  options: {
-    daily_summary_email_time: '15:00',
-    email_daily_summary: false,
-    email_errors: false,
-    email_new_gcal_sync_release: false,
-    email_session: false,
-    maintenance_mode: false,
-    show_logs: false
-  }
-});
-
-gcalSync.showConfigs();
+export default GcalSync;
+export { TConfigs };

@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2016",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    // "strict": true,
+    "declaration": true,
     "skipLibCheck": true,
-    "outDir": "dist",
     "esModuleInterop": true
   },
   "include": ["src"]
