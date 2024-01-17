@@ -22,10 +22,10 @@ jobs:
     - name: 1 - checkout the repository
       uses: actions/checkout@v3
 
-    - name: 2 - Use Node.js 16.x
+    - name: 2 - Use Node.js 20.8.1
       uses: actions/setup-node@v3
       with:
-        node-version: 16.x
+        node-version: 20.8.1
 
     - name: 3 - install dependencies
       run: npm install

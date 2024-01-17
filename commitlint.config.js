@@ -40,7 +40,7 @@ module.exports = {
   rules: {
     'gitmoji-workflow': [2, 'always'],
     'type-enum': [2, 'always', VALID_COMMIT_TYPES],
-    'header-max-length': [2, 'always', 70]
+    'header-max-length': [2, 'always', 85]
   }
 };
 

@@ -1,5 +1,14 @@
+type TIcsCalendar = {
+  link: string;
+  gcal: string;
+  dcal_done: string;
+  color?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+  tag?: string;
+  ignoredTags?: string[];
+};
+
 export type TTicktickSync = {
-  ics_calendars: [];
+  ics_calendars: TIcsCalendar[];
 };
 
 export type TGithubSync = {
