@@ -31,6 +31,8 @@ export async function getAllGithubCommits(username: string, personalToken: strin
       response = await fetch(url);
     }
 
+    console.log(response);
+
     const data = JSON.parse(await response.text()) ?? {};
 
     if (response.status !== 200) {

@@ -1,4 +1,4 @@
-import { TConfigs } from '../src/index';
+import { TConfigs } from '../src/schemas/configs.schema';
 
 export const configs: TConfigs = {
   settings: {
