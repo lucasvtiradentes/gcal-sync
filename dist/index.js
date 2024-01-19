@@ -61,14 +61,13 @@
                 const url = `https://api.github.com/search/commits?q=author:${username}&page=${pageNumber}&sort=committer-date&per_page=100`;
                 let response;
                 if (personalToken !== '') {
-                    response = yield fetch(url, { headers: { Authorization: `Bearer ${personalToken}` } });
+                    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { Authorization: `Bearer ${personalToken}` } });
                 }
                 else {
-                    response = yield fetch(url);
+                    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
                 }
-                console.log(response);
-                const data = (_a = JSON.parse(yield response.text())) !== null && _a !== void 0 ? _a : {};
-                if (response.status !== 200) {
+                const data = (_a = JSON.parse(response.getContentText())) !== null && _a !== void 0 ? _a : {};
+                if (response.getResponseCode() !== 200) {
                     if (data.message === 'Validation Failed') {
                         throw new Error(ERRORS.invalidGithubUsername);
                     }
@@ -109,6 +108,103 @@
         });
     }
 
+    const CONFIGS = {
+        DEBUG_MODE: true,
+        MAX_GCAL_TASKS: 2500
+    };
+
+    const logger = {
+        info: (message, ...optionalParams) => {
+            {
+                console.log(message, ...optionalParams);
+            }
+        },
+        error: (message, ...optionalParams) => {
+            {
+                console.error(message, ...optionalParams);
+            }
+        }
+    };
+
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    // =============================================================================
+    const createMissingCalendars = (allGcalendarsNames) => {
+        let createdCalendar = false;
+        allGcalendarsNames.forEach((calName) => {
+            if (!checkIfCalendarExists(calName)) {
+                createCalendar(calName);
+                logger.info(`created google calendar: [${calName}]`);
+                createdCalendar = true;
+            }
+        });
+        if (createdCalendar) {
+            sleep(2000);
+        }
+    };
+    const getAllCalendars = () => {
+        var _a;
+        const calendars = (_a = Calendar.CalendarList.list({ showHidden: true }).items) !== null && _a !== void 0 ? _a : [];
+        return calendars;
+    };
+    const checkIfCalendarExists = (calendarName) => {
+        const allCalendars = getAllCalendars();
+        const calendar = allCalendars.find((cal) => cal.summary === calendarName);
+        return calendar;
+    };
+    const createCalendar = (calName) => {
+        const calendarObj = Calendar;
+        const owenedCalendars = calendarObj.CalendarList.list({ showHidden: true }).items.filter((cal) => cal.accessRole === 'owner');
+        const doesCalendarExists = owenedCalendars.map((cal) => cal.summary).includes(calName);
+        if (doesCalendarExists) {
+            throw new Error(`calendar ${calName} already exists!`);
+        }
+        const tmpCalendar = calendarObj.newCalendar();
+        tmpCalendar.summary = calName;
+        tmpCalendar.timeZone = calendarObj.Settings.get('timezone').value;
+        const calendar = calendarObj.Calendars.insert(tmpCalendar);
+        return calendar;
+    };
+    function getCalendarByName(calName) {
+        const calendar = getAllCalendars().find((cal) => cal.summary === calName);
+        return calendar;
+    }
+    function parseGoogleEvent(ev) {
+        var _a, _b, _c, _d, _e;
+        const parsedGoogleEvent = {
+            id: ev.id,
+            summary: ev.summary,
+            description: (_a = ev.description) !== null && _a !== void 0 ? _a : '',
+            htmlLink: ev.htmlLink,
+            attendees: (_b = ev.attendees) !== null && _b !== void 0 ? _b : [],
+            reminders: (_c = ev.reminders) !== null && _c !== void 0 ? _c : {},
+            visibility: (_d = ev.visibility) !== null && _d !== void 0 ? _d : 'default',
+            start: ev.start,
+            end: ev.end,
+            created: ev.created,
+            updated: ev.updated,
+            colorId: ev.colorId,
+            extendedProperties: (_e = ev.extendedProperties) !== null && _e !== void 0 ? _e : {}
+        };
+        return parsedGoogleEvent;
+    }
+    function getEventsFromCalendar(calendar) {
+        const allEvents = Calendar.Events.list(calendar.id, { maxResults: CONFIGS.MAX_GCAL_TASKS }).items;
+        const parsedEventsArr = allEvents.map((ev) => parseGoogleEvent(ev));
+        return parsedEventsArr;
+    }
+    function getTasksFromGoogleCalendars(allCalendars) {
+        const tasks = allCalendars.reduce((acc, cur) => {
+            const taskCalendar = cur;
+            const calendar = getCalendarByName(taskCalendar);
+            const tasksArray = getEventsFromCalendar(calendar);
+            return [...acc, ...tasksArray];
+        }, []);
+        return tasks;
+    }
+
     function getDateFixedByTimezone(timeZoneIndex) {
         const date = new Date();
         date.setHours(date.getHours() + timeZoneIndex);
@@ -127,11 +223,11 @@
 
     const getIcsCalendarTasks = (icsLink, timezoneCorrection) => __awaiter(void 0, void 0, void 0, function* () {
         const parsedLink = icsLink.replace('webcal://', 'https://');
-        console.log({ parsedLink });
-        const response = yield fetch(parsedLink);
-        console.log({ response });
-        const data = yield response.text();
-        console.log({ data });
+        const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
+        const data = urlResponse.getContentText() || '';
+        if (urlResponse.getResponseCode() !== 200) {
+            throw new Error(ERRORS.httpsError + parsedLink);
+        }
         if (data.search('BEGIN:VCALENDAR') === -1) {
             throw new Error('RESPOSTA INVALIDA PRA UM ICS');
         }
@@ -155,7 +251,6 @@
             };
             return [...acc, eventObj];
         }, []);
-        console.log({ allEventsArr });
         const allEventsParsedArr = allEventsArr.map((item) => {
             const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezoneCorrection);
             return {
@@ -167,7 +262,6 @@
                 end: parsedDateTime.finalDtend
             };
         });
-        console.log({ allEventsParsedArr });
         return allEventsParsedArr;
     });
     const getStrBetween = (str, substr1, substr2) => {
@@ -223,19 +317,6 @@
     function isObject(obj) {
         return typeof obj === 'object' && obj !== null;
     }
-
-    const logger = {
-        info: (message, ...optionalParams) => {
-            {
-                console.log(message, ...optionalParams);
-            }
-        },
-        error: (message, ...optionalParams) => {
-            {
-                console.error(message, ...optionalParams);
-            }
-        }
-    };
 
     function validateNestedObject(obj, requiredConfigs) {
         if (!isObject(obj)) {
@@ -330,31 +411,37 @@
             return __awaiter(this, void 0, void 0, function* () {
                 const shouldSyncGithub = this.configs[githubConfigsKey];
                 const shouldSyncTicktick = this.configs[ticktickConfigsKey];
+                if (!shouldSyncGithub && !shouldSyncTicktick) {
+                    logger.info('nothing to sync');
+                    return;
+                }
+                const info = {
+                    githubCommits: [],
+                    ticktickTasks: [],
+                    ticktickGcalTasks: [],
+                    allIcsLinks: [],
+                    allGcalTasks: []
+                };
                 // prettier-ignore
                 const allGoogleCalendars = [...new Set([]
                         .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar, this.configs[githubConfigsKey].issues_configs.issues_calendar] : [])
                         .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.dcal_done)] : []))
                 ];
-                console.log({ allGoogleCalendars });
-                // createMissingCalendars(allGoogleCalendars);
-                const allIcsLinks = this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.link);
-                console.log({ allIcsLinks });
-                for (const ics of allIcsLinks) {
-                    console.log({ ics1: ics });
-                    const tasks = yield getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
-                    console.log({ tasks });
+                createMissingCalendars(allGoogleCalendars);
+                info.allGcalTasks = getTasksFromGoogleCalendars(allGoogleCalendars);
+                if (shouldSyncTicktick) {
+                    const icsCalendarsConfigs = this.configs[ticktickConfigsKey].ics_calendars;
+                    info.allIcsLinks = icsCalendarsConfigs.map((item) => item.link);
+                    info.ticktickGcalTasks = getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))]);
+                    info.ticktickTasks = mergeArraysOfArrays(yield Promise.all(info.allIcsLinks.map((ics) => __awaiter(this, void 0, void 0, function* () {
+                        const tasks = yield getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
+                        return tasks;
+                    }))));
                 }
-                const ticktickTasks = mergeArraysOfArrays(yield Promise.all(allIcsLinks.map((ics) => __awaiter(this, void 0, void 0, function* () {
-                    console.log({ ics });
-                    const tasks = yield getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
-                    console.log({ tasks });
-                    return tasks;
-                }))));
-                console.log(ticktickTasks);
-                console.log(1);
-                const githubCommits = yield getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
-                console.log(3);
-                console.log(githubCommits);
+                if (shouldSyncGithub) {
+                    info.githubCommits = yield getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
+                }
+                console.log(info);
             });
         }
     }
