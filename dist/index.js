@@ -36,6 +36,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
+    // GENERAL =====================================================================
     function checkIfisGASEnvironment() {
         return typeof Calendar !== 'undefined';
     }
@@ -65,6 +66,7 @@
                 else {
                     response = yield fetch(url);
                 }
+                console.log(response);
                 const data = (_a = JSON.parse(yield response.text())) !== null && _a !== void 0 ? _a : {};
                 if (response.status !== 200) {
                     if (data.message === 'Validation Failed') {
@@ -125,8 +127,11 @@
 
     const getIcsCalendarTasks = (icsLink, timezoneCorrection) => __awaiter(void 0, void 0, void 0, function* () {
         const parsedLink = icsLink.replace('webcal://', 'https://');
+        console.log({ parsedLink });
         const response = yield fetch(parsedLink);
+        console.log({ response });
         const data = yield response.text();
+        console.log({ data });
         if (data.search('BEGIN:VCALENDAR') === -1) {
             throw new Error('RESPOSTA INVALIDA PRA UM ICS');
         }
@@ -150,6 +155,7 @@
             };
             return [...acc, eventObj];
         }, []);
+        console.log({ allEventsArr });
         const allEventsParsedArr = allEventsArr.map((item) => {
             const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezoneCorrection);
             return {
@@ -161,6 +167,7 @@
                 end: parsedDateTime.finalDtend
             };
         });
+        console.log({ allEventsParsedArr });
         return allEventsParsedArr;
     });
     const getStrBetween = (str, substr1, substr2) => {
@@ -319,9 +326,6 @@
             this.today_date = getDateFixedByTimezone(this.configs.settings.timezone_correction).toISOString().split('T')[0];
             logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
         }
-        showConfigs() {
-            console.log(this.configs);
-        }
         sync() {
             return __awaiter(this, void 0, void 0, function* () {
                 const shouldSyncGithub = this.configs[githubConfigsKey];
@@ -329,16 +333,27 @@
                 // prettier-ignore
                 const allGoogleCalendars = [...new Set([]
                         .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar, this.configs[githubConfigsKey].issues_configs.issues_calendar] : [])
-                        .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.dcal_done)] : []))];
-                console.log(allGoogleCalendars);
+                        .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.dcal_done)] : []))
+                ];
+                console.log({ allGoogleCalendars });
                 // createMissingCalendars(allGoogleCalendars);
                 const allIcsLinks = this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.link);
-                const ticktickTasks = mergeArraysOfArrays(yield Promise.all(allIcsLinks.map((ics) => __awaiter(this, void 0, void 0, function* () {
+                console.log({ allIcsLinks });
+                for (const ics of allIcsLinks) {
+                    console.log({ ics1: ics });
                     const tasks = yield getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
+                    console.log({ tasks });
+                }
+                const ticktickTasks = mergeArraysOfArrays(yield Promise.all(allIcsLinks.map((ics) => __awaiter(this, void 0, void 0, function* () {
+                    console.log({ ics });
+                    const tasks = yield getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
+                    console.log({ tasks });
                     return tasks;
                 }))));
                 console.log(ticktickTasks);
+                console.log(1);
                 const githubCommits = yield getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
+                console.log(3);
                 console.log(githubCommits);
             });
         }

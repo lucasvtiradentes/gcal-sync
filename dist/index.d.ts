@@ -4,8 +4,6 @@ declare class GcalSync {
     today_date: string;
     isGASEnvironment: boolean;
     constructor(configs: TConfigs);
-    showConfigs(): void;
     sync(): Promise<void>;
 }
 export default GcalSync;
-export { TConfigs };
