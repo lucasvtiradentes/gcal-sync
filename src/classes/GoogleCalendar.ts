@@ -1,5 +1,12 @@
+import { CONFIGS } from '../consts/configs';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/sleep';
+
+type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
+type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
+type TParsedGoogleEvent = Pick<TGoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+
+// =============================================================================
 
 export const createMissingCalendars = (allGcalendarsNames: string[]) => {
   let createdCalendar = false;
@@ -22,13 +29,13 @@ export const getAllCalendars = () => {
   return calendars;
 };
 
-export const checkIfCalendarExists = (calendarName: string) => {
+const checkIfCalendarExists = (calendarName: string) => {
   const allCalendars = getAllCalendars();
   const calendar = allCalendars.find((cal) => cal.summary === calendarName);
   return calendar;
 };
 
-export const createCalendar = (calName: string) => {
+const createCalendar = (calName: string) => {
   const calendarObj = Calendar;
   const owenedCalendars = calendarObj.CalendarList!.list({ showHidden: true }).items!.filter((cal) => cal.accessRole === 'owner');
   const doesCalendarExists = owenedCalendars.map((cal) => cal.summary).includes(calName);
@@ -44,3 +51,45 @@ export const createCalendar = (calName: string) => {
   const calendar = calendarObj.Calendars!.insert(tmpCalendar);
   return calendar;
 };
+
+function getCalendarByName(calName: string) {
+  const calendar = getAllCalendars().find((cal) => cal.summary === calName);
+  return calendar;
+}
+
+function parseGoogleEvent(ev: TGoogleEvent) {
+  const parsedGoogleEvent: TParsedGoogleEvent = {
+    id: ev.id,
+    summary: ev.summary,
+    description: ev.description ?? '',
+    htmlLink: ev.htmlLink,
+    attendees: ev.attendees ?? [],
+    reminders: ev.reminders ?? {},
+    visibility: ev.visibility ?? 'default',
+    start: ev.start,
+    end: ev.end,
+    created: ev.created,
+    updated: ev.updated,
+    colorId: ev.colorId,
+    extendedProperties: ev.extendedProperties ?? {}
+  };
+
+  return parsedGoogleEvent;
+}
+
+function getEventsFromCalendar(calendar: TGoogleCalendar) {
+  const allEvents = Calendar.Events.list(calendar.id, { maxResults: CONFIGS.MAX_GCAL_TASKS }).items;
+  const parsedEventsArr = allEvents.map((ev) => parseGoogleEvent(ev));
+  return parsedEventsArr;
+}
+
+export function getTasksFromGoogleCalendars(allCalendars: string[]) {
+  const tasks: TParsedGoogleEvent[] = allCalendars.reduce((acc, cur) => {
+    const taskCalendar = cur;
+    const calendar = getCalendarByName(taskCalendar);
+    const tasksArray = getEventsFromCalendar(calendar);
+    return [...acc, ...tasksArray];
+  }, []);
+
+  return tasks;
+}

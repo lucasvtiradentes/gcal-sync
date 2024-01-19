@@ -1,5 +1,6 @@
 import { checkIfisGASEnvironment } from './classes/GAS';
 import { getAllGithubCommits } from './classes/Github';
+import { createMissingCalendars, getTasksFromGoogleCalendars } from './classes/GoogleCalendar';
 import { getIcsCalendarTasks } from './classes/ICS';
 import { APP_INFO } from './consts/app_info';
 import { TConfigs, githubConfigsKey, ticktickConfigsKey } from './schemas/configs.schema';
@@ -25,39 +26,50 @@ class GcalSync {
     const shouldSyncGithub = this.configs[githubConfigsKey];
     const shouldSyncTicktick = this.configs[ticktickConfigsKey];
 
+    if (!shouldSyncGithub && !shouldSyncTicktick) {
+      logger.info('nothing to sync');
+      return;
+    }
+
+    const info = {
+      githubCommits: [],
+
+      ticktickTasks: [],
+      ticktickGcalTasks: [],
+
+      allIcsLinks: [],
+      allGcalTasks: []
+    };
+
     // prettier-ignore
     const allGoogleCalendars: string[] = [... new Set([]
       .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar, this.configs[githubConfigsKey].issues_configs.issues_calendar] : [])
       .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.dcal_done)] : []))
     ]
+    createMissingCalendars(allGoogleCalendars);
 
-    console.log({ allGoogleCalendars });
-    // createMissingCalendars(allGoogleCalendars);
+    info.allGcalTasks = getTasksFromGoogleCalendars(allGoogleCalendars);
 
-    const allIcsLinks = this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.link);
-    console.log({ allIcsLinks });
+    if (shouldSyncTicktick) {
+      const icsCalendarsConfigs = this.configs[ticktickConfigsKey].ics_calendars;
+      info.allIcsLinks = icsCalendarsConfigs.map((item) => item.link);
+      info.ticktickGcalTasks = getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))]);
 
-    for (const ics of allIcsLinks) {
-      console.log({ ics1: ics });
-      const tasks = await getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
-      console.log({ tasks });
+      info.ticktickTasks = mergeArraysOfArrays(
+        await Promise.all(
+          info.allIcsLinks.map(async (ics) => {
+            const tasks = await getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
+            return tasks;
+          })
+        )
+      );
     }
 
-    const ticktickTasks = mergeArraysOfArrays(
-      await Promise.all(
-        allIcsLinks.map(async (ics) => {
-          console.log({ ics });
-          const tasks = await getIcsCalendarTasks(ics, this.configs.settings.timezone_correction);
-          console.log({ tasks });
-          return tasks;
-        })
-      )
-    );
-    console.log(ticktickTasks);
-    console.log(1);
-    const githubCommits = await getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
-    console.log(3);
-    console.log(githubCommits);
+    if (shouldSyncGithub) {
+      info.githubCommits = await getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
+    }
+
+    console.log(info);
   }
 }
 

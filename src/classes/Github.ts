@@ -23,19 +23,17 @@ export async function getAllGithubCommits(username: string, personalToken: strin
   while (shouldBreak === false) {
     const url = `https://api.github.com/search/commits?q=author:${username}&page=${pageNumber}&sort=committer-date&per_page=100`;
 
-    let response: Response;
+    let response: GoogleAppsScript.URL_Fetch.HTTPResponse;
 
     if (personalToken !== '') {
-      response = await fetch(url, { headers: { Authorization: `Bearer ${personalToken}` } });
+      response = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { Authorization: `Bearer ${personalToken}` } });
     } else {
-      response = await fetch(url);
+      response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
     }
 
-    console.log(response);
+    const data = JSON.parse(response.getContentText()) ?? {};
 
-    const data = JSON.parse(await response.text()) ?? {};
-
-    if (response.status !== 200) {
+    if (response.getResponseCode() !== 200) {
       if (data.message === 'Validation Failed') {
         throw new Error(ERRORS.invalidGithubUsername);
       }

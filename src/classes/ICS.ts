@@ -1,3 +1,4 @@
+import { ERRORS } from '../consts/errors';
 import { getParsedTimeStamp } from '../utils/date_utils';
 
 type TParsedTicktickTask = {
@@ -13,11 +14,12 @@ type TDate = { date: string } | { dateTime: string; timeZone: string };
 
 export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: number) => {
   const parsedLink = icsLink.replace('webcal://', 'https://');
-  console.log({ parsedLink });
-  const response = await fetch(parsedLink);
-  console.log({ response });
-  const data = await response.text();
-  console.log({ data });
+  const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
+  const data = urlResponse.getContentText() || '';
+
+  if (urlResponse.getResponseCode() !== 200) {
+    throw new Error(ERRORS.httpsError + parsedLink);
+  }
 
   if (data.search('BEGIN:VCALENDAR') === -1) {
     throw new Error('RESPOSTA INVALIDA PRA UM ICS');
@@ -44,7 +46,6 @@ export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: n
     };
     return [...acc, eventObj];
   }, []);
-  console.log({ allEventsArr });
 
   const allEventsParsedArr = allEventsArr.map((item) => {
     const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezoneCorrection);
@@ -57,7 +58,6 @@ export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: n
       end: parsedDateTime.finalDtend
     };
   });
-  console.log({ allEventsParsedArr });
 
   return allEventsParsedArr as TParsedTicktickTask[];
 };

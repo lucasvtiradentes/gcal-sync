@@ -1,5 +1,6 @@
 export declare const CONFIGS: {
     readonly DEBUG_MODE: true;
+    readonly MAX_GCAL_TASKS: 2500;
 };
 export type TGasPropertiesSchema = {
     todayGithubAddedCommits: string;

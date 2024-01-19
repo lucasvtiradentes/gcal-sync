@@ -1,5 +1,6 @@
 export const CONFIGS = {
-  DEBUG_MODE: true
+  DEBUG_MODE: true,
+  MAX_GCAL_TASKS: 2500
 } as const;
 
 export type TGasPropertiesSchema = {
