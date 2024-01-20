@@ -1,4 +1,6 @@
-type TParsedTicktickTask = {
+import { TIcsCalendar } from '../schemas/configs.schema';
+import { TGoogleCalendar } from './GoogleCalendar';
+export type TParsedTicktickTask = {
     id: string;
     name: string;
     description: string;
@@ -6,6 +8,7 @@ type TParsedTicktickTask = {
     start: TDate;
     end: TDate;
 };
+export type TExtendedParsedTicktickTask = TParsedTicktickTask & Pick<TIcsCalendar, 'gcal' | 'gcal_done' | 'color' | 'tag' | 'ignoredTags'>;
 type TDate = {
     date: string;
 } | {
@@ -27,4 +30,6 @@ export declare function getParsedIcsDatetimes(dtstart: string, dtend: string, ti
         timeZone: string;
     };
 };
+export declare const getFixedTaskName: (str: string) => string;
+export declare function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask: TExtendedParsedTicktickTask): Promise<void>;
 export {};
