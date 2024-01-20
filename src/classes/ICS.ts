@@ -1,7 +1,9 @@
 import { ERRORS } from '../consts/errors';
+import { TIcsCalendar } from '../schemas/configs.schema';
 import { getParsedTimeStamp } from '../utils/date_utils';
+import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, addEventToCalendar } from './GoogleCalendar';
 
-type TParsedTicktickTask = {
+export type TParsedTicktickTask = {
   id: string;
   name: string;
   description: string;
@@ -9,6 +11,8 @@ type TParsedTicktickTask = {
   start: TDate;
   end: TDate;
 };
+
+export type TExtendedParsedTicktickTask = TParsedTicktickTask & Pick<TIcsCalendar, 'gcal' | 'gcal_done' | 'color' | 'tag' | 'ignoredTags'>;
 
 type TDate = { date: string } | { dateTime: string; timeZone: string };
 
@@ -106,4 +110,55 @@ export function getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: 
     finalDtstart,
     finalDtend
   };
+}
+
+export const getFixedTaskName = (str: string) => {
+  let fixedName = str;
+  fixedName = fixedName.replace(/\\,/g, ',');
+  fixedName = fixedName.replace(/\\;/g, ';');
+  fixedName = fixedName.replace(/\\"/g, '"');
+  fixedName = fixedName.replace(/\\\\/g, '\\');
+  return fixedName;
+};
+
+async function convertTicktickTaskToGcal(ticktickTask: TExtendedParsedTicktickTask) {
+  const properties: TGcalPrivateTicktick = {
+    private: {
+      calendar: ticktickTask.gcal,
+      completedCalendar: ticktickTask.gcal_done,
+      tickTaskId: ticktickTask.id
+    }
+  };
+
+  const customColor = ticktickTask?.color ? { colorId: ticktickTask.color.toString() } : {};
+
+  const generateGcalDescription = (curIcsTask: TExtendedParsedTicktickTask) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
+
+  const taskEvent: TGoogleEvent = {
+    summary: getFixedTaskName(ticktickTask.name),
+    description: generateGcalDescription(ticktickTask),
+    start: ticktickTask.start,
+    end: ticktickTask.end,
+    reminders: {
+      useDefault: true
+    },
+    extendedProperties: properties,
+    ...customColor
+  };
+
+  return taskEvent;
+}
+
+export async function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask: TExtendedParsedTicktickTask) {
+  const taskEvent = await convertTicktickTaskToGcal(ticktickTask);
+
+  try {
+    addEventToCalendar(gcal, taskEvent);
+  } catch (e: any) {
+    if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
+      throw new Error(ERRORS.abusiveGoogleCalendarApiUse);
+    } else {
+      throw new Error(e.message);
+    }
+  }
 }

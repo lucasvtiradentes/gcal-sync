@@ -2,9 +2,17 @@ import { CONFIGS } from '../consts/configs';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/sleep';
 
-type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
-type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
-type TParsedGoogleEvent = Pick<TGoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated' | 'extendedProperties'>;
+export type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
+export type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
+export type TGcalPrivateTicktick = {
+  private: {
+    tickTaskId: string;
+    calendar: string;
+    completedCalendar: string;
+  };
+};
+
+export type TParsedGoogleEvent = Pick<TGoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated'> & { extendedProperties: TGcalPrivateTicktick };
 
 // =============================================================================
 
@@ -52,7 +60,7 @@ const createCalendar = (calName: string) => {
   return calendar;
 };
 
-function getCalendarByName(calName: string) {
+export function getCalendarByName(calName: string) {
   const calendar = getAllCalendars().find((cal) => cal.summary === calName);
   return calendar;
 }
@@ -71,7 +79,7 @@ function parseGoogleEvent(ev: TGoogleEvent) {
     created: ev.created,
     updated: ev.updated,
     colorId: ev.colorId,
-    extendedProperties: ev.extendedProperties ?? {}
+    extendedProperties: (ev.extendedProperties ?? {}) as TGcalPrivateTicktick
   };
 
   return parsedGoogleEvent;
@@ -92,4 +100,14 @@ export function getTasksFromGoogleCalendars(allCalendars: string[]) {
   }, []);
 
   return tasks;
+}
+
+export function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEvent) {
+  try {
+    const eventFinal = Calendar.Events.insert(event, calendar.id);
+    return eventFinal;
+  } catch (e: any) {
+    this.logger(`error when adding event [${event.summary}] to gcal: ${e.message}`);
+    return event;
+  }
 }
