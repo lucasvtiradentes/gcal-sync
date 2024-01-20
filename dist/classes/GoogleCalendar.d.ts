@@ -16,3 +16,4 @@ export declare const getAllCalendars: () => GoogleAppsScript.Calendar.Schema.Cal
 export declare function getCalendarByName(calName: string): GoogleAppsScript.Calendar.Schema.CalendarListEntry;
 export declare function getTasksFromGoogleCalendars(allCalendars: string[]): TParsedGoogleEvent[];
 export declare function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEvent): GoogleAppsScript.Calendar.Schema.Event;
+export declare function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar: TGoogleCalendar, event: TGoogleEvent): GoogleAppsScript.Calendar.Schema.Event;

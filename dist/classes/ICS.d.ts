@@ -1,5 +1,6 @@
+/// <reference types="google-apps-script" />
 import { TIcsCalendar } from '../schemas/configs.schema';
-import { TGoogleCalendar } from './GoogleCalendar';
+import { TGoogleCalendar, TParsedGoogleEvent } from './GoogleCalendar';
 export type TParsedTicktickTask = {
     id: string;
     name: string;
@@ -31,5 +32,7 @@ export declare function getParsedIcsDatetimes(dtstart: string, dtend: string, ti
     };
 };
 export declare const getFixedTaskName: (str: string) => string;
-export declare function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask: TExtendedParsedTicktickTask): Promise<void>;
+export declare function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask: TExtendedParsedTicktickTask): Promise<GoogleAppsScript.Calendar.Schema.Event>;
+export declare function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent): Promise<string[]>;
+export declare function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezoneCorrection: number): Promise<TExtendedParsedTicktickTask[]>;
 export {};
