@@ -107,7 +107,22 @@ export function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEven
     const eventFinal = Calendar.Events.insert(event, calendar.id);
     return eventFinal;
   } catch (e: any) {
-    this.logger(`error when adding event [${event.summary}] to gcal: ${e.message}`);
+    logger.info(`error when adding event [${event.summary}] to gcal: ${e.message}`);
     return event;
+  }
+}
+
+export function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar: TGoogleCalendar, event: TGoogleEvent) {
+  removeCalendarEvent(calendar, event);
+  Utilities.sleep(1500);
+  const newEvent = addEventToCalendar(newCalendar, event);
+  return newEvent;
+}
+
+function removeCalendarEvent(calendar: TGoogleCalendar, event: TGoogleEvent) {
+  try {
+    Calendar.Events.remove(calendar.id, event.id);
+  } catch (e: any) {
+    logger.info(`error when deleting event [${event.summary}] to gcal: ${e.message}`);
   }
 }

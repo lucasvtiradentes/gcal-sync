@@ -1,7 +1,8 @@
 import { ERRORS } from '../consts/errors';
 import { TIcsCalendar } from '../schemas/configs.schema';
+import { mergeArraysOfArrays } from '../utils/array_utils';
 import { getParsedTimeStamp } from '../utils/date_utils';
-import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, addEventToCalendar } from './GoogleCalendar';
+import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar } from './GoogleCalendar';
 
 export type TParsedTicktickTask = {
   id: string;
@@ -153,7 +154,7 @@ export async function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask:
   const taskEvent = await convertTicktickTaskToGcal(ticktickTask);
 
   try {
-    addEventToCalendar(gcal, taskEvent);
+    return addEventToCalendar(gcal, taskEvent);
   } catch (e: any) {
     if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
       throw new Error(ERRORS.abusiveGoogleCalendarApiUse);
@@ -161,4 +162,50 @@ export async function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask:
       throw new Error(e.message);
     }
   }
+}
+
+export async function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent) {
+  const changedTaskName = getFixedTaskName(ticktickTask.name) !== taskOnGcal.summary;
+  const changedDateFormat = Object.keys(ticktickTask.start).length !== Object.keys(taskOnGcal.start).length;
+  const changedIntialDate = ticktickTask.start['date'] !== taskOnGcal.start['date'] || ticktickTask.start['dateTime'] !== taskOnGcal.start['dateTime'];
+  const changedFinalDate = ticktickTask.end['date'] !== taskOnGcal.end['date'] || ticktickTask.end['dateTime'] !== taskOnGcal.end['dateTime'];
+
+  const changedColor = (() => {
+    let tmpResult = false;
+    if (ticktickTask?.color === undefined) {
+      tmpResult = taskOnGcal.colorId !== undefined;
+    } else {
+      tmpResult = ticktickTask.color.toString() !== taskOnGcal.colorId;
+    }
+    return tmpResult;
+  })();
+
+  const resultArr = [
+    { hasChanged: changedTaskName, field: 'name' },
+    { hasChanged: changedDateFormat, field: 'date format' },
+    { hasChanged: changedIntialDate, field: 'initial date' },
+    { hasChanged: changedFinalDate, field: 'final date' },
+    { hasChanged: changedColor, field: 'color' }
+  ];
+
+  return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
+}
+
+export async function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezoneCorrection: number) {
+  return mergeArraysOfArrays(
+    await Promise.all(
+      icsCalendarsArr.map(async (icsCal) => {
+        const tasks = await getIcsCalendarTasks(icsCal.link, timezoneCorrection);
+        const extendedTasks = tasks.map((item) => ({
+          ...item,
+          gcal: icsCal.gcal,
+          gcal_done: icsCal.gcal_done,
+          ...(icsCal.color ? { color: icsCal.color } : {}),
+          ...(icsCal.tag ? { tag: icsCal.tag } : {}),
+          ...(icsCal.ignoredTags ? { ignoredTags: icsCal.ignoredTags } : {})
+        })) as TExtendedParsedTicktickTask[];
+        return extendedTasks;
+      })
+    )
+  );
 }

@@ -1,13 +1,23 @@
 import { checkIfisGASEnvironment } from './classes/GAS';
 import { getAllGithubCommits } from './classes/Github';
-import { TParsedGoogleEvent, createMissingCalendars, getCalendarByName, getTasksFromGoogleCalendars } from './classes/GoogleCalendar';
-import { TExtendedParsedTicktickTask, addTicktickTaskToGcal, getFixedTaskName, getIcsCalendarTasks } from './classes/ICS';
+import { TGoogleEvent, TParsedGoogleEvent, createMissingCalendars, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar } from './classes/GoogleCalendar';
+import { TExtendedParsedTicktickTask, addTicktickTaskToGcal, checkIfTicktickTaskInfoWasChanged, getTicktickTasks } from './classes/ICS';
 import { APP_INFO } from './consts/app_info';
 import { TConfigs, TIcsCalendar, githubConfigsKey, ticktickConfigsKey } from './schemas/configs.schema';
 import { validateConfigs } from './schemas/validate_configs';
-import { mergeArraysOfArrays } from './utils/array_utils';
 import { getDateFixedByTimezone } from './utils/date_utils';
 import { logger } from './utils/logger';
+
+type TInfo = {
+  ticktickTasks: TExtendedParsedTicktickTask[];
+  ticktickGcalTasks: TParsedGoogleEvent[];
+};
+
+type TResultInfo = {
+  added_tasks: TGoogleEvent[];
+  updated_tasks: TGoogleEvent[];
+  completed_tasks: TGoogleEvent[];
+};
 
 class GcalSync {
   today_date: string;
@@ -49,94 +59,96 @@ class GcalSync {
     }
   }
 
-  async syncTicktick() {
-    const info = {
-      ticktickTasks: [] as TExtendedParsedTicktickTask[],
-      ticktickGcalTasks: [] as TParsedGoogleEvent[]
-    };
-
-    const icsCalendarsConfigs = this.configs[ticktickConfigsKey].ics_calendars;
-    info.ticktickGcalTasks = getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))]);
-
-    const taggedTasks = await this.getTicktickTasks(icsCalendarsConfigs.filter((icsCal) => icsCal.tag));
-    const ignoredTaggedTasks = (await this.getTicktickTasks(icsCalendarsConfigs.filter((icsCal) => icsCal.ignoredTags))).filter((item) => {
+  async getAllTicktickTasks(icsCalendars: TIcsCalendar[], timezoneCorrection: number) {
+    const taggedTasks = await getTicktickTasks(
+      icsCalendars.filter((icsCal) => icsCal.tag),
+      timezoneCorrection
+    );
+    const ignoredTaggedTasks = (
+      await getTicktickTasks(
+        icsCalendars.filter((icsCal) => icsCal.ignoredTags),
+        timezoneCorrection
+      )
+    ).filter((item) => {
       const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
       const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
       return shouldIgnoreTask === false;
     });
-    const commonTasks = await this.getTicktickTasks(icsCalendarsConfigs.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags));
+    const commonTasks = await getTicktickTasks(
+      icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags),
+      timezoneCorrection
+    );
 
-    info.ticktickTasks = [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
+    return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
+  }
 
-    for (const ticktickTask of info.ticktickTasks) {
-      const taskOnGcal = info.ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
+  async addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }: TInfo) {
+    const result = {
+      added_tasks: [] as TGoogleEvent[],
+      updated_tasks: [] as TGoogleEvent[]
+    };
+
+    for (const ticktickTask of ticktickTasks) {
+      const taskOnGcal = ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
       const correspondingCalendar = getCalendarByName(ticktickTask.gcal);
-      let taskAction = '';
 
       if (!taskOnGcal) {
-        await addTicktickTaskToGcal(correspondingCalendar, ticktickTask);
-        taskAction = 'added to gcal';
+        result.added_tasks.push(await addTicktickTaskToGcal(correspondingCalendar, ticktickTask));
       } else {
         const hasChangedCalendar = correspondingCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
-        const changedTicktickFields = await this.checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
+        const changedTicktickFields = await checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
+        const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
 
         if (hasChangedCalendar) {
-          taskAction = 'moved to another google calendar';
+          result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }));
         } else if (changedTicktickFields.length > 0) {
-          taskAction = `gcal event was updated due changes on ticktick task: ${changedTicktickFields.join(', ')}`;
-        } else {
-          taskAction = 'nothing, all synced';
+          logger.info(`gcal event was updated due changes on ticktick task: ${changedTicktickFields.join(', ')}`);
+          result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }));
         }
       }
-
-      logger.info(`${ticktickTask.name} - ${taskAction}`);
     }
+
+    return result;
   }
 
-  async checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent) {
-    const changedTaskName = getFixedTaskName(ticktickTask.name) !== taskOnGcal.summary;
-    const changedDateFormat = Object.keys(ticktickTask.start).length !== Object.keys(taskOnGcal.start).length;
-    const changedIntialDate = ticktickTask.start['date'] !== taskOnGcal.start['date'] || ticktickTask.start['dateTime'] !== taskOnGcal.start['dateTime'];
-    const changedFinalDate = ticktickTask.end['date'] !== taskOnGcal.end['date'] || ticktickTask.end['dateTime'] !== taskOnGcal.end['dateTime'];
+  async moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktickTasks }: TInfo) {
+    const result = {
+      completed_tasks: [] as TGoogleEvent[]
+    };
 
-    const changedColor = (() => {
-      let tmpResult = false;
-      if (ticktickTask?.color === undefined) {
-        tmpResult = taskOnGcal.colorId !== undefined;
-      } else {
-        tmpResult = ticktickTask.color.toString() !== taskOnGcal.colorId;
+    const ticktickTasksOnGcal = ticktickGcalTasks.filter((item) => item.extendedProperties?.private?.tickTaskId);
+
+    for (const gcalTicktickTask of ticktickTasksOnGcal) {
+      const isTaskStillOnTicktick = ticktickTasks.map((item) => item.id).includes(gcalTicktickTask.extendedProperties.private.tickTaskId);
+
+      if (!isTaskStillOnTicktick) {
+        const taskCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.calendar);
+        const taskDoneCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.completedCalendar);
+        const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, { ...gcalTicktickTask, colorId: undefined });
+        result.completed_tasks.push(gcalEvent);
+        logger.info(`movendo tarefa para done ${gcalTicktickTask.summary}`);
       }
-      return tmpResult;
-    })();
+    }
 
-    const resultArr = [
-      { hasChanged: changedTaskName, field: 'name' },
-      { hasChanged: changedDateFormat, field: 'date format' },
-      { hasChanged: changedIntialDate, field: 'initial date' },
-      { hasChanged: changedFinalDate, field: 'final date' },
-      { hasChanged: changedColor, field: 'color' }
-    ];
-
-    return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
+    return result;
   }
 
-  async getTicktickTasks(icsCalendarsArr: TIcsCalendar[]) {
-    return mergeArraysOfArrays(
-      await Promise.all(
-        icsCalendarsArr.map(async (icsCal) => {
-          const tasks = await getIcsCalendarTasks(icsCal.link, this.configs.settings.timezone_correction);
-          const extendedTasks = tasks.map((item) => ({
-            ...item,
-            gcal: icsCal.gcal,
-            gcal_done: icsCal.gcal_done,
-            ...(icsCal.color ? { color: icsCal.color } : {}),
-            ...(icsCal.tag ? { tag: icsCal.tag } : {}),
-            ...(icsCal.ignoredTags ? { ignoredTags: icsCal.ignoredTags } : {})
-          })) as TExtendedParsedTicktickTask[];
-          return extendedTasks;
-        })
-      )
-    );
+  async syncTicktick() {
+    const icsCalendarsConfigs = this.configs[ticktickConfigsKey].ics_calendars;
+
+    const info: TInfo = {
+      ticktickTasks: await this.getAllTicktickTasks(icsCalendarsConfigs, this.configs.settings.timezone_correction),
+      ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
+    };
+
+    console.log({ info });
+
+    const resultInfo: TResultInfo = {
+      ...(await this.addAndUpdateTasksOnGcal(info)),
+      ...(await this.moveCompletedTasksToDoneGcal(info))
+    };
+
+    console.log({ resultInfo });
   }
 
   async syncGithub() {
