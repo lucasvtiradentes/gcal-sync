@@ -1,15 +1,10 @@
-import { TGoogleEvent, TParsedGoogleEvent } from '../classes/GoogleCalendar';
-import { TExtendedParsedTicktickTask } from '../classes/ICS';
+import { TGoogleEvent } from '../classes/GoogleCalendar';
 export type TSessionStats = {
     addedTicktickTasks: string;
     updatedTicktickTasks: string;
     completedTicktickTasks: string;
     addedGithubCommits: string;
     deletedGithubCommits: string;
-};
-export type TInfo = {
-    ticktickTasks: TExtendedParsedTicktickTask[];
-    ticktickGcalTasks: TParsedGoogleEvent[];
 };
 export type TResultInfo = {
     added_tasks: TGoogleEvent[];

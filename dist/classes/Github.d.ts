@@ -1,4 +1,4 @@
-type ParsedGithubCommit = {
+export type TParsedGithubCommit = {
     commitDate: string;
     commitMessage: string;
     commitId: string;
@@ -11,6 +11,5 @@ type ParsedGithubCommit = {
     isRepositoryPrivate: boolean;
     isRepositoryFork: boolean;
 };
-export declare function getAllGithubCommits(username: string, personalToken: string): Promise<ParsedGithubCommit[]>;
+export declare function getAllGithubCommits(username: string, personalToken: string): Promise<TParsedGithubCommit[]>;
 export declare function parseGithubEmojisString(str: string): string;
-export {};
