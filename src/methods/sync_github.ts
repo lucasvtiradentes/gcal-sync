@@ -180,7 +180,6 @@ async function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, cu
 
     if (!commitStillExistsOnGithub) {
       githubSessionStats.commitsTrackedToBeDelete.push(gcalItem);
-      logger.info(`detect a commit to be deleted in gcal: ${gcalProperties.repositoryName} - ${gcalProperties.commitMessage}`);
     }
   });
 

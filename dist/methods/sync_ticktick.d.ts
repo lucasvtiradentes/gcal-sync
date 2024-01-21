@@ -1,12 +1,12 @@
 /// <reference types="google-apps-script" />
 import { TGcalPrivateTicktick, TGoogleCalendar, TParsedGoogleEvent } from '../classes/GoogleCalendar';
 import { TExtendedParsedTicktickTask } from '../classes/ICS';
-import { TConfigs, TIcsCalendar } from '../consts/types';
+import { TConfigs, TIcsCalendar, TResultInfo } from '../consts/types';
 type TInfo = {
     ticktickTasks: TExtendedParsedTicktickTask[];
     ticktickGcalTasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
 };
-export declare function syncTicktick(configs: TConfigs): Promise<void>;
+export declare function syncTicktick(configs: TConfigs): Promise<TResultInfo>;
 export declare const getFixedTaskName: (str: string) => string;
 export declare function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask: TExtendedParsedTicktickTask): Promise<GoogleAppsScript.Calendar.Schema.Event>;
 export declare function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent<TGcalPrivateTicktick>): Promise<string[]>;

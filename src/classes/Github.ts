@@ -63,7 +63,7 @@ export async function getAllGithubCommits(username: string, personalToken: strin
 
   const parsedCommits = allCommitsArr.map((it) => {
     const commitObj: TParsedGithubCommit = {
-      commitDate: it.commit.author.date,
+      commitDate: it.commit.committer.date,
       commitMessage: it.commit.message.split('\n')[0],
       commitId: it.html_url.split('commit/')[1],
       commitUrl: it.html_url,
