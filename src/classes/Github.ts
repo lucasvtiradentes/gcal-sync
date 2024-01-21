@@ -35,11 +35,11 @@ export async function getAllGithubCommits(username: string, personalToken: strin
 
     if (response.getResponseCode() !== 200) {
       if (data.message === 'Validation Failed') {
-        throw new Error(ERRORS.invalidGithubUsername);
+        throw new Error(ERRORS.invalid_github_username);
       }
 
       if (data.message === 'Bad credentials') {
-        throw new Error(ERRORS.invalidGithubToken);
+        throw new Error(ERRORS.invalid_github_token);
       }
 
       throw new Error(data.message);

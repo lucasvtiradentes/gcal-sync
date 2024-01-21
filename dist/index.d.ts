@@ -5,7 +5,6 @@ export type TSessionStats = TTicktickSyncResultInfo & Omit<TGithubSyncResultInfo
 declare class GcalSync {
     private configs;
     private today_date;
-    private user_email;
     constructor(configs: TConfigs);
     install(): Promise<void>;
     uninstall(): Promise<void>;

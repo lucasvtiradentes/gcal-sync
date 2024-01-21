@@ -75,7 +75,7 @@ export async function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask:
     return addEventToCalendar(gcal, taskEvent);
   } catch (e: any) {
     if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
-      throw new Error(ERRORS.abusiveGoogleCalendarApiUse);
+      throw new Error(ERRORS.abusive_google_calendar_api_use);
     } else {
       throw new Error(e.message);
     }

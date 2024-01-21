@@ -16,18 +16,18 @@ export type TSessionStats = TTicktickSyncResultInfo & Omit<TGithubSyncResultInfo
 
 class GcalSync {
   private today_date: string;
-  private user_email: string;
 
   constructor(private configs: TConfigs) {
     if (!validateConfigs(configs)) {
-      throw new Error('schema invalid');
+      throw new Error(ERRORS.invalid_configs);
     }
 
-    this.user_email = getUserEmail();
+    if (!isRunningOnGAS()) {
+      throw new Error(ERRORS.production_only);
+    }
+
     this.today_date = getDateFixedByTimezone(this.configs.settings.timezone_correction).toISOString().split('T')[0];
     logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
-
-    if (!isRunningOnGAS()) throw new Error(ERRORS.productionOnly);
   }
 
   // ===========================================================================
@@ -145,7 +145,7 @@ class GcalSync {
 
     const totalSessionNewItems = ticktickNewItems + githubNewItems;
     if (this.configs.options.email_session && totalSessionNewItems > 0) {
-      const sessionEmail = getSessionEmail(this.user_email, sessionData);
+      const sessionEmail = getSessionEmail(getUserEmail(), sessionData);
       sendEmail(sessionEmail);
     }
 
@@ -155,7 +155,7 @@ class GcalSync {
       updateGASProperty('last_daily_email_sent_date', this.today_date);
 
       if (this.configs.options.email_daily_summary) {
-        const dailySummaryEmail = getDailySummaryEmail(this.user_email, sessionData, this.today_date);
+        const dailySummaryEmail = getDailySummaryEmail(getUserEmail(), sessionData, this.today_date);
         sendEmail(dailySummaryEmail);
         this.clearTodayEvents();
       }
@@ -182,7 +182,7 @@ class GcalSync {
         const lastAlertedVersion = getGASProperty('last_released_version_alerted') ?? '';
 
         if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
-          const newReleaseEmail = getNewReleaseEmail(this.user_email, sessionData);
+          const newReleaseEmail = getNewReleaseEmail(getUserEmail(), sessionData);
           sendEmail(newReleaseEmail);
           updateGASProperty('last_released_version_alerted', latestVersion.toString());
         }
