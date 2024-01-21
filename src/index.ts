@@ -105,29 +105,19 @@ class GcalSync {
     ]
     createMissingCalendars(allGoogleCalendars);
 
-    const {
-      added_tasks,
-      completed_tasks,
-      updated_tasks,
-
-      commitsAdded,
-      commitsDeleted,
-      commitsTrackedToBeAdded,
-      commitsTrackedToBeDelete
-    } = {
+    const result = {
       ...(shouldSyncTicktick && (await syncTicktick(this.configs))),
       ...(shouldSyncGithub && (await syncGithub(this.configs)))
     };
 
-    console.log({
-      added_tasks: added_tasks.length,
-      completed_tasks: completed_tasks.length,
-      updated_tasks: updated_tasks.length,
-
-      commitsAdded: commitsAdded.length,
-      commitsDeleted: commitsDeleted.length,
-      commitsTrackedToBeAdded: commitsTrackedToBeAdded.length,
-      commitsTrackedToBeDelete: commitsTrackedToBeDelete.length
+    logger.info({
+      added_tasks: result.added_tasks.length,
+      completed_tasks: result.completed_tasks.length,
+      updated_tasks: result.updated_tasks.length,
+      commitsAdded: result.commitsAdded.length,
+      commitsDeleted: result.commitsDeleted.length,
+      commitsTrackedToBeAdded: result.commitsTrackedToBeAdded.length,
+      commitsTrackedToBeDelete: result.commitsTrackedToBeDelete.length
     });
   }
 }

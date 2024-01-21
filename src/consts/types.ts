@@ -1,4 +1,3 @@
-import { TParsedGithubCommit } from '../classes/Github';
 import { TGcalPrivateGithub, TGoogleEvent, TParsedGoogleEvent } from '../classes/GoogleCalendar';
 import { TExtendedParsedTicktickTask } from '../classes/ICS';
 
@@ -6,7 +5,7 @@ export type TSessionStats = {
   addedTicktickTasks: TExtendedParsedTicktickTask[];
   updatedTicktickTasks: TExtendedParsedTicktickTask[];
   completedTicktickTasks: TExtendedParsedTicktickTask[];
-  addedGithubCommits: TParsedGithubCommit[];
+  addedGithubCommits: TParsedGoogleEvent<TGcalPrivateGithub>[];
   deletedGithubCommits: TParsedGoogleEvent<TGcalPrivateGithub>[];
 };
 

@@ -1,4 +1,3 @@
-import { TParsedGithubCommit } from '../classes/Github';
 import { TGcalPrivateGithub, TParsedGoogleEvent } from '../classes/GoogleCalendar';
 import { TExtendedParsedTicktickTask } from '../classes/ICS';
 
@@ -24,7 +23,7 @@ export const GAS_PROPERTIES = {
   },
   today_github_added_commits: {
     key: 'today_github_added_commits',
-    schema: {} as TParsedGithubCommit[]
+    schema: {} as TParsedGoogleEvent<TGcalPrivateGithub>[]
   },
   today_github_deleted_commits: {
     key: 'today_github_deleted_commits',
@@ -42,7 +41,7 @@ export const GAS_PROPERTIES = {
 
   github_last_added_commits: {
     key: 'github_last_added_commits',
-    schema: {} as TParsedGithubCommit[]
+    schema: {} as TParsedGoogleEvent<TGcalPrivateGithub>[]
   },
   github_last_deleted_commits: {
     key: 'github_last_deleted_commits',
