@@ -427,6 +427,9 @@
             else if (currentGithubSyncIndex > 1 && currentGithubSyncIndex < CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
                 logger.info(`confirming commit changes: ${currentGithubSyncIndex}/${CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT}`);
             }
+            else if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
+                logger.info(`making commit changes if succeed: ${currentGithubSyncIndex}/${CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT}`);
+            }
             const githubCalendar = getCalendarByName(configs[githubConfigsKey].commits_configs.commits_calendar);
             const commitsSortedByDate = info.githubCommits.sort((a, b) => Number(new Date(b.commitDate)) - Number(new Date(a.commitDate)));
             const onlyCommitsOnUserRepositories = commitsSortedByDate.filter((item) => item.repository.includes(configs[githubConfigsKey].username));
@@ -470,30 +473,30 @@
                         },
                         extendedProperties: extendProps
                     };
-                    githubSessionStats.commitsTrackedToBeAdded.push({ commit: githubCommitItem, gcalEvent: taskEvent });
+                    githubSessionStats.commitsTrackedToBeAdded.push(taskEvent);
                 }
             }
             if (currentGithubSyncIndex === 1) {
-                updateGASProperty('github_last_added_commits', githubSessionStats.commitsTrackedToBeAdded.map((item) => item.commit));
+                updateGASProperty('github_last_added_commits', githubSessionStats.commitsTrackedToBeAdded.map((item) => item));
                 return githubSessionStats;
             }
             const lastAddedCommits = getGASProperty('github_last_added_commits');
-            const lastAddedCommitsIds = lastAddedCommits.map((item) => item.commitId);
-            const currentIterationCommitsIds = githubSessionStats.commitsTrackedToBeAdded.map((item) => item.commit.commitId);
+            const lastAddedCommitsIds = lastAddedCommits.map((item) => item.extendedProperties.private.commitId);
+            const currentIterationCommitsIds = githubSessionStats.commitsTrackedToBeAdded.map((item) => item.extendedProperties.private.commitId);
             const remainingCommits = getUniqueElementsOnArrays(lastAddedCommitsIds, currentIterationCommitsIds);
             if (remainingCommits.length > 0) {
                 logger.info(`reset github commit properties due differences in added commits`);
                 resetGithubSyncProperties();
                 return githubSessionStats;
             }
-            if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
-                logger.info(`add commits to gcal:`);
+            if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT && githubSessionStats.commitsTrackedToBeAdded.length > 0) {
+                logger.info(`adding ${githubSessionStats.commitsTrackedToBeAdded.length} commits to gcal`);
                 for (let x = 0; x < githubSessionStats.commitsTrackedToBeAdded.length; x++) {
                     try {
                         const item = githubSessionStats.commitsTrackedToBeAdded[x];
-                        const commitGcalEvent = addEventToCalendar(githubCalendar, item.gcalEvent);
-                        githubSessionStats.commitsAdded.push(item.commit);
-                        logger.info(`${x + 1}/${githubSessionStats.commitsTrackedToBeAdded.length} add new commit to gcal: ${item.commit.commitDate} - ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
+                        const commitGcalEvent = addEventToCalendar(githubCalendar, item);
+                        githubSessionStats.commitsAdded.push(item);
+                        logger.info(`${x + 1}/${githubSessionStats.commitsTrackedToBeAdded.length} add new commit to gcal: ${item.extendedProperties.private.commitDate} - ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
                     }
                     catch (e) {
                         throw new Error(e.message);
@@ -503,6 +506,7 @@
                     }
                 }
             }
+            return githubSessionStats;
         });
     }
     function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, onlyCommitsFromValidRepositories }) {
@@ -524,7 +528,7 @@
                 return githubSessionStats;
             }
             const lastDeletedCommits = getGASProperty('github_last_deleted_commits');
-            const lastDeletedCommitsIds = lastDeletedCommits.map((item) => item.extendedProperties.private.repository);
+            const lastDeletedCommitsIds = lastDeletedCommits.map((item) => item.extendedProperties.private.commitId);
             const currentIterationDeletedCommitsIds = githubSessionStats.commitsTrackedToBeDelete.map((item) => item.extendedProperties.private.commitId);
             const remainingDeletedCommits = getUniqueElementsOnArrays(lastDeletedCommitsIds, currentIterationDeletedCommitsIds);
             if (remainingDeletedCommits.length > 0) {
@@ -532,8 +536,8 @@
                 resetGithubSyncProperties();
                 return githubSessionStats;
             }
-            if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
-                logger.info(`delete commits on gcal:`);
+            if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT && githubSessionStats.commitsTrackedToBeDelete.length > 0) {
+                logger.info(`deleting ${githubSessionStats.commitsTrackedToBeDelete.length} commits on gcal`);
                 for (let x = 0; x < githubSessionStats.commitsTrackedToBeDelete.length; x++) {
                     try {
                         const item = githubSessionStats.commitsTrackedToBeDelete[x];
@@ -959,15 +963,15 @@
                         .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
                 ];
                 createMissingCalendars(allGoogleCalendars);
-                const { added_tasks, completed_tasks, updated_tasks, commitsAdded, commitsDeleted, commitsTrackedToBeAdded, commitsTrackedToBeDelete } = Object.assign(Object.assign({}, (shouldSyncTicktick && (yield syncTicktick(this.configs)))), (shouldSyncGithub && (yield syncGithub(this.configs))));
-                console.log({
-                    added_tasks: added_tasks.length,
-                    completed_tasks: completed_tasks.length,
-                    updated_tasks: updated_tasks.length,
-                    commitsAdded: commitsAdded.length,
-                    commitsDeleted: commitsDeleted.length,
-                    commitsTrackedToBeAdded: commitsTrackedToBeAdded.length,
-                    commitsTrackedToBeDelete: commitsTrackedToBeDelete.length
+                const result = Object.assign(Object.assign({}, (shouldSyncTicktick && (yield syncTicktick(this.configs)))), (shouldSyncGithub && (yield syncGithub(this.configs))));
+                logger.info({
+                    added_tasks: result.added_tasks.length,
+                    completed_tasks: result.completed_tasks.length,
+                    updated_tasks: result.updated_tasks.length,
+                    commitsAdded: result.commitsAdded.length,
+                    commitsDeleted: result.commitsDeleted.length,
+                    commitsTrackedToBeAdded: result.commitsTrackedToBeAdded.length,
+                    commitsTrackedToBeDelete: result.commitsTrackedToBeDelete.length
                 });
             });
         }
