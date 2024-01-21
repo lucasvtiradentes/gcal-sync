@@ -1,3 +1,6 @@
+import { TParsedGithubCommit } from '../classes/Github';
+import { TGcalPrivateGithub, TParsedGoogleEvent } from '../classes/GoogleCalendar';
+import { TExtendedParsedTicktickTask } from '../classes/ICS';
 export declare const CONFIGS: {
     readonly DEBUG_MODE: true;
     readonly MAX_GCAL_TASKS: 2500;
@@ -5,44 +8,44 @@ export declare const CONFIGS: {
     readonly EVENTS_DIVIDER: " | ";
 };
 export declare const GAS_PROPERTIES: {
-    readonly todayTicktickAddedTasks: {
-        readonly key: "todayTicktickAddedTasks";
+    readonly today_ticktick_added_tasks: {
+        readonly key: "today_ticktick_added_tasks";
+        readonly schema: TExtendedParsedTicktickTask[];
+    };
+    readonly today_ticktick_updated_tasks: {
+        readonly key: "today_ticktick_updated_tasks";
+        readonly schema: TExtendedParsedTicktickTask[];
+    };
+    readonly today_ticktick_completed_tasks: {
+        readonly key: "today_ticktick_completed_tasks";
+        readonly schema: TExtendedParsedTicktickTask[];
+    };
+    readonly today_github_added_commits: {
+        readonly key: "today_github_added_commits";
+        readonly schema: TParsedGithubCommit[];
+    };
+    readonly today_github_deleted_commits: {
+        readonly key: "today_github_deleted_commits";
+        readonly schema: TParsedGoogleEvent<TGcalPrivateGithub>[];
+    };
+    readonly last_released_version_alerted: {
+        readonly key: "last_released_version_alerted";
         readonly schema: string;
     };
-    readonly todayTicktickUpdateTasks: {
-        readonly key: "todayTicktickUpdateTasks";
+    readonly last_daily_email_sent_date: {
+        readonly key: "last_daily_email_sent_date";
         readonly schema: string;
     };
-    readonly todayTicktickCompletedTasks: {
-        readonly key: "todayTicktickCompletedTasks";
-        readonly schema: string;
+    readonly github_last_added_commits: {
+        readonly key: "github_last_added_commits";
+        readonly schema: TParsedGithubCommit[];
     };
-    readonly todayGithubAddedCommits: {
-        readonly key: "todayGithubAddedCommits";
-        readonly schema: string;
+    readonly github_last_deleted_commits: {
+        readonly key: "github_last_deleted_commits";
+        readonly schema: TParsedGoogleEvent<TGcalPrivateGithub>[];
     };
-    readonly todayGithubDeletedCommits: {
-        readonly key: "todayGithubDeletedCommits";
-        readonly schema: string;
-    };
-    readonly lastReleasedVersionAlerted: {
-        readonly key: "lastReleasedVersionAlerted";
-        readonly schema: string;
-    };
-    readonly lastDailyEmailSentDate: {
-        readonly key: "lastDailyEmailSentDate";
-        readonly schema: string;
-    };
-    readonly githubLastAddedCommits: {
-        readonly key: "githubLastAddedCommits";
-        readonly schema: string;
-    };
-    readonly githubLastDeletedCommits: {
-        readonly key: "githubLastDeletedCommits";
-        readonly schema: string;
-    };
-    readonly githubCommitChangesCount: {
-        readonly key: "githubCommitChangesCount";
+    readonly github_commit_changes_count: {
+        readonly key: "github_commit_changes_count";
         readonly schema: string;
     };
 };

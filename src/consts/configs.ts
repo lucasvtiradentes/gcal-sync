@@ -1,3 +1,7 @@
+import { TParsedGithubCommit } from '../classes/Github';
+import { TGcalPrivateGithub, TParsedGoogleEvent } from '../classes/GoogleCalendar';
+import { TExtendedParsedTicktickTask } from '../classes/ICS';
+
 export const CONFIGS = {
   DEBUG_MODE: true,
   MAX_GCAL_TASKS: 2500,
@@ -6,46 +10,46 @@ export const CONFIGS = {
 } as const;
 
 export const GAS_PROPERTIES = {
-  todayTicktickAddedTasks: {
-    key: 'todayTicktickAddedTasks',
+  today_ticktick_added_tasks: {
+    key: 'today_ticktick_added_tasks',
+    schema: {} as TExtendedParsedTicktickTask[]
+  },
+  today_ticktick_updated_tasks: {
+    key: 'today_ticktick_updated_tasks',
+    schema: {} as TExtendedParsedTicktickTask[]
+  },
+  today_ticktick_completed_tasks: {
+    key: 'today_ticktick_completed_tasks',
+    schema: {} as TExtendedParsedTicktickTask[]
+  },
+  today_github_added_commits: {
+    key: 'today_github_added_commits',
+    schema: {} as TParsedGithubCommit[]
+  },
+  today_github_deleted_commits: {
+    key: 'today_github_deleted_commits',
+    schema: {} as TParsedGoogleEvent<TGcalPrivateGithub>[]
+  },
+
+  last_released_version_alerted: {
+    key: 'last_released_version_alerted',
     schema: {} as string
   },
-  todayTicktickUpdateTasks: {
-    key: 'todayTicktickUpdateTasks',
-    schema: {} as string
-  },
-  todayTicktickCompletedTasks: {
-    key: 'todayTicktickCompletedTasks',
-    schema: {} as string
-  },
-  todayGithubAddedCommits: {
-    key: 'todayGithubAddedCommits',
-    schema: {} as string
-  },
-  todayGithubDeletedCommits: {
-    key: 'todayGithubDeletedCommits',
+  last_daily_email_sent_date: {
+    key: 'last_daily_email_sent_date',
     schema: {} as string
   },
 
-  lastReleasedVersionAlerted: {
-    key: 'lastReleasedVersionAlerted',
-    schema: {} as string
+  github_last_added_commits: {
+    key: 'github_last_added_commits',
+    schema: {} as TParsedGithubCommit[]
   },
-  lastDailyEmailSentDate: {
-    key: 'lastDailyEmailSentDate',
-    schema: {} as string
+  github_last_deleted_commits: {
+    key: 'github_last_deleted_commits',
+    schema: {} as TParsedGoogleEvent<TGcalPrivateGithub>[]
   },
-
-  githubLastAddedCommits: {
-    key: 'githubLastAddedCommits',
-    schema: {} as string
-  },
-  githubLastDeletedCommits: {
-    key: 'githubLastDeletedCommits',
-    schema: {} as string
-  },
-  githubCommitChangesCount: {
-    key: 'githubCommitChangesCount',
+  github_commit_changes_count: {
+    key: 'github_commit_changes_count',
     schema: {} as string
   }
 } as const;
