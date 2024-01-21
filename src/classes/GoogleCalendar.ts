@@ -17,6 +17,8 @@ export type TGcalPrivateGithub = {
     repository: string;
     commitDate: string;
     commitMessage: string;
+    repositoryName: string;
+    commitId: string;
   };
 };
 
@@ -129,7 +131,7 @@ export function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar:
   return newEvent;
 }
 
-function removeCalendarEvent(calendar: TGoogleCalendar, event: TGoogleEvent) {
+export function removeCalendarEvent(calendar: TGoogleCalendar, event: TGoogleEvent) {
   try {
     Calendar.Events.remove(calendar.id, event.id);
   } catch (e: any) {

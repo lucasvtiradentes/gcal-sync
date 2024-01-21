@@ -85,44 +85,44 @@
         EVENTS_DIVIDER: ' | '
     };
     const GAS_PROPERTIES = {
-        todayTicktickAddedTasks: {
-            key: 'todayTicktickAddedTasks',
+        today_ticktick_added_tasks: {
+            key: 'today_ticktick_added_tasks',
             schema: {}
         },
-        todayTicktickUpdateTasks: {
-            key: 'todayTicktickUpdateTasks',
+        today_ticktick_updated_tasks: {
+            key: 'today_ticktick_updated_tasks',
             schema: {}
         },
-        todayTicktickCompletedTasks: {
-            key: 'todayTicktickCompletedTasks',
+        today_ticktick_completed_tasks: {
+            key: 'today_ticktick_completed_tasks',
             schema: {}
         },
-        todayGithubAddedCommits: {
-            key: 'todayGithubAddedCommits',
+        today_github_added_commits: {
+            key: 'today_github_added_commits',
             schema: {}
         },
-        todayGithubDeletedCommits: {
-            key: 'todayGithubDeletedCommits',
+        today_github_deleted_commits: {
+            key: 'today_github_deleted_commits',
             schema: {}
         },
-        lastReleasedVersionAlerted: {
-            key: 'lastReleasedVersionAlerted',
+        last_released_version_alerted: {
+            key: 'last_released_version_alerted',
             schema: {}
         },
-        lastDailyEmailSentDate: {
-            key: 'lastDailyEmailSentDate',
+        last_daily_email_sent_date: {
+            key: 'last_daily_email_sent_date',
             schema: {}
         },
-        githubLastAddedCommits: {
-            key: 'githubLastAddedCommits',
+        github_last_added_commits: {
+            key: 'github_last_added_commits',
             schema: {}
         },
-        githubLastDeletedCommits: {
-            key: 'githubLastDeletedCommits',
+        github_last_deleted_commits: {
+            key: 'github_last_deleted_commits',
             schema: {}
         },
-        githubCommitChangesCount: {
-            key: 'githubCommitChangesCount',
+        github_commit_changes_count: {
+            key: 'github_commit_changes_count',
             schema: {}
         }
     };
@@ -213,6 +213,24 @@
             return [...acc, ...tasksArray];
         }, []);
         return tasks;
+    }
+    function addEventToCalendar(calendar, event) {
+        try {
+            const eventFinal = Calendar.Events.insert(event, calendar.id);
+            return eventFinal;
+        }
+        catch (e) {
+            logger.info(`error when adding event [${event.summary}] to gcal: ${e.message}`);
+            return event;
+        }
+    }
+    function removeCalendarEvent(calendar, event) {
+        try {
+            Calendar.Events.remove(calendar.id, event.id);
+        }
+        catch (e) {
+            logger.info(`error when deleting event [${event.summary}] to gcal: ${e.message}`);
+        }
     }
 
     const APP_INFO = {
@@ -373,31 +391,68 @@
         return curString;
     }
 
+    function getUniqueElementsOnArrays(arrayA, arrayB) {
+        const uniqueInA = arrayA.filter((item) => !arrayB.includes(item));
+        const uniqueInB = arrayB.filter((item) => !arrayA.includes(item));
+        return uniqueInA.concat(uniqueInB);
+    }
+
+    function resetGithubSyncProperties() {
+        updateGASProperty('github_commit_changes_count', '0');
+        updateGASProperty('github_last_added_commits', []);
+        updateGASProperty('github_last_deleted_commits', []);
+    }
     function syncGithub(configs) {
         return __awaiter(this, void 0, void 0, function* () {
             const info = {
                 githubCommits: yield getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
                 githubGcalCommits: getTasksFromGoogleCalendars([configs[githubConfigsKey].commits_configs.commits_calendar])
             };
-            console.log(info.githubCommits.length);
-            const sortedCommits = info.githubCommits.sort((a, b) => Number(new Date(b.commitDate)) - Number(new Date(a.commitDate)));
-            const onlyCommitsOnUserRepositories = sortedCommits.filter((item) => item.repository.includes(configs[githubConfigsKey].username));
+            const oldGithubSyncIndex = getGASProperty('github_commit_changes_count');
+            const currentGithubSyncIndex = Number(oldGithubSyncIndex) + 1;
+            if (oldGithubSyncIndex === null) {
+                resetGithubSyncProperties();
+            }
+            updateGASProperty('github_commit_changes_count', currentGithubSyncIndex.toString());
+            if (currentGithubSyncIndex === 1) {
+                logger.info(`checking commit changes: ${currentGithubSyncIndex}/${CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT}`);
+            }
+            else if (currentGithubSyncIndex > 1 && currentGithubSyncIndex < CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
+                logger.info(`confirming commit changes: ${currentGithubSyncIndex}/${CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT}`);
+            }
+            const githubCalendar = getCalendarByName(configs[githubConfigsKey].commits_configs.commits_calendar);
+            const commitsSortedByDate = info.githubCommits.sort((a, b) => Number(new Date(b.commitDate)) - Number(new Date(a.commitDate)));
+            const onlyCommitsOnUserRepositories = commitsSortedByDate.filter((item) => item.repository.includes(configs[githubConfigsKey].username));
             const onlyCommitsFromValidRepositories = onlyCommitsOnUserRepositories.filter((item) => configs[githubConfigsKey].commits_configs.ignored_repos.includes(item.repositoryName) === false);
-            console.log({ onlyCommitsFromValidRepositories });
+            const result = Object.assign(Object.assign({}, (yield syncGithubCommitsToAdd({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories, parseCommitEmojis: configs[githubConfigsKey].commits_configs.parse_commit_emojis }))), (yield syncGithubCommitsToDelete({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories })));
+            if (result.commitsTrackedToBeAdded.length === 0 && result.commitsTrackedToBeDelete.length === 0) {
+                logger.info(`reset github commit properties due found no commits tracked`);
+                resetGithubSyncProperties();
+            }
+            return result;
+        });
+    }
+    function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const githubSessionStats = {
+                commitsTrackedToBeAdded: [],
+                commitsAdded: []
+            };
             for (const githubCommitItem of onlyCommitsFromValidRepositories) {
-                console.log(githubCommitItem);
-                const sameRepoCommits = info.githubGcalCommits.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubCommitItem.repository);
+                const sameRepoCommits = githubGcalCommits.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubCommitItem.repository);
                 const hasEquivalentGcalTask = sameRepoCommits.find((gcalItem) => gcalItem.extendedProperties.private.commitDate === githubCommitItem.commitDate && parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage) === parseGithubEmojisString(githubCommitItem.commitMessage));
                 if (!hasEquivalentGcalTask) {
-                    const commitMessage = configs[githubConfigsKey].commits_configs.parse_commit_emojis ? parseGithubEmojisString(githubCommitItem.commitMessage) : githubCommitItem.commitMessage;
+                    const commitMessage = parseCommitEmojis ? parseGithubEmojisString(githubCommitItem.commitMessage) : githubCommitItem.commitMessage;
                     const extendProps = {
                         private: {
+                            commitMessage,
                             commitDate: githubCommitItem.commitDate,
-                            commitMessage: commitMessage,
-                            repository: githubCommitItem.repository
+                            repository: githubCommitItem.repository,
+                            repositoryName: githubCommitItem.repositoryName,
+                            commitId: githubCommitItem.commitId
                         }
                     };
-                    ({
+                    const taskEvent = {
                         summary: `${githubCommitItem.repositoryName} - ${commitMessage}`,
                         description: `repository: https://github.com/${githubCommitItem.repository}\ncommit: ${githubCommitItem.commitUrl}`,
                         start: { dateTime: githubCommitItem.commitDate },
@@ -407,10 +462,88 @@
                             overrides: []
                         },
                         extendedProperties: extendProps
-                    });
-                    console.log(`add commit to gcal: ${githubCommitItem.repositoryName}`);
+                    };
+                    githubSessionStats.commitsTrackedToBeAdded.push({ commit: githubCommitItem, gcalEvent: taskEvent });
                 }
             }
+            if (currentGithubSyncIndex === 1) {
+                updateGASProperty('github_last_added_commits', githubSessionStats.commitsTrackedToBeAdded.map((item) => item.commit));
+                return githubSessionStats;
+            }
+            const lastAddedCommits = getGASProperty('github_last_added_commits');
+            const lastAddedCommitsIds = lastAddedCommits.map((item) => item.commitId);
+            const currentIterationCommitsIds = githubSessionStats.commitsTrackedToBeAdded.map((item) => item.commit.commitId);
+            const remainingCommits = getUniqueElementsOnArrays(lastAddedCommitsIds, currentIterationCommitsIds);
+            if (remainingCommits.length > 0) {
+                logger.info(`reset github commit properties due differences in added commits`);
+                resetGithubSyncProperties();
+                return githubSessionStats;
+            }
+            if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
+                logger.info(`add commits to gcal:`);
+                for (let x = 0; x < githubSessionStats.commitsTrackedToBeAdded.length; x++) {
+                    try {
+                        const item = githubSessionStats.commitsTrackedToBeAdded[x];
+                        const commitGcalEvent = addEventToCalendar(githubCalendar, item.gcalEvent);
+                        githubSessionStats.commitsAdded.push(item.commit);
+                        logger.info(`${x + 1}/${githubSessionStats.commitsTrackedToBeAdded.length} add new commit to gcal: ${item.commit.commitDate} - ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
+                    }
+                    catch (e) {
+                        throw new Error(e.message);
+                    }
+                    finally {
+                        resetGithubSyncProperties();
+                    }
+                }
+            }
+        });
+    }
+    function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, onlyCommitsFromValidRepositories }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const githubSessionStats = {
+                commitsDeleted: [],
+                commitsTrackedToBeDelete: []
+            };
+            githubGcalCommits.forEach((gcalItem) => {
+                const gcalProperties = gcalItem.extendedProperties.private;
+                const onlySameRepoCommits = onlyCommitsFromValidRepositories.filter((item) => item.repository === gcalProperties.repository);
+                const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => item.commitDate === gcalProperties.commitDate && parseGithubEmojisString(item.commitMessage) === parseGithubEmojisString(gcalProperties.commitMessage));
+                if (!commitStillExistsOnGithub) {
+                    githubSessionStats.commitsTrackedToBeDelete.push(gcalItem);
+                    logger.info(`detect a commit to be deleted in gcal: ${gcalProperties.repositoryName} - ${gcalProperties.commitMessage}`);
+                }
+            });
+            if (currentGithubSyncIndex === 1) {
+                updateGASProperty('github_last_deleted_commits', githubSessionStats.commitsTrackedToBeDelete);
+                return githubSessionStats;
+            }
+            const lastDeletedCommits = getGASProperty('github_last_deleted_commits');
+            const lastDeletedCommitsIds = lastDeletedCommits.map((item) => item.extendedProperties.private.repository);
+            const currentIterationDeletedCommitsIds = githubSessionStats.commitsTrackedToBeDelete.map((item) => item.extendedProperties.private.commitId);
+            const remainingDeletedCommits = getUniqueElementsOnArrays(lastDeletedCommitsIds, currentIterationDeletedCommitsIds);
+            if (remainingDeletedCommits.length > 0) {
+                logger.info(`reset github commit properties due differences in deleted commits`);
+                resetGithubSyncProperties();
+                return githubSessionStats;
+            }
+            if (currentGithubSyncIndex === CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT) {
+                logger.info(`delete commits on gcal:`);
+                for (let x = 0; x < githubSessionStats.commitsTrackedToBeDelete.length; x++) {
+                    try {
+                        const item = githubSessionStats.commitsTrackedToBeDelete[x];
+                        removeCalendarEvent(githubCalendar, item);
+                        githubSessionStats.commitsDeleted.push(item);
+                        logger.info(`${x + 1}/${githubSessionStats.commitsTrackedToBeDelete.length} deleted commit on gcal: ${item.extendedProperties.private.commitDate} - ${item.extendedProperties.private.repositoryName} - ${item.extendedProperties.private.commitMessage}`);
+                    }
+                    catch (e) {
+                        throw new Error(e.message);
+                    }
+                    finally {
+                        resetGithubSyncProperties();
+                    }
+                }
+            }
+            return githubSessionStats;
         });
     }
 
@@ -548,20 +681,20 @@
         }
         // ===========================================================================
         clearTodayEvents() {
-            updateGASProperty(GAS_PROPERTIES.todayGithubAddedCommits.key, '');
-            updateGASProperty(GAS_PROPERTIES.todayGithubDeletedCommits.key, '');
-            updateGASProperty(GAS_PROPERTIES.todayTicktickAddedTasks.key, '');
-            updateGASProperty(GAS_PROPERTIES.todayTicktickCompletedTasks.key, '');
-            updateGASProperty(GAS_PROPERTIES.todayTicktickUpdateTasks.key, '');
+            updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, []);
+            updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, []);
+            updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, []);
+            updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, []);
+            updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, []);
             logger.info(`${this.today_date} stats were reseted!`);
         }
         getTodayEvents() {
             const TODAY_SESSION = {
-                addedGithubCommits: getGASProperty(GAS_PROPERTIES.todayGithubAddedCommits.key),
-                addedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickAddedTasks.key),
-                completedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickCompletedTasks.key),
-                deletedGithubCommits: getGASProperty(GAS_PROPERTIES.todayGithubDeletedCommits.key),
-                updatedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickUpdateTasks.key)
+                addedGithubCommits: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
+                addedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
+                completedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
+                deletedGithubCommits: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key),
+                updatedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key)
             };
             return TODAY_SESSION;
         }
@@ -580,12 +713,8 @@
                         .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
                 ];
                 createMissingCalendars(allGoogleCalendars);
-                // if (shouldSyncTicktick) {
-                //   await syncTicktick(this.configs);
-                // }
-                if (shouldSyncGithub) {
-                    yield syncGithub(this.configs);
-                }
+                const syncResult = Object.assign({}, (shouldSyncGithub && (yield syncGithub(this.configs))));
+                console.log(syncResult);
             });
         }
     }

@@ -4,7 +4,6 @@ import { APP_INFO } from '../consts/app_info';
 import { CONFIGS, GAS_PROPERTIES } from '../consts/configs';
 import { TConfigs, TSessionStats } from '../consts/types';
 import { isCurrentTimeAfter } from '../utils/javascript/date_utils';
-import { stringToArray } from '../utils/javascript/string_utils';
 
 export function getNewReleaseEmail(sendToEmail: string, lastReleaseObj: any) {
   const message = `Hi!
@@ -81,16 +80,16 @@ export function getErrorEmail(sendToEmail: string, errorMessage: string) {
 // =============================================================================
 
 function getTotalSessionEvents(session: TSessionStats) {
-  const todayEventsCount = stringToArray(session.addedTicktickTasks).length + stringToArray(session.updatedTicktickTasks).length + stringToArray(session.completedTicktickTasks).length + stringToArray(session.addedGithubCommits).length + stringToArray(session.deletedGithubCommits).length;
+  const todayEventsCount = session.addedTicktickTasks.length + session.updatedTicktickTasks.length + session.completedTicktickTasks.length + session.addedGithubCommits.length + session.deletedGithubCommits.length;
   return todayEventsCount;
 }
 
 export function generateReportEmailContent(session: TSessionStats) {
-  const addedTicktickTasks = stringToArray(session.addedTicktickTasks);
-  const updatedTicktickTasks = stringToArray(session.updatedTicktickTasks);
-  const completedTicktickTasks = stringToArray(session.completedTicktickTasks);
-  const addedGithubCommits = stringToArray(session.addedGithubCommits);
-  const removedGithubCommits = stringToArray(session.deletedGithubCommits);
+  const addedTicktickTasks = session.addedTicktickTasks;
+  const updatedTicktickTasks = session.updatedTicktickTasks;
+  const completedTicktickTasks = session.completedTicktickTasks;
+  const addedGithubCommits = session.addedGithubCommits;
+  const removedGithubCommits = session.deletedGithubCommits;
 
   const todayEventsCount = getTotalSessionEvents(session);
 
@@ -144,10 +143,10 @@ export function sendAfterSyncEmails(configs: TConfigs, curSession: TSessionStats
     sendEmail(sessionEmail);
   }
 
-  const alreadySentTodayEmails = this.TODAY_DATE === getGASProperty(GAS_PROPERTIES.lastDailyEmailSentDate.key);
+  const alreadySentTodayEmails = this.TODAY_DATE === getGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key);
 
   if (isCurrentTimeAfter(configs.options.daily_summary_email_time, configs.settings.timezone_correction) && !alreadySentTodayEmails) {
-    updateGASProperty(GAS_PROPERTIES.lastDailyEmailSentDate.key, this.TODAY_DATE);
+    updateGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key, this.TODAY_DATE);
 
     if (configs.options.email_daily_summary) {
       const dailySummaryEmail = getDailySummaryEmail('', this.getTodayEvents());
@@ -159,11 +158,11 @@ export function sendAfterSyncEmails(configs: TConfigs, curSession: TSessionStats
       const latestRelease = this.getLatestGcalSyncRelease();
       const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
       const currentVersion = this.parseGcalVersion(this.VERSION);
-      const lastAlertedVersion = this.getAppsScriptsProperty(GAS_PROPERTIES.lastReleasedVersionAlerted.key) ?? '';
+      const lastAlertedVersion = this.getAppsScriptsProperty(GAS_PROPERTIES.last_released_version_alerted.key) ?? '';
 
       if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
         this.sendNewReleaseEmail(latestRelease);
-        this.updateAppsScriptsProperty(GAS_PROPERTIES.lastReleasedVersionAlerted.key, latestVersion.toString());
+        this.updateAppsScriptsProperty(GAS_PROPERTIES.last_released_version_alerted.key, latestVersion.toString());
       }
     }
   }

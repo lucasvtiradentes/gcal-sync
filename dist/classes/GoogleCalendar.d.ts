@@ -13,6 +13,8 @@ export type TGcalPrivateGithub = {
         repository: string;
         commitDate: string;
         commitMessage: string;
+        repositoryName: string;
+        commitId: string;
     };
 };
 type GcalCommon = Pick<TGoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated'>;
@@ -25,5 +27,6 @@ export declare function getCalendarByName(calName: string): GoogleAppsScript.Cal
 export declare function getTasksFromGoogleCalendars<TPrivate>(allCalendars: string[]): TParsedGoogleEvent<TPrivate>[];
 export declare function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEvent): GoogleAppsScript.Calendar.Schema.Event;
 export declare function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar: TGoogleCalendar, event: TGoogleEvent): GoogleAppsScript.Calendar.Schema.Event;
+export declare function removeCalendarEvent(calendar: TGoogleCalendar, event: TGoogleEvent): void;
 export declare function getEventById(calendar: TGoogleCalendar, eventId: string): GoogleAppsScript.Calendar.Schema.Event;
 export {};

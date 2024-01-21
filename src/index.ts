@@ -67,22 +67,22 @@ class GcalSync {
   // ===========================================================================
 
   clearTodayEvents() {
-    updateGASProperty(GAS_PROPERTIES.todayGithubAddedCommits.key, '');
-    updateGASProperty(GAS_PROPERTIES.todayGithubDeletedCommits.key, '');
-    updateGASProperty(GAS_PROPERTIES.todayTicktickAddedTasks.key, '');
-    updateGASProperty(GAS_PROPERTIES.todayTicktickCompletedTasks.key, '');
-    updateGASProperty(GAS_PROPERTIES.todayTicktickUpdateTasks.key, '');
+    updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, []);
+    updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, []);
+    updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, []);
+    updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, []);
+    updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, []);
 
     logger.info(`${this.today_date} stats were reseted!`);
   }
 
   getTodayEvents() {
     const TODAY_SESSION: TSessionStats = {
-      addedGithubCommits: getGASProperty(GAS_PROPERTIES.todayGithubAddedCommits.key),
-      addedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickAddedTasks.key),
-      completedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickCompletedTasks.key),
-      deletedGithubCommits: getGASProperty(GAS_PROPERTIES.todayGithubDeletedCommits.key),
-      updatedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickUpdateTasks.key)
+      addedGithubCommits: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
+      addedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
+      completedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
+      deletedGithubCommits: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key),
+      updatedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key)
     };
     return TODAY_SESSION;
   }
@@ -105,13 +105,12 @@ class GcalSync {
     ]
     createMissingCalendars(allGoogleCalendars);
 
-    // if (shouldSyncTicktick) {
-    //   await syncTicktick(this.configs);
-    // }
+    const syncResult = {
+      // ...(shouldSyncTicktick && (await syncTicktick(this.configs))),
+      ...(shouldSyncGithub && (await syncGithub(this.configs)))
+    };
 
-    if (shouldSyncGithub) {
-      await syncGithub(this.configs);
-    }
+    console.log(syncResult);
   }
 }
 
