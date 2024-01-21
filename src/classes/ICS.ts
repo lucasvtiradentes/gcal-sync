@@ -1,8 +1,7 @@
 import { ERRORS } from '../consts/errors';
-import { TIcsCalendar } from '../schemas/configs.schema';
-import { mergeArraysOfArrays } from '../utils/array_utils';
-import { getParsedTimeStamp } from '../utils/date_utils';
-import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar } from './GoogleCalendar';
+import { TIcsCalendar } from '../consts/types';
+import { getParsedTimeStamp } from '../utils/javascript/date_utils';
+import { getStrBetween } from '../utils/javascript/string_utils';
 
 export type TParsedTicktickTask = {
   id: string;
@@ -67,11 +66,6 @@ export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: n
   return allEventsParsedArr as TParsedTicktickTask[];
 };
 
-const getStrBetween = (str: string, substr1: string, substr2: string) => {
-  const newStr = str.slice(str.search(substr1)).replace(substr1, '');
-  return newStr.slice(0, newStr.search(substr2));
-};
-
 export function getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: string, timezoneCorrection: number) {
   let finalDtstart: TDate | string = dtstart;
   let finalDtend: TDate | string = dtend;
@@ -111,101 +105,4 @@ export function getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: 
     finalDtstart,
     finalDtend
   };
-}
-
-export const getFixedTaskName = (str: string) => {
-  let fixedName = str;
-  fixedName = fixedName.replace(/\\,/g, ',');
-  fixedName = fixedName.replace(/\\;/g, ';');
-  fixedName = fixedName.replace(/\\"/g, '"');
-  fixedName = fixedName.replace(/\\\\/g, '\\');
-  return fixedName;
-};
-
-async function convertTicktickTaskToGcal(ticktickTask: TExtendedParsedTicktickTask) {
-  const properties: TGcalPrivateTicktick = {
-    private: {
-      calendar: ticktickTask.gcal,
-      completedCalendar: ticktickTask.gcal_done,
-      tickTaskId: ticktickTask.id
-    }
-  };
-
-  const customColor = ticktickTask?.color ? { colorId: ticktickTask.color.toString() } : {};
-
-  const generateGcalDescription = (curIcsTask: TExtendedParsedTicktickTask) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
-
-  const taskEvent: TGoogleEvent = {
-    summary: getFixedTaskName(ticktickTask.name),
-    description: generateGcalDescription(ticktickTask),
-    start: ticktickTask.start,
-    end: ticktickTask.end,
-    reminders: {
-      useDefault: true
-    },
-    extendedProperties: properties,
-    ...customColor
-  };
-
-  return taskEvent;
-}
-
-export async function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask: TExtendedParsedTicktickTask) {
-  const taskEvent = await convertTicktickTaskToGcal(ticktickTask);
-
-  try {
-    return addEventToCalendar(gcal, taskEvent);
-  } catch (e: any) {
-    if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
-      throw new Error(ERRORS.abusiveGoogleCalendarApiUse);
-    } else {
-      throw new Error(e.message);
-    }
-  }
-}
-
-export async function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent) {
-  const changedTaskName = getFixedTaskName(ticktickTask.name) !== taskOnGcal.summary;
-  const changedDateFormat = Object.keys(ticktickTask.start).length !== Object.keys(taskOnGcal.start).length;
-  const changedIntialDate = ticktickTask.start['date'] !== taskOnGcal.start['date'] || ticktickTask.start['dateTime'] !== taskOnGcal.start['dateTime'];
-  const changedFinalDate = ticktickTask.end['date'] !== taskOnGcal.end['date'] || ticktickTask.end['dateTime'] !== taskOnGcal.end['dateTime'];
-
-  const changedColor = (() => {
-    let tmpResult = false;
-    if (ticktickTask?.color === undefined) {
-      tmpResult = taskOnGcal.colorId !== undefined;
-    } else {
-      tmpResult = ticktickTask.color.toString() !== taskOnGcal.colorId;
-    }
-    return tmpResult;
-  })();
-
-  const resultArr = [
-    { hasChanged: changedTaskName, field: 'name' },
-    { hasChanged: changedDateFormat, field: 'date format' },
-    { hasChanged: changedIntialDate, field: 'initial date' },
-    { hasChanged: changedFinalDate, field: 'final date' },
-    { hasChanged: changedColor, field: 'color' }
-  ];
-
-  return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
-}
-
-export async function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezoneCorrection: number) {
-  return mergeArraysOfArrays(
-    await Promise.all(
-      icsCalendarsArr.map(async (icsCal) => {
-        const tasks = await getIcsCalendarTasks(icsCal.link, timezoneCorrection);
-        const extendedTasks = tasks.map((item) => ({
-          ...item,
-          gcal: icsCal.gcal,
-          gcal_done: icsCal.gcal_done,
-          ...(icsCal.color ? { color: icsCal.color } : {}),
-          ...(icsCal.tag ? { tag: icsCal.tag } : {}),
-          ...(icsCal.ignoredTags ? { ignoredTags: icsCal.ignoredTags } : {})
-        })) as TExtendedParsedTicktickTask[];
-        return extendedTasks;
-      })
-    )
-  );
 }

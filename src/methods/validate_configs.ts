@@ -1,6 +1,6 @@
-import { isObject } from '../utils/object_utils';
+import { isObject } from '../utils/javascript/object_utils';
 import { validateObjectSchema } from '../utils/validate_object_schema';
-import { TBasicConfig, TGithubSync, TTicktickSync, githubConfigsKey, ticktickConfigsKey } from './configs.schema';
+import { TBasicConfig, TGithubSync, TTicktickSync, githubConfigsKey, ticktickConfigsKey } from '../consts/types';
 
 const basicRequiredObjectShape: TBasicConfig = {
   settings: {

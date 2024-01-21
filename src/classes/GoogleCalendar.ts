@@ -1,6 +1,5 @@
 import { CONFIGS } from '../consts/configs';
-import { logger } from '../utils/logger';
-import { sleep } from '../utils/sleep';
+import { logger } from '../utils/abstractions/logger';
 
 export type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
 export type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
@@ -28,7 +27,7 @@ export const createMissingCalendars = (allGcalendarsNames: string[]) => {
   });
 
   if (createdCalendar) {
-    sleep(2000);
+    Utilities.sleep(2000);
   }
 };
 
@@ -114,7 +113,7 @@ export function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEven
 
 export function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar: TGoogleCalendar, event: TGoogleEvent) {
   removeCalendarEvent(calendar, event);
-  Utilities.sleep(1500);
+  Utilities.sleep(2000);
   const newEvent = addEventToCalendar(newCalendar, event);
   return newEvent;
 }
@@ -125,4 +124,9 @@ function removeCalendarEvent(calendar: TGoogleCalendar, event: TGoogleEvent) {
   } catch (e: any) {
     logger.info(`error when deleting event [${event.summary}] to gcal: ${e.message}`);
   }
+}
+
+export function getEventById(calendar: TGoogleCalendar, eventId: string) {
+  const event = Calendar.Events.get(calendar.id, eventId);
+  return event;
 }

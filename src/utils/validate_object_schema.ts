@@ -1,5 +1,5 @@
-import { logger } from './logger';
-import { isObject } from './object_utils';
+import { logger } from './abstractions/logger';
+import { isObject } from './javascript/object_utils';
 
 function validateNestedObject(obj: unknown, requiredConfigs: Record<string, unknown>): boolean {
   if (!isObject(obj)) {

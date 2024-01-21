@@ -1,4 +1,4 @@
-import { CONFIGS } from '../consts/configs';
+import { CONFIGS } from '../../consts/configs';
 
 export const logger = {
   info: (message: any, ...optionalParams: any[]) => {
