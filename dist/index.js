@@ -37,80 +37,93 @@
     };
 
     // GENERAL =====================================================================
-    function checkIfisGASEnvironment() {
+    function isRunningOnGAS() {
         return typeof Calendar !== 'undefined';
     }
-
-    const ERRORS = {
-        productionOnly: 'This method cannot run in non-production environments',
-        incorrectIcsCalendar: 'The link you provided is not a valid ICS calendar: ',
-        mustSpecifyConfig: 'You must specify the settings when starting the class',
-        httpsError: 'You provided an invalid ICS calendar link: ',
-        invalidGithubToken: 'You provided an invalid github token',
-        invalidGithubUsername: 'You provided an invalid github username',
-        abusiveGoogleCalendarApiUse: 'Due to the numerous operations in the last few hours, the google api is not responding.'
-    };
-
-    function getAllGithubCommits(username, personalToken) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            const allCommitsArr = [];
-            let pageNumber = 1;
-            let shouldBreak = false;
-            while (shouldBreak === false) {
-                const url = `https://api.github.com/search/commits?q=author:${username}&page=${pageNumber}&sort=committer-date&per_page=100`;
-                let response;
-                if (personalToken !== '') {
-                    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { Authorization: `Bearer ${personalToken}` } });
-                }
-                else {
-                    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-                }
-                const data = (_a = JSON.parse(response.getContentText())) !== null && _a !== void 0 ? _a : {};
-                if (response.getResponseCode() !== 200) {
-                    if (data.message === 'Validation Failed') {
-                        throw new Error(ERRORS.invalidGithubUsername);
-                    }
-                    if (data.message === 'Bad credentials') {
-                        throw new Error(ERRORS.invalidGithubToken);
-                    }
-                    throw new Error(data.message);
-                }
-                const commits = data.items;
-                if (commits.length === 0) {
-                    shouldBreak = true;
-                    break;
-                }
-                allCommitsArr.push(...commits);
-                pageNumber++;
-                if (pageNumber > 10) {
-                    shouldBreak = true;
-                    break;
-                }
-            }
-            const parsedCommits = allCommitsArr.map((it) => {
-                const commitObj = {
-                    commitDate: it.commit.author.date,
-                    commitMessage: it.commit.message.split('\n')[0],
-                    commitId: it.html_url.split('commit/')[1],
-                    commitUrl: it.html_url,
-                    repository: it.repository.full_name,
-                    repositoryId: it.repository.id,
-                    repositoryName: it.repository.name,
-                    repositoryOwner: it.repository.owner.login,
-                    repositoryDescription: it.repository.description,
-                    isRepositoryPrivate: it.repository.private,
-                    isRepositoryFork: it.repository.fork
-                };
-                return commitObj;
-            });
-            return parsedCommits;
-        });
+    // PROPERTIES ==================================================================
+    function listAllGASProperties() {
+        const allProperties = PropertiesService.getScriptProperties().getProperties();
+        return allProperties;
+    }
+    function getGASProperty(property) {
+        const value = PropertiesService.getScriptProperties().getProperty(property);
+        let parsedValue;
+        try {
+            parsedValue = JSON.parse(value);
+        }
+        catch (_a) {
+            parsedValue = value;
+        }
+        return parsedValue;
+    }
+    function updateGASProperty(property, value) {
+        const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
+        PropertiesService.getScriptProperties().setProperty(property, parsedValue);
+    }
+    function deleteGASProperty(property) {
+        PropertiesService.getScriptProperties().deleteProperty(property);
+    }
+    // TRIGGERS ====================================================================
+    function getAppsScriptsTriggers() {
+        return ScriptApp.getProjectTriggers();
+    }
+    function addAppsScriptsTrigger(functionName, minutesLoop) {
+        ScriptApp.newTrigger(functionName).timeBased().everyMinutes(minutesLoop).create();
+    }
+    function removeAppsScriptsTrigger(functionName) {
+        const allAppsScriptTriggers = getAppsScriptsTriggers();
+        const tickSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
+        if (tickSyncTrigger) {
+            ScriptApp.deleteTrigger(tickSyncTrigger);
+        }
     }
 
     const CONFIGS = {
         DEBUG_MODE: true,
-        MAX_GCAL_TASKS: 2500
+        MAX_GCAL_TASKS: 2500,
+        EVENTS_DIVIDER: ' | '
+    };
+    const GAS_PROPERTIES = {
+        todayTicktickAddedTasks: {
+            key: 'todayTicktickAddedTasks',
+            schema: {}
+        },
+        todayTicktickUpdateTasks: {
+            key: 'todayTicktickUpdateTasks',
+            schema: {}
+        },
+        todayTicktickCompletedTasks: {
+            key: 'todayTicktickCompletedTasks',
+            schema: {}
+        },
+        todayGithubAddedCommits: {
+            key: 'todayGithubAddedCommits',
+            schema: {}
+        },
+        todayGithubDeletedCommits: {
+            key: 'todayGithubDeletedCommits',
+            schema: {}
+        },
+        lastReleasedVersionAlerted: {
+            key: 'lastReleasedVersionAlerted',
+            schema: {}
+        },
+        lastDailyEmailSentDate: {
+            key: 'lastDailyEmailSentDate',
+            schema: {}
+        },
+        githubLastAddedCommits: {
+            key: 'githubLastAddedCommits',
+            schema: {}
+        },
+        githubLastDeletedCommits: {
+            key: 'githubLastDeletedCommits',
+            schema: {}
+        },
+        githubCommitChangesCount: {
+            key: 'githubCommitChangesCount',
+            schema: {}
+        }
     };
 
     const logger = {
@@ -126,10 +139,6 @@
         }
     };
 
-    function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
     // =============================================================================
     const createMissingCalendars = (allGcalendarsNames) => {
         let createdCalendar = false;
@@ -141,7 +150,7 @@
             }
         });
         if (createdCalendar) {
-            sleep(2000);
+            Utilities.sleep(2000);
         }
     };
     const getAllCalendars = () => {
@@ -216,7 +225,7 @@
     }
     function moveEventToOtherCalendar(calendar, newCalendar, event) {
         removeCalendarEvent(calendar, event);
-        Utilities.sleep(1500);
+        Utilities.sleep(2000);
         const newEvent = addEventToCalendar(newCalendar, event);
         return newEvent;
     }
@@ -229,7 +238,89 @@
         }
     }
 
-    const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
+    const APP_INFO = {
+        name: 'gcal-sync',
+        version: '2.0.0',
+        github_repository: 'lucasvtiradentes/gcal-sync'
+    };
+
+    const ticktickConfigsKey = 'ticktick_sync';
+    const githubConfigsKey = 'github_sync';
+
+    const ERRORS = {
+        productionOnly: 'This method cannot run in non-production environments',
+        incorrectIcsCalendar: 'The link you provided is not a valid ICS calendar: ',
+        mustSpecifyConfig: 'You must specify the settings when starting the class',
+        httpsError: 'You provided an invalid ICS calendar link: ',
+        invalidGithubToken: 'You provided an invalid github token',
+        invalidGithubUsername: 'You provided an invalid github username',
+        abusiveGoogleCalendarApiUse: 'Due to the numerous operations in the last few hours, the google api is not responding.'
+    };
+
+    function getAllGithubCommits(username, personalToken) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const allCommitsArr = [];
+            let pageNumber = 1;
+            let shouldBreak = false;
+            while (shouldBreak === false) {
+                const url = `https://api.github.com/search/commits?q=author:${username}&page=${pageNumber}&sort=committer-date&per_page=100`;
+                let response;
+                if (personalToken !== '') {
+                    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { Authorization: `Bearer ${personalToken}` } });
+                }
+                else {
+                    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+                }
+                const data = (_a = JSON.parse(response.getContentText())) !== null && _a !== void 0 ? _a : {};
+                if (response.getResponseCode() !== 200) {
+                    if (data.message === 'Validation Failed') {
+                        throw new Error(ERRORS.invalidGithubUsername);
+                    }
+                    if (data.message === 'Bad credentials') {
+                        throw new Error(ERRORS.invalidGithubToken);
+                    }
+                    throw new Error(data.message);
+                }
+                const commits = data.items;
+                if (commits.length === 0) {
+                    shouldBreak = true;
+                    break;
+                }
+                allCommitsArr.push(...commits);
+                pageNumber++;
+                if (pageNumber > 10) {
+                    shouldBreak = true;
+                    break;
+                }
+            }
+            const parsedCommits = allCommitsArr.map((it) => {
+                const commitObj = {
+                    commitDate: it.commit.author.date,
+                    commitMessage: it.commit.message.split('\n')[0],
+                    commitId: it.html_url.split('commit/')[1],
+                    commitUrl: it.html_url,
+                    repository: it.repository.full_name,
+                    repositoryId: it.repository.id,
+                    repositoryName: it.repository.name,
+                    repositoryOwner: it.repository.owner.login,
+                    repositoryDescription: it.repository.description,
+                    isRepositoryPrivate: it.repository.private,
+                    isRepositoryFork: it.repository.fork
+                };
+                return commitObj;
+            });
+            return parsedCommits;
+        });
+    }
+
+    function syncGithub(configs) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (configs[githubConfigsKey].commits_configs) {
+                yield getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token);
+            }
+        });
+    }
 
     function getDateFixedByTimezone(timeZoneIndex) {
         const date = new Date();
@@ -246,6 +337,11 @@
         const seconds = splitArr[1] ? splitArr[1].substring(4, 6) : '00';
         return { year, month, day, hours, minutes, seconds };
     }
+
+    const getStrBetween = (str, substr1, substr2) => {
+        const newStr = str.slice(str.search(substr1)).replace(substr1, '');
+        return newStr.slice(0, newStr.search(substr2));
+    };
 
     const getIcsCalendarTasks = (icsLink, timezoneCorrection) => __awaiter(void 0, void 0, void 0, function* () {
         const parsedLink = icsLink.replace('webcal://', 'https://');
@@ -290,10 +386,6 @@
         });
         return allEventsParsedArr;
     });
-    const getStrBetween = (str, substr1, substr2) => {
-        const newStr = str.slice(str.search(substr1)).replace(substr1, '');
-        return newStr.slice(0, newStr.search(substr2));
-    };
     function getParsedIcsDatetimes(dtstart, dtend, timezone, timezoneCorrection) {
         let finalDtstart = dtstart;
         let finalDtend = dtend;
@@ -329,6 +421,22 @@
             finalDtstart,
             finalDtend
         };
+    }
+
+    const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
+
+    // =============================================================================
+    function syncTicktick(configs) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const icsCalendarsConfigs = configs[ticktickConfigsKey].ics_calendars;
+            const info = {
+                ticktickTasks: yield getAllTicktickTasks(icsCalendarsConfigs, configs.settings.timezone_correction),
+                ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
+            };
+            console.log({ info });
+            const resultInfo = Object.assign(Object.assign({}, (yield addAndUpdateTasksOnGcal(info))), (yield moveCompletedTasksToDoneGcal(info)));
+            console.log({ resultInfo });
+        });
     }
     const getFixedTaskName = (str) => {
         let fixedName = str;
@@ -406,15 +514,63 @@
             }))));
         });
     }
-
-    const APP_INFO = {
-        name: 'gcal-sync',
-        version: '2.0.0',
-        github_repository: 'github/repo'
-    };
-
-    const ticktickConfigsKey = 'ticktick_sync';
-    const githubConfigsKey = 'github_sync';
+    function getAllTicktickTasks(icsCalendars, timezoneCorrection) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const taggedTasks = yield getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.tag), timezoneCorrection);
+            const ignoredTaggedTasks = (yield getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.ignoredTags), timezoneCorrection)).filter((item) => {
+                const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
+                const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
+                return shouldIgnoreTask === false;
+            });
+            const commonTasks = yield getTicktickTasks(icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags), timezoneCorrection);
+            return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
+        });
+    }
+    function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = {
+                added_tasks: [],
+                updated_tasks: []
+            };
+            for (const ticktickTask of ticktickTasks) {
+                const taskOnGcal = ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
+                const correspondingCalendar = getCalendarByName(ticktickTask.gcal);
+                if (!taskOnGcal) {
+                    result.added_tasks.push(yield addTicktickTaskToGcal(correspondingCalendar, ticktickTask));
+                }
+                else {
+                    const hasChangedCalendar = correspondingCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
+                    const changedTicktickFields = yield checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
+                    const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
+                    if (hasChangedCalendar) {
+                        result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), { colorId: undefined })));
+                    }
+                    else if (changedTicktickFields.length > 0) {
+                        result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), { colorId: undefined })));
+                    }
+                }
+            }
+            return result;
+        });
+    }
+    function moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktickTasks }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = {
+                completed_tasks: []
+            };
+            const ticktickTasksOnGcal = ticktickGcalTasks.filter((item) => { var _a, _b; return (_b = (_a = item.extendedProperties) === null || _a === void 0 ? void 0 : _a.private) === null || _b === void 0 ? void 0 : _b.tickTaskId; });
+            for (const gcalTicktickTask of ticktickTasksOnGcal) {
+                const isTaskStillOnTicktick = ticktickTasks.map((item) => item.id).includes(gcalTicktickTask.extendedProperties.private.tickTaskId);
+                if (!isTaskStillOnTicktick) {
+                    const taskCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.calendar);
+                    const taskDoneCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.completedCalendar);
+                    const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, Object.assign(Object.assign({}, gcalTicktickTask), { colorId: undefined }));
+                    result.completed_tasks.push(gcalEvent);
+                }
+            }
+            return result;
+        });
+    }
 
     function isObject(obj) {
         return typeof obj === 'object' && obj !== null;
@@ -500,12 +656,66 @@
     class GcalSync {
         constructor(configs) {
             this.configs = configs;
-            this.isGASEnvironment = checkIfisGASEnvironment();
             if (!validateConfigs(configs)) {
                 throw new Error('schema invalid');
             }
+            this.is_gas_environment = isRunningOnGAS();
             this.today_date = getDateFixedByTimezone(this.configs.settings.timezone_correction).toISOString().split('T')[0];
             logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
+        }
+        // ===========================================================================
+        parseGcalVersion(v) {
+            return Number(v.replace('v', '').split('.').join(''));
+        }
+        getLatestGcalSyncRelease() {
+            var _a;
+            const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${APP_INFO.github_repository}/releases?per_page=1`);
+            const lastReleaseObj = (_a = JSON.parse(json_encoded.getContentText())[0]) !== null && _a !== void 0 ? _a : {};
+            if (Object.keys(lastReleaseObj).length === 0) {
+                return; // no releases were found
+            }
+            return lastReleaseObj;
+        }
+        install() {
+            return __awaiter(this, void 0, void 0, function* () {
+                removeAppsScriptsTrigger(this.configs.settings.sync_function);
+                addAppsScriptsTrigger(this.configs.settings.sync_function, this.configs.settings.update_frequency);
+                Object.keys(GAS_PROPERTIES).forEach((key) => {
+                    const doesPropertyExist = listAllGASProperties().includes(key);
+                    if (!doesPropertyExist) {
+                        updateGASProperty(GAS_PROPERTIES[key].key, '');
+                    }
+                });
+                logger.info(`${APP_INFO.name} was set to run function "${this.configs.settings.sync_function}" every ${this.configs.settings.update_frequency} minutes`);
+            });
+        }
+        uninstall() {
+            return __awaiter(this, void 0, void 0, function* () {
+                removeAppsScriptsTrigger(this.configs.settings.sync_function);
+                Object.keys(GAS_PROPERTIES).forEach((key) => {
+                    deleteGASProperty(GAS_PROPERTIES[key].key);
+                });
+                logger.info(`${APP_INFO.name} automation was removed from appscript!`);
+            });
+        }
+        // ===========================================================================
+        clearTodayEvents() {
+            updateGASProperty(GAS_PROPERTIES.todayGithubAddedCommits.key, '');
+            updateGASProperty(GAS_PROPERTIES.todayGithubDeletedCommits.key, '');
+            updateGASProperty(GAS_PROPERTIES.todayTicktickAddedTasks.key, '');
+            updateGASProperty(GAS_PROPERTIES.todayTicktickCompletedTasks.key, '');
+            updateGASProperty(GAS_PROPERTIES.todayTicktickUpdateTasks.key, '');
+            logger.info(`${this.today_date} stats were reseted!`);
+        }
+        getTodayEvents() {
+            const TODAY_SESSION = {
+                addedGithubCommits: getGASProperty(GAS_PROPERTIES.todayGithubAddedCommits.key),
+                addedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickAddedTasks.key),
+                completedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickCompletedTasks.key),
+                deletedGithubCommits: getGASProperty(GAS_PROPERTIES.todayGithubDeletedCommits.key),
+                updatedTicktickTasks: getGASProperty(GAS_PROPERTIES.todayTicktickUpdateTasks.key)
+            };
+            return TODAY_SESSION;
         }
         // ===========================================================================
         sync() {
@@ -523,88 +733,10 @@
                 ];
                 createMissingCalendars(allGoogleCalendars);
                 if (shouldSyncTicktick) {
-                    yield this.syncTicktick();
+                    yield syncTicktick(this.configs);
                 }
                 if (shouldSyncGithub) {
-                    yield this.syncGithub();
-                }
-            });
-        }
-        getAllTicktickTasks(icsCalendars, timezoneCorrection) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const taggedTasks = yield getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.tag), timezoneCorrection);
-                const ignoredTaggedTasks = (yield getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.ignoredTags), timezoneCorrection)).filter((item) => {
-                    const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
-                    const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
-                    return shouldIgnoreTask === false;
-                });
-                const commonTasks = yield getTicktickTasks(icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags), timezoneCorrection);
-                return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
-            });
-        }
-        addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const result = {
-                    added_tasks: [],
-                    updated_tasks: []
-                };
-                for (const ticktickTask of ticktickTasks) {
-                    const taskOnGcal = ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
-                    const correspondingCalendar = getCalendarByName(ticktickTask.gcal);
-                    if (!taskOnGcal) {
-                        result.added_tasks.push(yield addTicktickTaskToGcal(correspondingCalendar, ticktickTask));
-                    }
-                    else {
-                        const hasChangedCalendar = correspondingCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
-                        const changedTicktickFields = yield checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
-                        const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
-                        if (hasChangedCalendar) {
-                            result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), { colorId: undefined })));
-                        }
-                        else if (changedTicktickFields.length > 0) {
-                            logger.info(`gcal event was updated due changes on ticktick task: ${changedTicktickFields.join(', ')}`);
-                            result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), { colorId: undefined })));
-                        }
-                    }
-                }
-                return result;
-            });
-        }
-        moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktickTasks }) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const result = {
-                    completed_tasks: []
-                };
-                const ticktickTasksOnGcal = ticktickGcalTasks.filter((item) => { var _a, _b; return (_b = (_a = item.extendedProperties) === null || _a === void 0 ? void 0 : _a.private) === null || _b === void 0 ? void 0 : _b.tickTaskId; });
-                for (const gcalTicktickTask of ticktickTasksOnGcal) {
-                    const isTaskStillOnTicktick = ticktickTasks.map((item) => item.id).includes(gcalTicktickTask.extendedProperties.private.tickTaskId);
-                    if (!isTaskStillOnTicktick) {
-                        const taskCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.calendar);
-                        const taskDoneCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.completedCalendar);
-                        const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, Object.assign(Object.assign({}, gcalTicktickTask), { colorId: undefined }));
-                        result.completed_tasks.push(gcalEvent);
-                        logger.info(`movendo tarefa para done ${gcalTicktickTask.summary}`);
-                    }
-                }
-                return result;
-            });
-        }
-        syncTicktick() {
-            return __awaiter(this, void 0, void 0, function* () {
-                const icsCalendarsConfigs = this.configs[ticktickConfigsKey].ics_calendars;
-                const info = {
-                    ticktickTasks: yield this.getAllTicktickTasks(icsCalendarsConfigs, this.configs.settings.timezone_correction),
-                    ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
-                };
-                console.log({ info });
-                const resultInfo = Object.assign(Object.assign({}, (yield this.addAndUpdateTasksOnGcal(info))), (yield this.moveCompletedTasksToDoneGcal(info)));
-                console.log({ resultInfo });
-            });
-        }
-        syncGithub() {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (this.configs[githubConfigsKey].commits_configs) {
-                    yield getAllGithubCommits(this.configs[githubConfigsKey].username, this.configs[githubConfigsKey].personal_token);
+                    yield syncGithub(this.configs);
                 }
             });
         }

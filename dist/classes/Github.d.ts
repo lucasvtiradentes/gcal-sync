@@ -12,4 +12,5 @@ type ParsedGithubCommit = {
     isRepositoryFork: boolean;
 };
 export declare function getAllGithubCommits(username: string, personalToken: string): Promise<ParsedGithubCommit[]>;
+export declare function parseGithubEmojisString(str: string): string;
 export {};
