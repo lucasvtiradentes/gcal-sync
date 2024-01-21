@@ -1,4 +1,4 @@
-import { TConfigs } from '../src/schemas/configs.schema';
+import { TConfigs } from '../src/consts/types';
 
 export const configs: TConfigs = {
   settings: {
@@ -11,9 +11,7 @@ export const configs: TConfigs = {
     email_daily_summary: false,
     email_errors: false,
     email_new_gcal_sync_release: false,
-    email_session: false,
-    maintenance_mode: false,
-    show_logs: false
+    email_session: false
   },
   github_sync: {
     username: 'lucasvtiradentes',
@@ -22,9 +20,6 @@ export const configs: TConfigs = {
       commits_calendar: 'gh_commits',
       ignored_repos: ['github-assets'],
       parse_commit_emojis: true
-    },
-    issues_configs: {
-      issues_calendar: 'gh_issues'
     }
   },
   ticktick_sync: {
@@ -32,63 +27,63 @@ export const configs: TConfigs = {
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/frnl8al7cjlu/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done',
+        gcal_done: 'done',
         color: 11,
         tag: 'IMP'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/8aruggvi1svr/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_PLANNING',
+        gcal_done: 'done_PLANNING',
         color: 5,
         tag: 'PLA'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/4z4s5kkj4eyg/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_RESTING',
+        gcal_done: 'done_RESTING',
         color: 8,
         tag: 'RES'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/0fq1uf36y7ne/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_RELATIONSHIPS',
+        gcal_done: 'done_RELATIONSHIPS',
         color: 4,
         tag: 'REL'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/vyysfgcyi0fs/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_WORK',
+        gcal_done: 'done_WORK',
         color: 1,
         tag: 'WOR'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/hhafxppb9jkm/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_WEALTH',
+        gcal_done: 'done_WEALTH',
         color: 9,
         tag: 'WEA'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/6uszbh0es8qv/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_HEALTH',
+        gcal_done: 'done_HEALTH',
         color: 2,
         tag: 'HEL'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/z0b1l06k65bm/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done_JOY',
+        gcal_done: 'done_JOY',
         color: 3,
         tag: 'JOY'
       },
       {
         link: 'webcal://ticktick.com/pub/calendar/feeds/vvl0cw34vamw/basic.ics',
         gcal: 'tasks',
-        dcal_done: 'done',
+        gcal_done: 'done',
         ignoredTags: ['IMP', 'PLA', 'RES', 'REL', 'WOR', 'WEA', 'HEL', 'JOY']
       }
     ]

@@ -17,9 +17,6 @@ export type TGithubSync = {
         ignored_repos: string[];
         parse_commit_emojis: boolean;
     };
-    issues_configs: {
-        issues_calendar: string;
-    };
 };
 export type TBasicConfig = {
     settings: {
@@ -33,8 +30,6 @@ export type TBasicConfig = {
         email_new_gcal_sync_release: boolean;
         email_daily_summary: boolean;
         daily_summary_email_time: string;
-        show_logs: boolean;
-        maintenance_mode: boolean;
     };
 };
 export declare const ticktickConfigsKey: "ticktick_sync";

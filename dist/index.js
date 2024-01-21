@@ -948,12 +948,10 @@
         },
         options: {
             daily_summary_email_time: '15:00',
+            email_new_gcal_sync_release: false,
             email_daily_summary: false,
             email_errors: false,
-            email_new_gcal_sync_release: false,
-            email_session: false,
-            maintenance_mode: false,
-            show_logs: false
+            email_session: false
         }
     };
     const ticktickRequiredObjectShape = {
@@ -965,9 +963,6 @@
             commits_calendar: '',
             ignored_repos: [],
             parse_commit_emojis: false
-        },
-        issues_configs: {
-            issues_calendar: ''
         },
         personal_token: ''
     };
@@ -1054,7 +1049,7 @@
                 }
                 // prettier-ignore
                 const allGoogleCalendars = [...new Set([]
-                        .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar, this.configs[githubConfigsKey].issues_configs.issues_calendar] : [])
+                        .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar] : [])
                         .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
                 ];
                 createMissingCalendars(allGoogleCalendars);

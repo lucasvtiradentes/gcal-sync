@@ -19,9 +19,6 @@ export type TGithubSync = {
     ignored_repos: string[];
     parse_commit_emojis: boolean;
   };
-  issues_configs: {
-    issues_calendar: string;
-  };
 };
 
 export type TBasicConfig = {
@@ -33,13 +30,10 @@ export type TBasicConfig = {
   options: {
     email_errors: boolean;
     email_session: boolean;
-    email_new_gcal_sync_release: boolean;
     // daily_summary
+    email_new_gcal_sync_release: boolean;
     email_daily_summary: boolean;
     daily_summary_email_time: string;
-    // dev options
-    show_logs: boolean;
-    maintenance_mode: boolean;
   };
 };
 
