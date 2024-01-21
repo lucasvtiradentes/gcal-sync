@@ -1,9 +1,7 @@
-import { getGASProperty, updateGASProperty } from '../classes/GoogleAppsScript';
-import { TEmail, sendEmail } from '../classes/GoogleEmail';
+import { TSessionStats } from '..';
+import { TEmail } from '../classes/GoogleEmail';
 import { APP_INFO } from '../consts/app_info';
-import { CONFIGS, GAS_PROPERTIES } from '../consts/configs';
-import { TConfigs, TSessionStats } from '../consts/types';
-import { isCurrentTimeAfter } from '../utils/javascript/date_utils';
+import { CONFIGS } from '../consts/configs';
 
 export function getNewReleaseEmail(sendToEmail: string, lastReleaseObj: any) {
   const message = `Hi!
@@ -44,13 +42,13 @@ export function getSessionEmail(sendToEmail: string, sessionStats: TSessionStats
   return emailObj;
 }
 
-export function getDailySummaryEmail(sendToEmail: string, todaySession: TSessionStats) {
+export function getDailySummaryEmail(sendToEmail: string, todaySession: TSessionStats, todayDate: string) {
   const content = generateReportEmailContent(todaySession);
 
   const emailObj: TEmail = {
     to: sendToEmail,
     name: `${APP_INFO.name}`,
-    subject: `daily report for ${this.TODAY_DATE} - ${getTotalSessionEvents(todaySession)} modifications - ${APP_INFO.name}`,
+    subject: `daily report for ${todayDate} - ${getTotalSessionEvents(todaySession)} modifications - ${APP_INFO.name}`,
     htmlBody: content
   };
 
@@ -80,16 +78,16 @@ export function getErrorEmail(sendToEmail: string, errorMessage: string) {
 // =============================================================================
 
 function getTotalSessionEvents(session: TSessionStats) {
-  const todayEventsCount = session.addedTicktickTasks.length + session.updatedTicktickTasks.length + session.completedTicktickTasks.length + session.addedGithubCommits.length + session.deletedGithubCommits.length;
+  const todayEventsCount = session.added_tasks.length + session.updated_tasks.length + session.completed_tasks.length + session.commits_added.length + session.commits_deleted.length;
   return todayEventsCount;
 }
 
 export function generateReportEmailContent(session: TSessionStats) {
-  const addedTicktickTasks = session.addedTicktickTasks;
-  const updatedTicktickTasks = session.updatedTicktickTasks;
-  const completedTicktickTasks = session.completedTicktickTasks;
-  const addedGithubCommits = session.addedGithubCommits;
-  const removedGithubCommits = session.deletedGithubCommits;
+  const addedTicktickTasks = session.added_tasks;
+  const updatedTicktickTasks = session.updated_tasks;
+  const completedTicktickTasks = session.completed_tasks;
+  const addedGithubCommits = session.commits_added;
+  const removedGithubCommits = session.commits_deleted;
 
   const todayEventsCount = getTotalSessionEvents(session);
 
@@ -133,37 +131,4 @@ export function generateReportEmailContent(session: TSessionStats) {
 
   content += `<br/>Regards,<br/>your <a href='https://github.com/${APP_INFO.github_repository}'>${APP_INFO.name}</a> bot`;
   return content;
-}
-
-// =============================================================================
-
-export function sendAfterSyncEmails(configs: TConfigs, curSession: TSessionStats) {
-  if (configs.options.email_session) {
-    const sessionEmail = getSessionEmail('', curSession);
-    sendEmail(sessionEmail);
-  }
-
-  const alreadySentTodayEmails = this.TODAY_DATE === getGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key);
-
-  if (isCurrentTimeAfter(configs.options.daily_summary_email_time, configs.settings.timezone_correction) && !alreadySentTodayEmails) {
-    updateGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key, this.TODAY_DATE);
-
-    if (configs.options.email_daily_summary) {
-      const dailySummaryEmail = getDailySummaryEmail('', this.getTodayEvents());
-      sendEmail(dailySummaryEmail);
-      this.cleanTodayEventsStats();
-    }
-
-    if (configs.options.email_new_gcal_sync_release) {
-      const latestRelease = this.getLatestGcalSyncRelease();
-      const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
-      const currentVersion = this.parseGcalVersion(this.VERSION);
-      const lastAlertedVersion = this.getAppsScriptsProperty(GAS_PROPERTIES.last_released_version_alerted.key) ?? '';
-
-      if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
-        this.sendNewReleaseEmail(latestRelease);
-        this.updateAppsScriptsProperty(GAS_PROPERTIES.last_released_version_alerted.key, latestVersion.toString());
-      }
-    }
-  }
 }

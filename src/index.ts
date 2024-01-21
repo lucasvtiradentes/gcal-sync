@@ -1,44 +1,36 @@
 import { addAppsScriptsTrigger, deleteGASProperty, getGASProperty, isRunningOnGAS, listAllGASProperties, removeAppsScriptsTrigger, updateGASProperty } from './classes/GoogleAppsScript';
 import { createMissingCalendars } from './classes/GoogleCalendar';
+import { getUserEmail, sendEmail } from './classes/GoogleEmail';
 import { APP_INFO } from './consts/app_info';
 import { GAS_PROPERTIES, TGasPropertiesSchemaKeys } from './consts/configs';
-import { TConfigs, TSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
-import { syncGithub } from './methods/sync_github';
-import { syncTicktick } from './methods/sync_ticktick';
+import { ERRORS } from './consts/errors';
+import { TConfigs, githubConfigsKey, ticktickConfigsKey } from './consts/types';
+import { getDailySummaryEmail, getNewReleaseEmail, getSessionEmail } from './methods/generate_emails';
+import { TGithubSyncResultInfo, syncGithub } from './methods/sync_github';
+import { TTicktickSyncResultInfo, syncTicktick } from './methods/sync_ticktick';
 import { validateConfigs } from './methods/validate_configs';
 import { logger } from './utils/abstractions/logger';
-import { getDateFixedByTimezone } from './utils/javascript/date_utils';
+import { getDateFixedByTimezone, isCurrentTimeAfter } from './utils/javascript/date_utils';
+
+export type TSessionStats = TTicktickSyncResultInfo & Omit<TGithubSyncResultInfo, 'commits_tracked_to_be_added' | 'commits_tracked_to_be_deleted'>;
 
 class GcalSync {
   private today_date: string;
-  private is_gas_environment: boolean;
+  private user_email: string;
 
   constructor(private configs: TConfigs) {
     if (!validateConfigs(configs)) {
       throw new Error('schema invalid');
     }
 
-    this.is_gas_environment = isRunningOnGAS();
+    this.user_email = getUserEmail();
     this.today_date = getDateFixedByTimezone(this.configs.settings.timezone_correction).toISOString().split('T')[0];
     logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
+
+    if (!isRunningOnGAS()) throw new Error(ERRORS.productionOnly);
   }
 
   // ===========================================================================
-
-  private parseGcalVersion(v: string) {
-    return Number(v.replace('v', '').split('.').join(''));
-  }
-
-  private getLatestGcalSyncRelease() {
-    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${APP_INFO.github_repository}/releases?per_page=1`);
-    const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
-
-    if (Object.keys(lastReleaseObj).length === 0) {
-      return; // no releases were found
-    }
-
-    return lastReleaseObj;
-  }
 
   async install() {
     removeAppsScriptsTrigger(this.configs.settings.sync_function);
@@ -78,11 +70,11 @@ class GcalSync {
 
   getTodayEvents() {
     const TODAY_SESSION: TSessionStats = {
-      addedGithubCommits: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
-      addedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
-      completedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
-      deletedGithubCommits: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key),
-      updatedTicktickTasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key)
+      added_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
+      updated_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key),
+      completed_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
+      commits_added: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
+      commits_deleted: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key)
     };
     return TODAY_SESSION;
   }
@@ -105,20 +97,97 @@ class GcalSync {
     ]
     createMissingCalendars(allGoogleCalendars);
 
-    const result = {
+    const emptySessionData: TSessionStats = {
+      added_tasks: [],
+      updated_tasks: [],
+      completed_tasks: [],
+
+      commits_added: [],
+      commits_deleted: []
+    };
+
+    const sessionData: TSessionStats = {
+      ...emptySessionData,
       ...(shouldSyncTicktick && (await syncTicktick(this.configs))),
       ...(shouldSyncGithub && (await syncGithub(this.configs)))
     };
 
-    logger.info({
-      added_tasks: result.added_tasks.length,
-      completed_tasks: result.completed_tasks.length,
-      updated_tasks: result.updated_tasks.length,
-      commitsAdded: result.commitsAdded.length,
-      commitsDeleted: result.commitsDeleted.length,
-      commitsTrackedToBeAdded: result.commitsTrackedToBeAdded.length,
-      commitsTrackedToBeDelete: result.commitsTrackedToBeDelete.length
-    });
+    this.handleSessionData(sessionData);
+  }
+
+  private async handleSessionData(sessionData: TSessionStats) {
+    const shouldSyncTicktick = this.configs[ticktickConfigsKey];
+    const shouldSyncGithub = this.configs[githubConfigsKey];
+
+    const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
+    if (shouldSyncTicktick && ticktickNewItems > 0) {
+      const todayAddedTasks = getGASProperty('today_ticktick_added_tasks');
+      const todayUpdatedTasks = getGASProperty('today_ticktick_updated_tasks');
+      const todayCompletedTasks = getGASProperty('today_ticktick_completed_tasks');
+
+      updateGASProperty('today_ticktick_added_tasks', [...todayAddedTasks, ...sessionData.added_tasks]);
+      updateGASProperty('today_ticktick_updated_tasks', [...todayUpdatedTasks, ...sessionData.updated_tasks]);
+      updateGASProperty('today_ticktick_completed_tasks', [...todayCompletedTasks, ...sessionData.completed_tasks]);
+
+      logger.info(`added ${ticktickNewItems} new ticktick items to today's stats`);
+    }
+
+    const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
+    if (shouldSyncGithub && githubNewItems > 0) {
+      const todayAddedCommits = getGASProperty('today_github_added_commits');
+      const todayDeletedCommits = getGASProperty('today_github_deleted_commits');
+
+      updateGASProperty('today_github_added_commits', [...todayAddedCommits, ...sessionData.commits_added]);
+      updateGASProperty('today_github_deleted_commits', [...todayDeletedCommits, ...sessionData.commits_deleted]);
+
+      logger.info(`added ${ticktickNewItems} new github items to today's stats`);
+    }
+
+    const totalSessionNewItems = ticktickNewItems + githubNewItems;
+    if (this.configs.options.email_session && totalSessionNewItems > 0) {
+      const sessionEmail = getSessionEmail(this.user_email, sessionData);
+      sendEmail(sessionEmail);
+    }
+
+    const alreadySentTodayEmails = this.today_date === getGASProperty('last_daily_email_sent_date');
+
+    if (isCurrentTimeAfter(this.configs.options.daily_summary_email_time, this.configs.settings.timezone_correction) && !alreadySentTodayEmails) {
+      updateGASProperty('last_daily_email_sent_date', this.today_date);
+
+      if (this.configs.options.email_daily_summary) {
+        const dailySummaryEmail = getDailySummaryEmail(this.user_email, sessionData, this.today_date);
+        sendEmail(dailySummaryEmail);
+        this.clearTodayEvents();
+      }
+
+      if (this.configs.options.email_new_gcal_sync_release) {
+        const parseGcalVersion = (v: string) => {
+          return Number(v.replace('v', '').split('.').join(''));
+        };
+
+        const getLatestGcalSyncRelease = () => {
+          const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${APP_INFO.github_repository}/releases?per_page=1`);
+          const lastReleaseObj = JSON.parse(json_encoded.getContentText())[0] ?? {};
+
+          if (Object.keys(lastReleaseObj).length === 0) {
+            return; // no releases were found
+          }
+
+          return lastReleaseObj;
+        };
+
+        const latestRelease = getLatestGcalSyncRelease();
+        const latestVersion = parseGcalVersion(latestRelease.tag_name);
+        const currentVersion = parseGcalVersion(APP_INFO.version);
+        const lastAlertedVersion = getGASProperty('last_released_version_alerted') ?? '';
+
+        if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
+          const newReleaseEmail = getNewReleaseEmail(this.user_email, sessionData);
+          sendEmail(newReleaseEmail);
+          updateGASProperty('last_released_version_alerted', latestVersion.toString());
+        }
+      }
+    }
   }
 }
 

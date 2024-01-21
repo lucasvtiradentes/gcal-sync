@@ -1,5 +1,4 @@
-import { TGcalPrivateGithub, TParsedGoogleEvent } from '../classes/GoogleCalendar';
-import { TExtendedParsedTicktickTask } from '../classes/ICS';
+import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../classes/GoogleCalendar';
 
 export const CONFIGS = {
   DEBUG_MODE: true,
@@ -11,15 +10,15 @@ export const CONFIGS = {
 export const GAS_PROPERTIES = {
   today_ticktick_added_tasks: {
     key: 'today_ticktick_added_tasks',
-    schema: {} as TExtendedParsedTicktickTask[]
+    schema: {} as TParsedGoogleEvent<TGcalPrivateTicktick>[]
   },
   today_ticktick_updated_tasks: {
     key: 'today_ticktick_updated_tasks',
-    schema: {} as TExtendedParsedTicktickTask[]
+    schema: {} as TParsedGoogleEvent<TGcalPrivateTicktick>[]
   },
   today_ticktick_completed_tasks: {
     key: 'today_ticktick_completed_tasks',
-    schema: {} as TExtendedParsedTicktickTask[]
+    schema: {} as TParsedGoogleEvent<TGcalPrivateTicktick>[]
   },
   today_github_added_commits: {
     key: 'today_github_added_commits',
@@ -39,12 +38,12 @@ export const GAS_PROPERTIES = {
     schema: {} as string
   },
 
-  github_last_added_commits: {
-    key: 'github_last_added_commits',
+  github_commits_tracked_to_be_added: {
+    key: 'github_commits_tracked_to_be_added',
     schema: {} as TParsedGoogleEvent<TGcalPrivateGithub>[]
   },
-  github_last_deleted_commits: {
-    key: 'github_last_deleted_commits',
+  github_commits_tracked_to_be_deleted: {
+    key: 'github_commits_tracked_to_be_deleted',
     schema: {} as TParsedGoogleEvent<TGcalPrivateGithub>[]
   },
   github_commit_changes_count: {
