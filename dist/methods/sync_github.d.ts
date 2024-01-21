@@ -1,13 +1,13 @@
 import { TGcalPrivateGithub, TParsedGoogleEvent } from '../classes/GoogleCalendar';
 import { TConfigs } from '../consts/types';
-type TResultSyncGithubCommitsToAdd = {
-    commitsTrackedToBeAdded: TParsedGoogleEvent<TGcalPrivateGithub>[];
-    commitsAdded: TParsedGoogleEvent<TGcalPrivateGithub>[];
+type TResultInfoAdded = {
+    commits_tracked_to_be_added: TParsedGoogleEvent<TGcalPrivateGithub>[];
+    commits_added: TParsedGoogleEvent<TGcalPrivateGithub>[];
 };
-type TResultSyncGithubCommitsToDelete = {
-    commitsDeleted: TParsedGoogleEvent<TGcalPrivateGithub>[];
-    commitsTrackedToBeDelete: TParsedGoogleEvent<TGcalPrivateGithub>[];
+type TResultInfoDeleted = {
+    commits_deleted: TParsedGoogleEvent<TGcalPrivateGithub>[];
+    commits_tracked_to_be_deleted: TParsedGoogleEvent<TGcalPrivateGithub>[];
 };
-type TResultInfo = TResultSyncGithubCommitsToAdd & TResultSyncGithubCommitsToDelete;
-export declare function syncGithub(configs: TConfigs): Promise<TResultInfo>;
+export type TGithubSyncResultInfo = TResultInfoAdded & TResultInfoDeleted;
+export declare function syncGithub(configs: TConfigs): Promise<TGithubSyncResultInfo>;
 export {};

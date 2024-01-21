@@ -1,12 +1,18 @@
 import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar } from '../classes/GoogleCalendar';
 import { TExtendedParsedTicktickTask, getIcsCalendarTasks } from '../classes/ICS';
 import { ERRORS } from '../consts/errors';
-import { TConfigs, TIcsCalendar, TResultInfo, ticktickConfigsKey } from '../consts/types';
+import { TConfigs, TIcsCalendar, ticktickConfigsKey } from '../consts/types';
 import { mergeArraysOfArrays } from '../utils/javascript/array_utils';
 
 type TInfo = {
   ticktickTasks: TExtendedParsedTicktickTask[];
   ticktickGcalTasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
+};
+
+export type TTicktickSyncResultInfo = {
+  added_tasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
+  updated_tasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
+  completed_tasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
 };
 
 export async function syncTicktick(configs: TConfigs) {
@@ -17,7 +23,7 @@ export async function syncTicktick(configs: TConfigs) {
     ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
   };
 
-  const resultInfo: TResultInfo = {
+  const resultInfo: TTicktickSyncResultInfo = {
     ...(await addAndUpdateTasksOnGcal(info)),
     ...(await moveCompletedTasksToDoneGcal(info))
   };
@@ -147,8 +153,8 @@ export async function getAllTicktickTasks(icsCalendars: TIcsCalendar[], timezone
 
 export async function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }: TInfo) {
   const result = {
-    added_tasks: [] as TGoogleEvent[],
-    updated_tasks: [] as TGoogleEvent[]
+    added_tasks: [] as TParsedGoogleEvent<TGcalPrivateTicktick>[],
+    updated_tasks: [] as TParsedGoogleEvent<TGcalPrivateTicktick>[]
   };
 
   for (const ticktickTask of ticktickTasks) {
@@ -156,16 +162,19 @@ export async function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks
     const correspondingCalendar = getCalendarByName(ticktickTask.gcal);
 
     if (!taskOnGcal) {
-      result.added_tasks.push(await addTicktickTaskToGcal(correspondingCalendar, ticktickTask));
+      const addedTask = (await addTicktickTaskToGcal(correspondingCalendar, ticktickTask)) as TParsedGoogleEvent<TGcalPrivateTicktick>;
+      result.added_tasks.push(addedTask);
     } else {
       const hasChangedCalendar = correspondingCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
       const changedTicktickFields = await checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
       const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
 
       if (hasChangedCalendar) {
-        result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }));
+        const movedTask = moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }) as TParsedGoogleEvent<TGcalPrivateTicktick>;
+        result.updated_tasks.push(movedTask);
       } else if (changedTicktickFields.length > 0) {
-        result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }));
+        const movedTask = moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }) as TParsedGoogleEvent<TGcalPrivateTicktick>;
+        result.updated_tasks.push(movedTask);
       }
     }
   }
@@ -175,7 +184,7 @@ export async function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks
 
 export async function moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktickTasks }: TInfo) {
   const result = {
-    completed_tasks: [] as TGoogleEvent[]
+    completed_tasks: [] as TParsedGoogleEvent<TGcalPrivateTicktick>[]
   };
 
   const ticktickTasksOnGcal = ticktickGcalTasks.filter((item) => item.extendedProperties?.private?.tickTaskId);
@@ -186,7 +195,7 @@ export async function moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktick
     if (!isTaskStillOnTicktick) {
       const taskCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.calendar);
       const taskDoneCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.completedCalendar);
-      const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, { ...gcalTicktickTask, colorId: undefined });
+      const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, { ...gcalTicktickTask, colorId: undefined }) as TParsedGoogleEvent<TGcalPrivateTicktick>;
       result.completed_tasks.push(gcalEvent);
     }
   }
