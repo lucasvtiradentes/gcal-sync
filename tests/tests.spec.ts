@@ -1,4 +1,4 @@
-import GcalSync from '../src/GcalSync';
+import GcalSync from '../src/index';
 import { configs } from '../resources/configs';
 
 it('should throw an error when initializing without configs', () => {
