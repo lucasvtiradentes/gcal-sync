@@ -17,14 +17,12 @@ export async function syncTicktick(configs: TConfigs) {
     ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
   };
 
-  console.log({ info });
-
   const resultInfo: TResultInfo = {
     ...(await addAndUpdateTasksOnGcal(info)),
     ...(await moveCompletedTasksToDoneGcal(info))
   };
 
-  console.log({ resultInfo });
+  return resultInfo;
 }
 
 export const getFixedTaskName = (str: string) => {

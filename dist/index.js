@@ -224,6 +224,12 @@
             return event;
         }
     }
+    function moveEventToOtherCalendar(calendar, newCalendar, event) {
+        removeCalendarEvent(calendar, event);
+        Utilities.sleep(2000);
+        const newEvent = addEventToCalendar(newCalendar, event);
+        return newEvent;
+    }
     function removeCalendarEvent(calendar, event) {
         try {
             Calendar.Events.remove(calendar.id, event.id);
@@ -291,7 +297,7 @@
             }
             const parsedCommits = allCommitsArr.map((it) => {
                 const commitObj = {
-                    commitDate: it.commit.author.date,
+                    commitDate: it.commit.committer.date,
                     commitMessage: it.commit.message.split('\n')[0],
                     commitId: it.html_url.split('commit/')[1],
                     commitUrl: it.html_url,
@@ -391,6 +397,7 @@
         return curString;
     }
 
+    const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
     function getUniqueElementsOnArrays(arrayA, arrayB) {
         const uniqueInA = arrayA.filter((item) => !arrayB.includes(item));
         const uniqueInB = arrayB.filter((item) => !arrayA.includes(item));
@@ -510,7 +517,6 @@
                 const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => item.commitDate === gcalProperties.commitDate && parseGithubEmojisString(item.commitMessage) === parseGithubEmojisString(gcalProperties.commitMessage));
                 if (!commitStillExistsOnGithub) {
                     githubSessionStats.commitsTrackedToBeDelete.push(gcalItem);
-                    logger.info(`detect a commit to be deleted in gcal: ${gcalProperties.repositoryName} - ${gcalProperties.commitMessage}`);
                 }
             });
             if (currentGithubSyncIndex === 1) {
@@ -544,6 +550,252 @@
                 }
             }
             return githubSessionStats;
+        });
+    }
+
+    function getDateFixedByTimezone(timeZoneIndex) {
+        const date = new Date();
+        date.setHours(date.getHours() + timeZoneIndex);
+        return date;
+    }
+    function getParsedTimeStamp(stamp) {
+        const splitArr = stamp.split('T');
+        const year = splitArr[0].substring(0, 4);
+        const month = splitArr[0].substring(4, 6);
+        const day = splitArr[0].substring(6, 8);
+        const hours = splitArr[1] ? splitArr[1].substring(0, 2) : '00';
+        const minutes = splitArr[1] ? splitArr[1].substring(2, 4) : '00';
+        const seconds = splitArr[1] ? splitArr[1].substring(4, 6) : '00';
+        return { year, month, day, hours, minutes, seconds };
+    }
+
+    const getStrBetween = (str, substr1, substr2) => {
+        const newStr = str.slice(str.search(substr1)).replace(substr1, '');
+        return newStr.slice(0, newStr.search(substr2));
+    };
+
+    const getIcsCalendarTasks = (icsLink, timezoneCorrection) => __awaiter(void 0, void 0, void 0, function* () {
+        const parsedLink = icsLink.replace('webcal://', 'https://');
+        const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
+        const data = urlResponse.getContentText() || '';
+        if (urlResponse.getResponseCode() !== 200) {
+            throw new Error(ERRORS.httpsError + parsedLink);
+        }
+        if (data.search('BEGIN:VCALENDAR') === -1) {
+            throw new Error('RESPOSTA INVALIDA PRA UM ICS');
+        }
+        const eventsArr = data.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
+        // prettier-ignore
+        const allEventsArr = data.search('SUMMARY:No task.') > 0 ? [] : eventsArr.reduce((acc, cur) => {
+            const alarmArr = cur.split('BEGIN:VALARM\r\n');
+            const eventObj = {
+                CALNAME: getStrBetween(data, 'X-WR-CALNAME:', '\r\n'),
+                DSTAMP: getStrBetween(cur, 'DTSTAMP:', '\r\n'),
+                DTSTART: getStrBetween(cur, 'DTSTART;', '\r\n'),
+                DTEND: getStrBetween(cur, 'DTEND;', '\r\n'),
+                SUMMARY: getStrBetween(cur, 'SUMMARY:', '\r\n'),
+                UID: getStrBetween(cur, 'UID:', '\r\n'),
+                DESCRIPTION: getStrBetween(cur, 'DESCRIPTION:', '\r\n'),
+                SEQUENCE: getStrBetween(cur, 'SEQUENCE:', '\r\n'),
+                TZID: getStrBetween(cur, 'TZID:', '\r\n'),
+                ALARM_TRIGGER: alarmArr.length === 1 ? '' : getStrBetween(alarmArr[1], 'TRIGGER:', '\r\n'),
+                ALARM_ACTION: alarmArr.length === 1 ? '' : getStrBetween(alarmArr[1], 'ACTION:', '\r\n'),
+                ALARM_DESCRIPTION: alarmArr.length === 1 ? '' : getStrBetween(alarmArr[1], 'DESCRIPTION:', '\r\n')
+            };
+            return [...acc, eventObj];
+        }, []);
+        const allEventsParsedArr = allEventsArr.map((item) => {
+            const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezoneCorrection);
+            return {
+                id: item.UID,
+                name: item.SUMMARY,
+                description: item.DESCRIPTION,
+                tzid: item.TZID,
+                start: parsedDateTime.finalDtstart,
+                end: parsedDateTime.finalDtend
+            };
+        });
+        return allEventsParsedArr;
+    });
+    function getParsedIcsDatetimes(dtstart, dtend, timezone, timezoneCorrection) {
+        let finalDtstart = dtstart;
+        let finalDtend = dtend;
+        finalDtstart = finalDtstart.slice(finalDtstart.search(':') + 1);
+        finalDtend = finalDtend.slice(finalDtend.search(':') + 1);
+        if (finalDtend === '') {
+            const startDateObj = getParsedTimeStamp(finalDtstart);
+            const nextDate = new Date(Date.UTC(Number(startDateObj.year), Number(startDateObj.month) - 1, Number(startDateObj.day), 0, 0, 0));
+            nextDate.setDate(nextDate.getDate() + 1);
+            finalDtend = { date: nextDate.toISOString().split('T')[0] };
+            finalDtstart = { date: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}` };
+        }
+        else {
+            const startDateObj = getParsedTimeStamp(finalDtstart);
+            const endDateObj = getParsedTimeStamp(finalDtend);
+            const getTimeZoneFixedString = (fixer) => {
+                if (fixer === 0) {
+                    return '';
+                }
+                return `${fixer < 0 ? '-' : '+'}${String(Math.abs(fixer)).padStart(2, '0')}:00`;
+            };
+            const timezoneFixedString = getTimeZoneFixedString(timezoneCorrection);
+            finalDtstart = {
+                dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}${timezoneFixedString}`,
+                timeZone: timezone
+            };
+            finalDtend = {
+                dateTime: `${endDateObj.year}-${endDateObj.month}-${endDateObj.day}T${endDateObj.hours}:${endDateObj.minutes}:${endDateObj.seconds}${timezoneFixedString}`,
+                timeZone: timezone
+            };
+        }
+        return {
+            finalDtstart,
+            finalDtend
+        };
+    }
+
+    function syncTicktick(configs) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const icsCalendarsConfigs = configs[ticktickConfigsKey].ics_calendars;
+            const info = {
+                ticktickTasks: yield getAllTicktickTasks(icsCalendarsConfigs, configs.settings.timezone_correction),
+                ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
+            };
+            const resultInfo = Object.assign(Object.assign({}, (yield addAndUpdateTasksOnGcal(info))), (yield moveCompletedTasksToDoneGcal(info)));
+            return resultInfo;
+        });
+    }
+    const getFixedTaskName = (str) => {
+        let fixedName = str;
+        fixedName = fixedName.replace(/\\,/g, ',');
+        fixedName = fixedName.replace(/\\;/g, ';');
+        fixedName = fixedName.replace(/\\"/g, '"');
+        fixedName = fixedName.replace(/\\\\/g, '\\');
+        return fixedName;
+    };
+    function convertTicktickTaskToGcal(ticktickTask) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const properties = {
+                private: {
+                    calendar: ticktickTask.gcal,
+                    completedCalendar: ticktickTask.gcal_done,
+                    tickTaskId: ticktickTask.id
+                }
+            };
+            const customColor = (ticktickTask === null || ticktickTask === void 0 ? void 0 : ticktickTask.color) ? { colorId: ticktickTask.color.toString() } : {};
+            const generateGcalDescription = (curIcsTask) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
+            const taskEvent = Object.assign({ summary: getFixedTaskName(ticktickTask.name), description: generateGcalDescription(ticktickTask), start: ticktickTask.start, end: ticktickTask.end, reminders: {
+                    useDefault: true
+                }, extendedProperties: properties }, customColor);
+            return taskEvent;
+        });
+    }
+    function addTicktickTaskToGcal(gcal, ticktickTask) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const taskEvent = yield convertTicktickTaskToGcal(ticktickTask);
+            try {
+                return addEventToCalendar(gcal, taskEvent);
+            }
+            catch (e) {
+                if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
+                    throw new Error(ERRORS.abusiveGoogleCalendarApiUse);
+                }
+                else {
+                    throw new Error(e.message);
+                }
+            }
+        });
+    }
+    function checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const changedTaskName = getFixedTaskName(ticktickTask.name) !== taskOnGcal.summary;
+            const changedDateFormat = Object.keys(ticktickTask.start).length !== Object.keys(taskOnGcal.start).length;
+            const changedIntialDate = ticktickTask.start['date'] !== taskOnGcal.start['date'] || ticktickTask.start['dateTime'] !== taskOnGcal.start['dateTime'];
+            const changedFinalDate = ticktickTask.end['date'] !== taskOnGcal.end['date'] || ticktickTask.end['dateTime'] !== taskOnGcal.end['dateTime'];
+            const changedColor = (() => {
+                let tmpResult = false;
+                if ((ticktickTask === null || ticktickTask === void 0 ? void 0 : ticktickTask.color) === undefined) {
+                    tmpResult = taskOnGcal.colorId !== undefined;
+                }
+                else {
+                    tmpResult = ticktickTask.color.toString() !== taskOnGcal.colorId;
+                }
+                return tmpResult;
+            })();
+            const resultArr = [
+                { hasChanged: changedTaskName, field: 'name' },
+                { hasChanged: changedDateFormat, field: 'date format' },
+                { hasChanged: changedIntialDate, field: 'initial date' },
+                { hasChanged: changedFinalDate, field: 'final date' },
+                { hasChanged: changedColor, field: 'color' }
+            ];
+            return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
+        });
+    }
+    function getTicktickTasks(icsCalendarsArr, timezoneCorrection) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return mergeArraysOfArrays(yield Promise.all(icsCalendarsArr.map((icsCal) => __awaiter(this, void 0, void 0, function* () {
+                const tasks = yield getIcsCalendarTasks(icsCal.link, timezoneCorrection);
+                const extendedTasks = tasks.map((item) => (Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, item), { gcal: icsCal.gcal, gcal_done: icsCal.gcal_done }), (icsCal.color ? { color: icsCal.color } : {})), (icsCal.tag ? { tag: icsCal.tag } : {})), (icsCal.ignoredTags ? { ignoredTags: icsCal.ignoredTags } : {}))));
+                return extendedTasks;
+            }))));
+        });
+    }
+    function getAllTicktickTasks(icsCalendars, timezoneCorrection) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const taggedTasks = yield getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.tag), timezoneCorrection);
+            const ignoredTaggedTasks = (yield getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.ignoredTags), timezoneCorrection)).filter((item) => {
+                const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
+                const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
+                return shouldIgnoreTask === false;
+            });
+            const commonTasks = yield getTicktickTasks(icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags), timezoneCorrection);
+            return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
+        });
+    }
+    function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = {
+                added_tasks: [],
+                updated_tasks: []
+            };
+            for (const ticktickTask of ticktickTasks) {
+                const taskOnGcal = ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
+                const correspondingCalendar = getCalendarByName(ticktickTask.gcal);
+                if (!taskOnGcal) {
+                    result.added_tasks.push(yield addTicktickTaskToGcal(correspondingCalendar, ticktickTask));
+                }
+                else {
+                    const hasChangedCalendar = correspondingCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
+                    const changedTicktickFields = yield checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
+                    const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
+                    if (hasChangedCalendar) {
+                        result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), { colorId: undefined })));
+                    }
+                    else if (changedTicktickFields.length > 0) {
+                        result.updated_tasks.push(moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), { colorId: undefined })));
+                    }
+                }
+            }
+            return result;
+        });
+    }
+    function moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktickTasks }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = {
+                completed_tasks: []
+            };
+            const ticktickTasksOnGcal = ticktickGcalTasks.filter((item) => { var _a, _b; return (_b = (_a = item.extendedProperties) === null || _a === void 0 ? void 0 : _a.private) === null || _b === void 0 ? void 0 : _b.tickTaskId; });
+            for (const gcalTicktickTask of ticktickTasksOnGcal) {
+                const isTaskStillOnTicktick = ticktickTasks.map((item) => item.id).includes(gcalTicktickTask.extendedProperties.private.tickTaskId);
+                if (!isTaskStillOnTicktick) {
+                    const taskCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.calendar);
+                    const taskDoneCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.completedCalendar);
+                    const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, Object.assign(Object.assign({}, gcalTicktickTask), { colorId: undefined }));
+                    result.completed_tasks.push(gcalEvent);
+                }
+            }
+            return result;
         });
     }
 
@@ -628,12 +880,6 @@
         return Object.values(isValid).every((isSchemaValid) => isSchemaValid === true);
     }
 
-    function getDateFixedByTimezone(timeZoneIndex) {
-        const date = new Date();
-        date.setHours(date.getHours() + timeZoneIndex);
-        return date;
-    }
-
     class GcalSync {
         constructor(configs) {
             this.configs = configs;
@@ -713,8 +959,16 @@
                         .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
                 ];
                 createMissingCalendars(allGoogleCalendars);
-                const syncResult = Object.assign({}, (shouldSyncGithub && (yield syncGithub(this.configs))));
-                console.log(syncResult);
+                const { added_tasks, completed_tasks, updated_tasks, commitsAdded, commitsDeleted, commitsTrackedToBeAdded, commitsTrackedToBeDelete } = Object.assign(Object.assign({}, (shouldSyncTicktick && (yield syncTicktick(this.configs)))), (shouldSyncGithub && (yield syncGithub(this.configs))));
+                console.log({
+                    added_tasks: added_tasks.length,
+                    completed_tasks: completed_tasks.length,
+                    updated_tasks: updated_tasks.length,
+                    commitsAdded: commitsAdded.length,
+                    commitsDeleted: commitsDeleted.length,
+                    commitsTrackedToBeAdded: commitsTrackedToBeAdded.length,
+                    commitsTrackedToBeDelete: commitsTrackedToBeDelete.length
+                });
             });
         }
     }
