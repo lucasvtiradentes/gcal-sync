@@ -116,11 +116,7 @@ export async function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezone
         const tasks = await getIcsCalendarTasks(icsCal.link, timezoneCorrection);
         const extendedTasks = tasks.map((item) => ({
           ...item,
-          gcal: icsCal.gcal,
-          gcal_done: icsCal.gcal_done,
-          ...(icsCal.color ? { color: icsCal.color } : {}),
-          ...(icsCal.tag ? { tag: icsCal.tag } : {}),
-          ...(icsCal.ignoredTags ? { ignoredTags: icsCal.ignoredTags } : {})
+          ...icsCal
         })) as TExtendedParsedTicktickTask[];
         return extendedTasks;
       })

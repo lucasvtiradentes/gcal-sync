@@ -81,49 +81,52 @@
     const CONFIGS = {
         DEBUG_MODE: true,
         MAX_GCAL_TASKS: 2500,
-        REQUIRED_GITHUB_VALIDATIONS_COUNT: 3,
-        EVENTS_DIVIDER: ' | '
+        REQUIRED_GITHUB_VALIDATIONS_COUNT: 3
     };
     const GAS_PROPERTIES = {
         today_ticktick_added_tasks: {
             key: 'today_ticktick_added_tasks',
-            schema: {}
+            initialValue: []
         },
         today_ticktick_updated_tasks: {
             key: 'today_ticktick_updated_tasks',
-            schema: {}
+            initialValue: []
         },
         today_ticktick_completed_tasks: {
             key: 'today_ticktick_completed_tasks',
-            schema: {}
+            initialValue: []
         },
         today_github_added_commits: {
             key: 'today_github_added_commits',
-            schema: {}
+            initialValue: []
         },
         today_github_deleted_commits: {
             key: 'today_github_deleted_commits',
-            schema: {}
+            initialValue: []
         },
         last_released_version_alerted: {
             key: 'last_released_version_alerted',
-            schema: {}
+            initialValue: ''
+        },
+        last_released_version_sent_date: {
+            key: 'last_released_version_sent_date',
+            initialValue: ''
         },
         last_daily_email_sent_date: {
             key: 'last_daily_email_sent_date',
-            schema: {}
+            initialValue: ''
         },
         github_commits_tracked_to_be_added: {
             key: 'github_commits_tracked_to_be_added',
-            schema: {}
+            initialValue: []
         },
         github_commits_tracked_to_be_deleted: {
             key: 'github_commits_tracked_to_be_deleted',
-            schema: {}
+            initialValue: []
         },
         github_commit_changes_count: {
             key: 'github_commit_changes_count',
-            schema: {}
+            initialValue: ''
         }
     };
 
@@ -215,14 +218,8 @@
         return tasks;
     }
     function addEventToCalendar(calendar, event) {
-        try {
-            const eventFinal = Calendar.Events.insert(event, calendar.id);
-            return eventFinal;
-        }
-        catch (e) {
-            logger.info(`error when adding event [${event.summary}] to gcal: ${e.message}`);
-            return event;
-        }
+        const eventFinal = Calendar.Events.insert(event, calendar.id);
+        return eventFinal;
     }
     function moveEventToOtherCalendar(calendar, newCalendar, event) {
         removeCalendarEvent(calendar, event);
@@ -231,12 +228,7 @@
         return newEvent;
     }
     function removeCalendarEvent(calendar, event) {
-        try {
-            Calendar.Events.remove(calendar.id, event.id);
-        }
-        catch (e) {
-            logger.info(`error when deleting event [${event.summary}] to gcal: ${e.message}`);
-        }
+        Calendar.Events.remove(calendar.id, event.id);
     }
 
     function getUserEmail() {
@@ -265,6 +257,26 @@
     const ticktickConfigsKey = 'ticktick_sync';
     const githubConfigsKey = 'github_sync';
 
+    function getSessionEmail(sendToEmail, sessionStats) {
+        const content = generateReportEmailContent(sessionStats);
+        const emailObj = {
+            to: sendToEmail,
+            name: `${APP_INFO.name}`,
+            subject: `session report - ${getTotalSessionEvents(sessionStats)} modifications - ${APP_INFO.name}`,
+            htmlBody: content
+        };
+        return emailObj;
+    }
+    function getDailySummaryEmail(sendToEmail, todaySession, todayDate) {
+        const content = generateReportEmailContent(todaySession);
+        const emailObj = {
+            to: sendToEmail,
+            name: `${APP_INFO.name}`,
+            subject: `daily report for ${todayDate} - ${getTotalSessionEvents(todaySession)} modifications - ${APP_INFO.name}`,
+            htmlBody: content
+        };
+        return emailObj;
+    }
     function getNewReleaseEmail(sendToEmail, lastReleaseObj) {
         const message = `Hi!
     <br/><br/>
@@ -288,67 +300,65 @@
         };
         return emailObj;
     }
-    function getSessionEmail(sendToEmail, sessionStats) {
-        const content = generateReportEmailContent(sessionStats);
-        const emailObj = {
-            to: sendToEmail,
-            name: `${APP_INFO.name}`,
-            subject: `session report - ${getTotalSessionEvents(sessionStats)} modifications - ${APP_INFO.name}`,
-            htmlBody: content
-        };
-        return emailObj;
-    }
-    function getDailySummaryEmail(sendToEmail, todaySession, todayDate) {
-        const content = generateReportEmailContent(todaySession);
-        const emailObj = {
-            to: sendToEmail,
-            name: `${APP_INFO.name}`,
-            subject: `daily report for ${todayDate} - ${getTotalSessionEvents(todaySession)} modifications - ${APP_INFO.name}`,
-            htmlBody: content
-        };
-        return emailObj;
-    }
     // =============================================================================
+    const TABLE_STYLES = {
+        tableStyle: `style="border: 1px solid #333; width: 90%"`,
+        tableRowStyle: `style="width: 100%"`,
+        tableRowColumnStyle: `style="border: 1px solid #333"`
+    };
+    const getParsedDateTime = (str) => ('date' in str ? str.date : str.dateTime);
     function getTotalSessionEvents(session) {
         const todayEventsCount = session.added_tasks.length + session.updated_tasks.length + session.completed_tasks.length + session.commits_added.length + session.commits_deleted.length;
         return todayEventsCount;
     }
-    function generateReportEmailContent(session) {
+    function getTicktickEmailContant(session) {
         const addedTicktickTasks = session.added_tasks;
         const updatedTicktickTasks = session.updated_tasks;
         const completedTicktickTasks = session.completed_tasks;
-        const addedGithubCommits = session.commits_added;
-        const removedGithubCommits = session.commits_deleted;
-        const todayEventsCount = getTotalSessionEvents(session);
-        if (todayEventsCount === 0) {
-            return;
-        }
-        const tableStyle = `style="border: 1px solid #333; width: 90%"`;
-        const tableRowStyle = `style="width: 100%"`;
-        const tableRowColumnStyle = `style="border: 1px solid #333"`;
-        const getTableBodyItemsHtml = (itemsArr) => {
-            if (!itemsArr || itemsArr.length === 0) {
-                return ``;
-            }
-            const arr = itemsArr.map((item) => item.split(CONFIGS.EVENTS_DIVIDER));
-            const arrSortedByDate = arr.sort((a, b) => Number(new Date(a[0])) - Number(new Date(b[0])));
+        const getTicktickBodyItemsHtml = (items) => {
+            if (items.length === 0)
+                return '';
             // prettier-ignore
-            const tableItems = arrSortedByDate.map((item) => {
-                const [date, category, message, link] = item;
-                const itemHtmlRow = [date, category, `<a href="${link}">${message}</a>`].map(it => `<td ${tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n');
-                return `<tr ${tableRowStyle}">\n${itemHtmlRow}\n</tr>`;
+            const tableItems = items.map((gcalItem) => {
+                const parsedDate = getParsedDateTime(gcalItem.start).split('T')[0];
+                const itemHtmlRow = [parsedDate, gcalItem.extendedProperties.private.calendar, `<a href="${gcalItem.htmlLink}">${gcalItem.summary}</a>`].map(it => `<td ${TABLE_STYLES.tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n');
+                return `<tr ${TABLE_STYLES.tableRowStyle}">\n${itemHtmlRow}\n</tr>`;
             }).join('\n');
             return `${tableItems}`;
         };
-        const ticktickTableHeader = `<tr ${tableRowStyle}">\n<th ${tableRowColumnStyle} width="80px">date</th><th ${tableRowColumnStyle} width="130px">calendar</th><th ${tableRowColumnStyle} width="auto">task</th>\n</tr>`;
-        const githubTableHeader = `<tr ${tableRowStyle}">\n<th ${tableRowColumnStyle} width="80px">date</th><th ${tableRowColumnStyle} width="130px">repository</th><th ${tableRowColumnStyle} width="auto">commit</th>\n</tr>`;
+        const ticktickTableHeader = `<tr ${TABLE_STYLES.tableRowStyle}">\n<th ${TABLE_STYLES.tableRowColumnStyle} width="80px">date</th><th ${TABLE_STYLES.tableRowColumnStyle} width="130px">calendar</th><th ${TABLE_STYLES.tableRowColumnStyle} width="auto">task</th>\n</tr>`;
+        let content = '';
+        content += addedTicktickTasks.length > 0 ? `<br/>added ticktick events    : ${addedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
+        content += updatedTicktickTasks.length > 0 ? `<br/>updated ticktick events  : ${updatedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
+        content += completedTicktickTasks.length > 0 ? `<br/>completed ticktick events: ${completedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
+        return content;
+    }
+    function getGithubEmailContant(session) {
+        const addedGithubCommits = session.commits_added;
+        const removedGithubCommits = session.commits_deleted;
+        const getGithubBodyItemsHtml = (items) => {
+            if (items.length === 0)
+                return '';
+            // prettier-ignore
+            const tableItems = items.map((gcalItem) => {
+                const parsedDate = getParsedDateTime(gcalItem.start).split('T')[0];
+                const itemHtmlRow = [parsedDate, gcalItem.extendedProperties.private.repositoryName, `<a href="${gcalItem.htmlLink}">${gcalItem.extendedProperties.private.commitMessage}</a>`].map(it => `<td ${TABLE_STYLES.tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n');
+                return `<tr ${TABLE_STYLES.tableRowStyle}">\n${itemHtmlRow}\n</tr>`;
+            }).join('\n');
+            return `${tableItems}`;
+        };
+        const githubTableHeader = `<tr ${TABLE_STYLES.tableRowStyle}">\n<th ${TABLE_STYLES.tableRowColumnStyle} width="80px">date</th><th ${TABLE_STYLES.tableRowColumnStyle} width="130px">repository</th><th ${TABLE_STYLES.tableRowColumnStyle} width="auto">commit</th>\n</tr>`;
+        let content = '';
+        content += addedGithubCommits.length > 0 ? `<br/>added commits events     : ${addedGithubCommits.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${githubTableHeader}\n${getGithubBodyItemsHtml(addedGithubCommits)}\n</table>\n</center>\n` : '';
+        content += removedGithubCommits.length > 0 ? `<br/>removed commits events   : ${removedGithubCommits.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${githubTableHeader}\n${getGithubBodyItemsHtml(removedGithubCommits)}\n</table>\n</center>\n` : '';
+        return content;
+    }
+    function generateReportEmailContent(session) {
+        const todayEventsCount = getTotalSessionEvents(session);
         let content = '';
         content = `Hi!<br/><br/>there were ${todayEventsCount} changes made to your google calendar:<br/>\n`;
-        content += addedTicktickTasks.length > 0 ? `<br/>added ticktick events    : ${addedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
-        content += updatedTicktickTasks.length > 0 ? `<br/>updated ticktick events  : ${updatedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
-        content += completedTicktickTasks.length > 0 ? `<br/>completed ticktick events: ${completedTicktickTasks.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${ticktickTableHeader}\n${getTableBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
-        content += addedGithubCommits.length > 0 ? `<br/>added commits events     : ${addedGithubCommits.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(addedGithubCommits)}\n</table>\n</center>\n` : '';
-        content += removedGithubCommits.length > 0 ? `<br/>removed commits events   : ${removedGithubCommits.length}<br/><br/> \n <center>\n<table ${tableStyle}>\n${githubTableHeader}\n${getTableBodyItemsHtml(removedGithubCommits)}\n</table>\n</center>\n` : '';
+        content += getTicktickEmailContant(session);
+        content += getGithubEmailContant(session);
         content += `<br/>Regards,<br/>your <a href='https://github.com/${APP_INFO.github_repository}'>${APP_INFO.name}</a> bot`;
         return content;
     }
@@ -842,7 +852,7 @@
         return __awaiter(this, void 0, void 0, function* () {
             return mergeArraysOfArrays(yield Promise.all(icsCalendarsArr.map((icsCal) => __awaiter(this, void 0, void 0, function* () {
                 const tasks = yield getIcsCalendarTasks(icsCal.link, timezoneCorrection);
-                const extendedTasks = tasks.map((item) => (Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, item), { gcal: icsCal.gcal, gcal_done: icsCal.gcal_done }), (icsCal.color ? { color: icsCal.color } : {})), (icsCal.tag ? { tag: icsCal.tag } : {})), (icsCal.ignoredTags ? { ignoredTags: icsCal.ignoredTags } : {}))));
+                const extendedTasks = tasks.map((item) => (Object.assign(Object.assign({}, item), icsCal)));
                 return extendedTasks;
             }))));
         });
@@ -997,16 +1007,31 @@
             logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
         }
         // ===========================================================================
+        createMissingGASProperties() {
+            const allProperties = listAllGASProperties();
+            Object.keys(GAS_PROPERTIES).forEach((key) => {
+                const doesPropertyExist = Object.keys(allProperties).includes(key);
+                if (!doesPropertyExist) {
+                    updateGASProperty(GAS_PROPERTIES[key].key, GAS_PROPERTIES[key].initialValue);
+                }
+            });
+        }
+        createMissingGcalCalendars() {
+            const shouldSyncGithub = this.configs[githubConfigsKey];
+            const shouldSyncTicktick = this.configs[ticktickConfigsKey];
+            // prettier-ignore
+            const allGoogleCalendars = [...new Set([]
+                    .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar] : [])
+                    .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
+            ];
+            createMissingCalendars(allGoogleCalendars);
+        }
+        // ===========================================================================
         install() {
             return __awaiter(this, void 0, void 0, function* () {
                 removeAppsScriptsTrigger(this.configs.settings.sync_function);
                 addAppsScriptsTrigger(this.configs.settings.sync_function, this.configs.settings.update_frequency);
-                Object.keys(GAS_PROPERTIES).forEach((key) => {
-                    const doesPropertyExist = listAllGASProperties().includes(key);
-                    if (!doesPropertyExist) {
-                        updateGASProperty(GAS_PROPERTIES[key].key, '');
-                    }
-                });
+                this.createMissingGASProperties();
                 logger.info(`${APP_INFO.name} was set to run function "${this.configs.settings.sync_function}" every ${this.configs.settings.update_frequency} minutes`);
             });
         }
@@ -1020,6 +1045,19 @@
             });
         }
         // ===========================================================================
+        getTodayStats() {
+            const todayStats = {
+                added_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
+                updated_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key),
+                completed_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
+                commits_added: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
+                commits_deleted: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key)
+            };
+            return todayStats;
+        }
+        showTodayStats() {
+            logger.info(this.getTodayStats());
+        }
         clearTodayEvents() {
             updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, []);
             updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, []);
@@ -1027,16 +1065,6 @@
             updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, []);
             updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, []);
             logger.info(`${this.today_date} stats were reseted!`);
-        }
-        getTodayEvents() {
-            const TODAY_SESSION = {
-                added_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
-                updated_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key),
-                completed_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
-                commits_added: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
-                commits_deleted: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key)
-            };
-            return TODAY_SESSION;
         }
         // ===========================================================================
         sync() {
@@ -1047,12 +1075,8 @@
                     logger.info('nothing to sync');
                     return;
                 }
-                // prettier-ignore
-                const allGoogleCalendars = [...new Set([]
-                        .concat(shouldSyncGithub ? [this.configs[githubConfigsKey].commits_configs.commits_calendar] : [])
-                        .concat(shouldSyncTicktick ? [...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
-                ];
-                createMissingCalendars(allGoogleCalendars);
+                this.createMissingGcalCalendars();
+                this.createMissingGASProperties();
                 const emptySessionData = {
                     added_tasks: [],
                     updated_tasks: [],
@@ -1060,8 +1084,10 @@
                     commits_added: [],
                     commits_deleted: []
                 };
-                const sessionData = Object.assign(Object.assign(Object.assign({}, emptySessionData), (shouldSyncTicktick && (yield syncTicktick(this.configs)))), (shouldSyncGithub && (yield syncGithub(this.configs))));
-                this.handleSessionData(sessionData);
+                const ticktickSync = yield syncTicktick(this.configs);
+                const githubSync = yield syncGithub(this.configs);
+                const sessionData = Object.assign(Object.assign(Object.assign({}, emptySessionData), (shouldSyncTicktick && ticktickSync)), (shouldSyncGithub && githubSync));
+                yield this.handleSessionData(sessionData);
             });
         }
         handleSessionData(sessionData) {
@@ -1071,59 +1097,60 @@
                 const shouldSyncGithub = this.configs[githubConfigsKey];
                 const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
                 if (shouldSyncTicktick && ticktickNewItems > 0) {
-                    const todayAddedTasks = getGASProperty('today_ticktick_added_tasks');
-                    const todayUpdatedTasks = getGASProperty('today_ticktick_updated_tasks');
-                    const todayCompletedTasks = getGASProperty('today_ticktick_completed_tasks');
-                    updateGASProperty('today_ticktick_added_tasks', [...todayAddedTasks, ...sessionData.added_tasks]);
-                    updateGASProperty('today_ticktick_updated_tasks', [...todayUpdatedTasks, ...sessionData.updated_tasks]);
-                    updateGASProperty('today_ticktick_completed_tasks', [...todayCompletedTasks, ...sessionData.completed_tasks]);
+                    const todayAddedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key);
+                    const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key);
+                    const todayCompletedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key);
+                    updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, [...todayAddedTasks, ...sessionData.added_tasks]);
+                    updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
+                    updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, [...todayCompletedTasks, ...sessionData.completed_tasks]);
                     logger.info(`added ${ticktickNewItems} new ticktick items to today's stats`);
                 }
                 const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
                 if (shouldSyncGithub && githubNewItems > 0) {
-                    const todayAddedCommits = getGASProperty('today_github_added_commits');
-                    const todayDeletedCommits = getGASProperty('today_github_deleted_commits');
-                    updateGASProperty('today_github_added_commits', [...todayAddedCommits, ...sessionData.commits_added]);
-                    updateGASProperty('today_github_deleted_commits', [...todayDeletedCommits, ...sessionData.commits_deleted]);
-                    logger.info(`added ${ticktickNewItems} new github items to today's stats`);
+                    const todayAddedCommits = getGASProperty(GAS_PROPERTIES.today_github_added_commits.key);
+                    const todayDeletedCommits = getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key);
+                    updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, [...todayAddedCommits, ...sessionData.commits_added]);
+                    updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, [...todayDeletedCommits, ...sessionData.commits_deleted]);
+                    logger.info(`added ${githubNewItems} new github items to today's stats`);
                 }
                 const totalSessionNewItems = ticktickNewItems + githubNewItems;
+                // =========================================================================
+                const userEmail = getUserEmail();
                 if (this.configs.options.email_session && totalSessionNewItems > 0) {
-                    const sessionEmail = getSessionEmail(getUserEmail(), sessionData);
+                    const sessionEmail = getSessionEmail(userEmail, sessionData);
                     sendEmail(sessionEmail);
                 }
-                const alreadySentTodayEmails = this.today_date === getGASProperty('last_daily_email_sent_date');
-                if (isCurrentTimeAfter(this.configs.options.daily_summary_email_time, this.configs.settings.timezone_correction) && !alreadySentTodayEmails) {
-                    updateGASProperty('last_daily_email_sent_date', this.today_date);
-                    if (this.configs.options.email_daily_summary) {
-                        const dailySummaryEmail = getDailySummaryEmail(getUserEmail(), sessionData, this.today_date);
-                        sendEmail(dailySummaryEmail);
-                        this.clearTodayEvents();
-                    }
-                    if (this.configs.options.email_new_gcal_sync_release) {
-                        const parseGcalVersion = (v) => {
-                            return Number(v.replace('v', '').split('.').join(''));
-                        };
-                        const getLatestGcalSyncRelease = () => {
-                            var _a;
-                            const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${APP_INFO.github_repository}/releases?per_page=1`);
-                            const lastReleaseObj = (_a = JSON.parse(json_encoded.getContentText())[0]) !== null && _a !== void 0 ? _a : {};
-                            if (Object.keys(lastReleaseObj).length === 0) {
-                                return; // no releases were found
-                            }
-                            return lastReleaseObj;
-                        };
-                        const latestRelease = getLatestGcalSyncRelease();
-                        const latestVersion = parseGcalVersion(latestRelease.tag_name);
-                        const currentVersion = parseGcalVersion(APP_INFO.version);
-                        const lastAlertedVersion = (_a = getGASProperty('last_released_version_alerted')) !== null && _a !== void 0 ? _a : '';
-                        if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
-                            const newReleaseEmail = getNewReleaseEmail(getUserEmail(), sessionData);
-                            sendEmail(newReleaseEmail);
-                            updateGASProperty('last_released_version_alerted', latestVersion.toString());
-                        }
+                const isNowTimeAfterDailyEmails = isCurrentTimeAfter(this.configs.options.daily_summary_email_time, this.configs.settings.timezone_correction);
+                const alreadySentTodaySummaryEmail = this.today_date === getGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key);
+                if (isNowTimeAfterDailyEmails && this.configs.options.email_daily_summary && !alreadySentTodaySummaryEmail) {
+                    updateGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key, this.today_date);
+                    const dailySummaryEmail = getDailySummaryEmail(userEmail, this.getTodayStats(), this.today_date);
+                    sendEmail(dailySummaryEmail);
+                    this.clearTodayEvents();
+                }
+                const alreadySentTodayNewReleaseEmail = this.today_date === getGASProperty(GAS_PROPERTIES.last_released_version_sent_date.key);
+                const parseGcalVersion = (v) => {
+                    return Number(v.replace('v', '').split('.').join(''));
+                };
+                const getLatestGcalSyncRelease = () => {
+                    var _a;
+                    const json_encoded = UrlFetchApp.fetch(`https://api.github.com/repos/${APP_INFO.github_repository}/releases?per_page=1`);
+                    const lastReleaseObj = (_a = JSON.parse(json_encoded.getContentText())[0]) !== null && _a !== void 0 ? _a : { tag_name: APP_INFO.version };
+                    return lastReleaseObj;
+                };
+                if (isNowTimeAfterDailyEmails && this.configs.options.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
+                    updateGASProperty(GAS_PROPERTIES.last_released_version_sent_date.key, this.today_date);
+                    const latestRelease = getLatestGcalSyncRelease();
+                    const latestVersion = parseGcalVersion(latestRelease.tag_name);
+                    const currentVersion = parseGcalVersion(APP_INFO.version);
+                    const lastAlertedVersion = (_a = getGASProperty(GAS_PROPERTIES.last_released_version_alerted.key)) !== null && _a !== void 0 ? _a : '';
+                    if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
+                        const newReleaseEmail = getNewReleaseEmail(userEmail, latestRelease);
+                        sendEmail(newReleaseEmail);
+                        updateGASProperty(GAS_PROPERTIES.last_released_version_alerted.key, latestVersion.toString());
                     }
                 }
+                logger.info({ sessionData });
             });
         }
     }

@@ -115,13 +115,8 @@ export function getTasksFromGoogleCalendars<TPrivate>(allCalendars: string[]) {
 }
 
 export function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEvent) {
-  try {
-    const eventFinal = Calendar.Events.insert(event, calendar.id);
-    return eventFinal;
-  } catch (e: any) {
-    logger.info(`error when adding event [${event.summary}] to gcal: ${e.message}`);
-    return event;
-  }
+  const eventFinal = Calendar.Events.insert(event, calendar.id);
+  return eventFinal;
 }
 
 export function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar: TGoogleCalendar, event: TGoogleEvent) {
@@ -132,11 +127,7 @@ export function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar:
 }
 
 export function removeCalendarEvent(calendar: TGoogleCalendar, event: TGoogleEvent) {
-  try {
-    Calendar.Events.remove(calendar.id, event.id);
-  } catch (e: any) {
-    logger.info(`error when deleting event [${event.summary}] to gcal: ${e.message}`);
-  }
+  Calendar.Events.remove(calendar.id, event.id);
 }
 
 export function getEventById(calendar: TGoogleCalendar, eventId: string) {

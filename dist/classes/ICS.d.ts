@@ -7,8 +7,8 @@ export type TParsedTicktickTask = {
     start: TDate;
     end: TDate;
 };
-export type TExtendedParsedTicktickTask = TParsedTicktickTask & Pick<TIcsCalendar, 'gcal' | 'gcal_done' | 'color' | 'tag' | 'ignoredTags'>;
-type TDate = {
+export type TExtendedParsedTicktickTask = TParsedTicktickTask & TIcsCalendar;
+export type TDate = {
     date: string;
 } | {
     dateTime: string;
@@ -29,4 +29,3 @@ export declare function getParsedIcsDatetimes(dtstart: string, dtend: string, ti
         timeZone: string;
     };
 };
-export {};
