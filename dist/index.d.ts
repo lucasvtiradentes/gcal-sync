@@ -6,10 +6,13 @@ declare class GcalSync {
     private configs;
     private today_date;
     constructor(configs: TConfigs);
+    private createMissingGASProperties;
+    private createMissingGcalCalendars;
     install(): Promise<void>;
     uninstall(): Promise<void>;
+    private getTodayStats;
+    showTodayStats(): void;
     clearTodayEvents(): void;
-    getTodayEvents(): TSessionStats;
     sync(): Promise<void>;
     private handleSessionData;
 }

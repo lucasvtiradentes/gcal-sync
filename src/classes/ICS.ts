@@ -12,9 +12,9 @@ export type TParsedTicktickTask = {
   end: TDate;
 };
 
-export type TExtendedParsedTicktickTask = TParsedTicktickTask & Pick<TIcsCalendar, 'gcal' | 'gcal_done' | 'color' | 'tag' | 'ignoredTags'>;
+export type TExtendedParsedTicktickTask = TParsedTicktickTask & TIcsCalendar;
 
-type TDate = { date: string } | { dateTime: string; timeZone: string };
+export type TDate = { date: string } | { dateTime: string; timeZone: string };
 
 export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: number) => {
   const parsedLink = icsLink.replace('webcal://', 'https://');

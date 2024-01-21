@@ -13,7 +13,7 @@ export function listAllGASProperties(): TGasPropertiesSchemaKeys[] {
   return allProperties;
 }
 
-export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty): TGasPropertiesSchema[TProperty]['schema'] {
+export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty): TGasPropertiesSchema[TProperty]['initialValue'] {
   const value = PropertiesService.getScriptProperties().getProperty(property);
   let parsedValue;
 
@@ -26,7 +26,7 @@ export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(prope
   return parsedValue;
 }
 
-export function updateGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty, value: TGasPropertiesSchema[TProperty]['schema']) {
+export function updateGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty, value: TGasPropertiesSchema[TProperty]['initialValue']) {
   const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
   PropertiesService.getScriptProperties().setProperty(property, parsedValue);
 }
