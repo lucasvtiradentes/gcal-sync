@@ -1,7 +1,9 @@
-import { TEmail } from '../classes/GoogleEmail';
+import { getGASProperty, updateGASProperty } from '../classes/GoogleAppsScript';
+import { TEmail, sendEmail } from '../classes/GoogleEmail';
 import { APP_INFO } from '../consts/app_info';
 import { CONFIGS, GAS_PROPERTIES } from '../consts/configs';
-import { TSessionStats } from '../consts/types';
+import { TConfigs, TSessionStats } from '../consts/types';
+import { isCurrentTimeAfter } from '../utils/javascript/date_utils';
 import { stringToArray } from '../utils/javascript/string_utils';
 
 export function getNewReleaseEmail(sendToEmail: string, lastReleaseObj: any) {
@@ -136,22 +138,24 @@ export function generateReportEmailContent(session: TSessionStats) {
 
 // =============================================================================
 
-export function sendAfterSyncEmails(curSession: TSessionStats) {
-  if (this.config.options.emailSession) {
-    this.sendSessionEmail(curSession);
+export function sendAfterSyncEmails(configs: TConfigs, curSession: TSessionStats) {
+  if (configs.options.email_session) {
+    const sessionEmail = getSessionEmail('', curSession);
+    sendEmail(sessionEmail);
   }
 
-  const alreadySentTodayEmails = this.TODAY_DATE === this.getAppsScriptsProperty(GAS_PROPERTIES.lastDailyEmailSentDate.key);
+  const alreadySentTodayEmails = this.TODAY_DATE === getGASProperty(GAS_PROPERTIES.lastDailyEmailSentDate.key);
 
-  if (this.isCurrentTimeAfter(this.config.datetime.dailyEmailsTime) && !alreadySentTodayEmails) {
-    this.updateAppsScriptsProperty(GAS_PROPERTIES.lastDailyEmailSentDate.key, this.TODAY_DATE);
+  if (isCurrentTimeAfter(configs.options.daily_summary_email_time, configs.settings.timezone_correction) && !alreadySentTodayEmails) {
+    updateGASProperty(GAS_PROPERTIES.lastDailyEmailSentDate.key, this.TODAY_DATE);
 
-    if (this.config.options.emailDailySummary) {
-      this.sendDailySummaryEmail(this.getTodayEvents());
+    if (configs.options.email_daily_summary) {
+      const dailySummaryEmail = getDailySummaryEmail('', this.getTodayEvents());
+      sendEmail(dailySummaryEmail);
       this.cleanTodayEventsStats();
     }
 
-    if (this.config.options.emailNewRelease) {
+    if (configs.options.email_new_gcal_sync_release) {
       const latestRelease = this.getLatestGcalSyncRelease();
       const latestVersion = this.parseGcalVersion(latestRelease.tag_name);
       const currentVersion = this.parseGcalVersion(this.VERSION);

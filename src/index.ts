@@ -105,9 +105,9 @@ class GcalSync {
     ]
     createMissingCalendars(allGoogleCalendars);
 
-    if (shouldSyncTicktick) {
-      await syncTicktick(this.configs);
-    }
+    // if (shouldSyncTicktick) {
+    //   await syncTicktick(this.configs);
+    // }
 
     if (shouldSyncGithub) {
       await syncGithub(this.configs);

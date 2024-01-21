@@ -1,6 +1,7 @@
 export declare const CONFIGS: {
     readonly DEBUG_MODE: true;
     readonly MAX_GCAL_TASKS: 2500;
+    readonly REQUIRED_GITHUB_VALIDATIONS_COUNT: 3;
     readonly EVENTS_DIVIDER: " | ";
 };
 export declare const GAS_PROPERTIES: {

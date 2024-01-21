@@ -7,3 +7,4 @@ export declare function getParsedTimeStamp(stamp: string): {
     minutes: string;
     seconds: string;
 };
+export declare function isCurrentTimeAfter(timeToCompare: string, timezone: number): boolean;

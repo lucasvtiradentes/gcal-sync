@@ -16,3 +16,13 @@ export function getParsedTimeStamp(stamp: string) {
 
   return { year, month, day, hours, minutes, seconds };
 }
+
+export function isCurrentTimeAfter(timeToCompare: string, timezone: number) {
+  const dateFixedByTimezone = getDateFixedByTimezone(timezone);
+  const curStamp = Number(dateFixedByTimezone.getHours()) * 60 + Number(dateFixedByTimezone.getMinutes());
+
+  const timeArr = timeToCompare.split(':');
+  const specifiedStamp = Number(timeArr[0]) * 60 + Number(timeArr[1]);
+
+  return curStamp >= specifiedStamp;
+}

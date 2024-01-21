@@ -1,6 +1,7 @@
 export const CONFIGS = {
   DEBUG_MODE: true,
   MAX_GCAL_TASKS: 2500,
+  REQUIRED_GITHUB_VALIDATIONS_COUNT: 3,
   EVENTS_DIVIDER: ' | '
 } as const;
 

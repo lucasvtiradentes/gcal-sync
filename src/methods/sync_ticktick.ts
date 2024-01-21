@@ -1,10 +1,13 @@
 import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar } from '../classes/GoogleCalendar';
 import { TExtendedParsedTicktickTask, getIcsCalendarTasks } from '../classes/ICS';
 import { ERRORS } from '../consts/errors';
-import { TConfigs, TIcsCalendar, TInfo, TResultInfo, ticktickConfigsKey } from '../consts/types';
+import { TConfigs, TIcsCalendar, TResultInfo, ticktickConfigsKey } from '../consts/types';
 import { mergeArraysOfArrays } from '../utils/javascript/array_utils';
 
-// =============================================================================
+type TInfo = {
+  ticktickTasks: TExtendedParsedTicktickTask[];
+  ticktickGcalTasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
+};
 
 export async function syncTicktick(configs: TConfigs) {
   const icsCalendarsConfigs = configs[ticktickConfigsKey].ics_calendars;
@@ -75,7 +78,7 @@ export async function addTicktickTaskToGcal(gcal: TGoogleCalendar, ticktickTask:
   }
 }
 
-export async function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent) {
+export async function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedTicktickTask, taskOnGcal: TParsedGoogleEvent<TGcalPrivateTicktick>) {
   const changedTaskName = getFixedTaskName(ticktickTask.name) !== taskOnGcal.summary;
   const changedDateFormat = Object.keys(ticktickTask.start).length !== Object.keys(taskOnGcal.start).length;
   const changedIntialDate = ticktickTask.start['date'] !== taskOnGcal.start['date'] || ticktickTask.start['dateTime'] !== taskOnGcal.start['dateTime'];

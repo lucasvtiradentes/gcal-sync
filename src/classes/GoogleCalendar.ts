@@ -3,6 +3,7 @@ import { logger } from '../utils/abstractions/logger';
 
 export type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
 export type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
+
 export type TGcalPrivateTicktick = {
   private: {
     tickTaskId: string;
@@ -11,7 +12,17 @@ export type TGcalPrivateTicktick = {
   };
 };
 
-export type TParsedGoogleEvent = Pick<TGoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated'> & { extendedProperties: TGcalPrivateTicktick };
+export type TGcalPrivateGithub = {
+  private: {
+    repository: string;
+    commitDate: string;
+    commitMessage: string;
+  };
+};
+
+type GcalCommon = Pick<TGoogleEvent, 'colorId' | 'id' | 'summary' | 'description' | 'htmlLink' | 'attendees' | 'visibility' | 'reminders' | 'start' | 'end' | 'created' | 'updated'>;
+
+export type TParsedGoogleEvent<TPrivate> = GcalCommon & { extendedProperties: TPrivate };
 
 // =============================================================================
 
@@ -64,8 +75,8 @@ export function getCalendarByName(calName: string) {
   return calendar;
 }
 
-function parseGoogleEvent(ev: TGoogleEvent) {
-  const parsedGoogleEvent: TParsedGoogleEvent = {
+function parseGoogleEvent<TPrivate>(ev: TGoogleEvent) {
+  const parsedGoogleEvent: TParsedGoogleEvent<TPrivate> = {
     id: ev.id,
     summary: ev.summary,
     description: ev.description ?? '',
@@ -78,7 +89,7 @@ function parseGoogleEvent(ev: TGoogleEvent) {
     created: ev.created,
     updated: ev.updated,
     colorId: ev.colorId,
-    extendedProperties: (ev.extendedProperties ?? {}) as TGcalPrivateTicktick
+    extendedProperties: (ev.extendedProperties ?? {}) as TPrivate
   };
 
   return parsedGoogleEvent;
@@ -90,8 +101,8 @@ function getEventsFromCalendar(calendar: TGoogleCalendar) {
   return parsedEventsArr;
 }
 
-export function getTasksFromGoogleCalendars(allCalendars: string[]) {
-  const tasks: TParsedGoogleEvent[] = allCalendars.reduce((acc, cur) => {
+export function getTasksFromGoogleCalendars<TPrivate>(allCalendars: string[]) {
+  const tasks: TParsedGoogleEvent<TPrivate>[] = allCalendars.reduce((acc, cur) => {
     const taskCalendar = cur;
     const calendar = getCalendarByName(taskCalendar);
     const tasksArray = getEventsFromCalendar(calendar);
