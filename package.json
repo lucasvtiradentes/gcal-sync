@@ -20,18 +20,16 @@
   },
   "main": "dist/index.min.js",
   "scripts": {
+    "prepare": "husky install",
     "start": "node ./dist/index.min.js",
     "dev": "tsx ./resources/dev.ts",
-    "dev1": "tsx ./resources/dev.ts",
-    "build": "rimraf ./dist && npm run umdfy && npm run scripts:postbuild",
-    "umdfy": "rollup -c rollup.config.js",
-    "test": "jest --passWithNoTests --verbose",
+    "build": "rimraf ./dist && rollup -c rollup.config.js && npm run scripts:postbuild",
+    "test": "jest --verbose",
     "postversion": "echo writing new version in the dist file && npm run build",
     "pub": "semantic-release",
     "pub:check": "npm publish --dry-run",
-    "prepare": "husky install",
     "commit": "cz",
-    "lint:staged": "lint-staged --concurrent false --quiet",
+    "lint:staged": "lint-staged --quiet",
     "scripts:postbuild": "echo tsx ./scripts/post-build.ts"
   },
   "devDependencies": {

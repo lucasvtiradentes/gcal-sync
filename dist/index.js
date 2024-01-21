@@ -240,7 +240,7 @@
     }
 
     function getUserEmail() {
-        return Session.getActiveUser().getEmail();
+        return Session ? Session.getActiveUser().getEmail() : '';
     }
     function sendEmail(emailObj) {
         MailApp.sendEmail(emailObj);
@@ -253,13 +253,13 @@
     };
 
     const ERRORS = {
-        productionOnly: 'This method cannot run in non-production environments',
-        incorrectIcsCalendar: 'The link you provided is not a valid ICS calendar: ',
-        mustSpecifyConfig: 'You must specify the settings when starting the class',
-        httpsError: 'You provided an invalid ICS calendar link: ',
-        invalidGithubToken: 'You provided an invalid github token',
-        invalidGithubUsername: 'You provided an invalid github username',
-        abusiveGoogleCalendarApiUse: 'Due to the numerous operations in the last few hours, the google api is not responding.'
+        invalid_configs: 'schema invalid',
+        production_only: 'This method cannot run in non-production environments',
+        incorrect_ics_calendar: 'The link you provided is not a valid ICS calendar: ',
+        abusive_google_calendar_api_use: 'Due to the numerous operations in the last few hours, the google api is not responding.',
+        invalid_ics_calendar_link: 'You provided an invalid ICS calendar link: ',
+        invalid_github_token: 'You provided an invalid github token',
+        invalid_github_username: 'You provided an invalid github username'
     };
 
     const ticktickConfigsKey = 'ticktick_sync';
@@ -371,10 +371,10 @@
                 const data = (_a = JSON.parse(response.getContentText())) !== null && _a !== void 0 ? _a : {};
                 if (response.getResponseCode() !== 200) {
                     if (data.message === 'Validation Failed') {
-                        throw new Error(ERRORS.invalidGithubUsername);
+                        throw new Error(ERRORS.invalid_github_username);
                     }
                     if (data.message === 'Bad credentials') {
-                        throw new Error(ERRORS.invalidGithubToken);
+                        throw new Error(ERRORS.invalid_github_token);
                     }
                     throw new Error(data.message);
                 }
@@ -685,10 +685,10 @@
         const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
         const data = urlResponse.getContentText() || '';
         if (urlResponse.getResponseCode() !== 200) {
-            throw new Error(ERRORS.httpsError + parsedLink);
+            throw new Error(ERRORS.invalid_ics_calendar_link + parsedLink);
         }
         if (data.search('BEGIN:VCALENDAR') === -1) {
-            throw new Error('RESPOSTA INVALIDA PRA UM ICS');
+            throw new Error(ERRORS.incorrect_ics_calendar);
         }
         const eventsArr = data.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
         // prettier-ignore
@@ -804,7 +804,7 @@
             }
             catch (e) {
                 if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
-                    throw new Error(ERRORS.abusiveGoogleCalendarApiUse);
+                    throw new Error(ERRORS.abusive_google_calendar_api_use);
                 }
                 else {
                     throw new Error(e.message);
@@ -988,13 +988,13 @@
         constructor(configs) {
             this.configs = configs;
             if (!validateConfigs(configs)) {
-                throw new Error('schema invalid');
+                throw new Error(ERRORS.invalid_configs);
             }
-            this.user_email = getUserEmail();
+            if (!isRunningOnGAS()) {
+                throw new Error(ERRORS.production_only);
+            }
             this.today_date = getDateFixedByTimezone(this.configs.settings.timezone_correction).toISOString().split('T')[0];
             logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
-            if (!isRunningOnGAS())
-                throw new Error(ERRORS.productionOnly);
         }
         // ===========================================================================
         install() {
@@ -1089,14 +1089,14 @@
                 }
                 const totalSessionNewItems = ticktickNewItems + githubNewItems;
                 if (this.configs.options.email_session && totalSessionNewItems > 0) {
-                    const sessionEmail = getSessionEmail(this.user_email, sessionData);
+                    const sessionEmail = getSessionEmail(getUserEmail(), sessionData);
                     sendEmail(sessionEmail);
                 }
                 const alreadySentTodayEmails = this.today_date === getGASProperty('last_daily_email_sent_date');
                 if (isCurrentTimeAfter(this.configs.options.daily_summary_email_time, this.configs.settings.timezone_correction) && !alreadySentTodayEmails) {
                     updateGASProperty('last_daily_email_sent_date', this.today_date);
                     if (this.configs.options.email_daily_summary) {
-                        const dailySummaryEmail = getDailySummaryEmail(this.user_email, sessionData, this.today_date);
+                        const dailySummaryEmail = getDailySummaryEmail(getUserEmail(), sessionData, this.today_date);
                         sendEmail(dailySummaryEmail);
                         this.clearTodayEvents();
                     }
@@ -1118,7 +1118,7 @@
                         const currentVersion = parseGcalVersion(APP_INFO.version);
                         const lastAlertedVersion = (_a = getGASProperty('last_released_version_alerted')) !== null && _a !== void 0 ? _a : '';
                         if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
-                            const newReleaseEmail = getNewReleaseEmail(this.user_email, sessionData);
+                            const newReleaseEmail = getNewReleaseEmail(getUserEmail(), sessionData);
                             sendEmail(newReleaseEmail);
                             updateGASProperty('last_released_version_alerted', latestVersion.toString());
                         }

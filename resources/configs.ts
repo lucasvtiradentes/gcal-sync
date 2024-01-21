@@ -4,7 +4,7 @@ export const configs: TConfigs = {
   settings: {
     sync_function: 'sync',
     timezone_correction: -3,
-    update_frequency: 4
+    update_frequency: 5
   },
   options: {
     daily_summary_email_time: '22:00',

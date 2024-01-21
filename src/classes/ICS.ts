@@ -22,11 +22,11 @@ export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: n
   const data = urlResponse.getContentText() || '';
 
   if (urlResponse.getResponseCode() !== 200) {
-    throw new Error(ERRORS.httpsError + parsedLink);
+    throw new Error(ERRORS.invalid_ics_calendar_link + parsedLink);
   }
 
   if (data.search('BEGIN:VCALENDAR') === -1) {
-    throw new Error('RESPOSTA INVALIDA PRA UM ICS');
+    throw new Error(ERRORS.incorrect_ics_calendar);
   }
 
   const eventsArr = data.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
