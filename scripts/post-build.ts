@@ -1,44 +1,47 @@
 import { DynMarkdown } from 'dyn-markdown';
-// import minify from 'minify';
-import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
+
+const FILES = {
+  package: './package.json',
+  readme: './README.md',
+  configs: './resources/configs.ts',
+  gasAppsScript: './dist/setup/GAS_appsscript.json',
+  gasSetup: './dist/setup/GAS_init.js',
+  gcalSyncDev: './dist/setup/GAS_gcalsync_dev.js',
+  gcalSync: './dist/index.js'
+};
+
+const VERSION = JSON.parse(readFileSync(FILES.package, { encoding: 'utf8' })).version;
+
+const README_DYNAMIC_FIELDS = {
+  gasAppsScriptContent: 'GAS_APPSSCRIPT',
+  gasSetupContent: 'GAS_SETUP'
+} as const;
+
+type TReadmeDynamicFields = (typeof README_DYNAMIC_FIELDS)[keyof typeof README_DYNAMIC_FIELDS];
 
 (async () => {
-  const FILES = {
-    package: './package.json',
-    readme: './README.md',
-    configs: './resources/configs.ts',
-    gasAppsScript: './dist/GAS-appsscript.json',
-    gasSetup: './dist/GAS-setup.js',
-    gcalSyncUmd: `./dist/UMD-GcalSync.js`,
-    gcalSync: `./dist/GcalSync.js`,
-    gcalSyncMin: `./dist/GcalSync.min.js`
-  };
+  mkdirSync('./dist/setup');
 
-  const README_FIELDS = {
-    gasAppsScriptContent: 'GAS_APPSSCRIPT',
-    gasSetupContent: 'GAS_SETUP'
-  };
+  const initFileContent = getGasInitFileContent(FILES.configs, VERSION);
+  writeFileSync(FILES.gasSetup, initFileContent, { encoding: 'utf-8' });
 
-  const VERSION = JSON.parse(readFileSync(FILES.package, { encoding: 'utf8' })).version;
+  const gasAllowPermissionContent = getAppsScriptAllowPermissionFileContent();
+  writeFileSync(FILES.gasAppsScript, gasAllowPermissionContent, { encoding: 'utf-8' });
 
-  const setupGcalSyncContent = getSetupGcalSyncFileContent(FILES.configs, VERSION);
-  writeFileSync(FILES.gasSetup, setupGcalSyncContent, { encoding: 'utf-8' });
+  const originalContent = readFileSync(FILES.gcalSync, { encoding: 'utf8' });
+  const gcalSyncDevContent = originalContent.split('/* global Reflect, Promise, SuppressedError, Symbol */\r\n\r\n\r\n')[1].split('\n').slice(0, -2).join('\n');
+  writeFileSync(FILES.gcalSyncDev, `function getGcalSyncDev(){\n${gcalSyncDevContent}\n}`, { encoding: 'utf-8' });
 
-  const appsScriptAllowPermissionContent = getAppsScriptAllowPermissionFileContent();
-  writeFileSync(FILES.gasAppsScript, appsScriptAllowPermissionContent, { encoding: 'utf-8' });
-
-  const readmeFile = new DynMarkdown(FILES.readme);
-  readmeFile.updateField(README_FIELDS.gasSetupContent, `<pre>\n${setupGcalSyncContent}\n</pre>`);
-  readmeFile.updateField(README_FIELDS.gasAppsScriptContent, `<pre>\n${appsScriptAllowPermissionContent}\n</pre>`);
+  const readmeFile = new DynMarkdown<TReadmeDynamicFields>(FILES.readme);
+  readmeFile.updateField(README_DYNAMIC_FIELDS.gasSetupContent, `<pre>\n${initFileContent}\n</pre>`);
+  readmeFile.updateField(README_DYNAMIC_FIELDS.gasAppsScriptContent, `<pre>\n${gasAllowPermissionContent}\n</pre>`);
   readmeFile.saveFile();
 
   const VERSION_UPDATE = `// version`;
-  replaceFileContent(FILES.gcalSyncUmd, VERSION_UPDATE, `this.VERSION = '${VERSION}'; ${VERSION_UPDATE}`);
   replaceFileContent(FILES.readme, VERSION_UPDATE, `// const version = "${VERSION}" ${VERSION_UPDATE}`);
 
-  // await minifyFile(FILES.gcalSyncUmd, FILES.gcalSyncMin);
-  // unlinkSync(FILES.gcalSync);
-  // unlinkSync(FILES.gcalSyncUmd);
+  unlinkSync(FILES.gcalSync);
 })();
 
 function getAppsScriptAllowPermissionFileContent() {
@@ -72,13 +75,14 @@ function getAppsScriptAllowPermissionFileContent() {
   return appsScript;
 }
 
-function getSetupGcalSyncFileContent(configFile: string, version: string) {
+function getGasInitFileContent(configFile: string, version: string) {
   let configContent = readFileSync(configFile, { encoding: 'utf-8' });
-  configContent = configContent.replace('export const configs = ', '');
-  configContent = configContent.replace('as any', '');
-  configContent = configContent.replace('// prettier-ignore\n', '');
+  configContent = configContent.replace(`import { TConfigs } from '../src/consts/types';`, '');
+  configContent = configContent.replace('\n\n// prettier-ignore\n', '');
+  configContent = configContent.replace('export const configs: TConfigs = ', '');
   // prettier-ignore
   configContent = configContent.split('\n').map((row, index) => index === 0 ? row : `  ${row}`).slice(0, -1).join('\n')
+
   const gasSetupContent = `function getConfigs() {
   const configs = ${configContent}
   return configs
@@ -135,16 +139,13 @@ function doGet(e) {
 
 function replaceFileContent(file: string, strToFind: string, strToReplace: string) {
   const originalContent = readFileSync(file, { encoding: 'utf8' });
-  // prettier-ignore
-  const newContent = originalContent.split('\n').map((line) => {
-    const hasSearchedStr = line.search(strToFind) > 0
-    const identation = line.length - line.trimStart().length
-    return hasSearchedStr ? `${' '.repeat(identation)}${strToReplace}` : line
-  }).join('\n');
+  const newContent = originalContent
+    .split('\n')
+    .map((line) => {
+      const hasSearchedStr = line.search(strToFind) > 0;
+      const identation = line.length - line.trimStart().length;
+      return hasSearchedStr ? `${' '.repeat(identation)}${strToReplace}` : line;
+    })
+    .join('\n');
   writeFileSync(file, newContent);
-}
-
-async function minifyFile(filePath: string, distPath: string) {
-  // const minifiedContent = await minify(filePath);
-  // writeFileSync(distPath, minifiedContent);
 }

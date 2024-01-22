@@ -27,18 +27,18 @@ export const configs: TConfigs = {
   ticktick_sync: {
     ics_calendars: [
       {
-        link: 'webcal://link_A', // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done'
+        link: 'webcal://link_A',        // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done'
         gcal: 'tasks',
         gcal_done: 'done',
       },
       {
-        link: 'webcal://link_B', // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done_healthy'
+        link: 'webcal://link_B',        // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done_healthy'
         gcal: 'tasks',
         gcal_done: 'done_healthy',
-        tag: "HEALTHY"           // this is a flag where we can "mark" tasks from this config to be ignored on other ics_calendars
+        tag: "HEALTHY"                  // this is a flag where we can "mark" tasks from this config to be ignored on other ics_calendars
       },
       {
-        link: 'webcal://link_C',  // all items from ticktick, except the tasks marked with HEALTHY, will be added to 'tasks' cal and,  when completed, moved to 'done'
+        link: 'webcal://link_C',        // all items from ticktick, except the tasks marked with HEALTHY, will be added to 'tasks' cal and,  when completed, moved to 'done'
         gcal: 'tasks',
         gcal_done: 'done',
         ignoredTags: ['HEALTHY']
