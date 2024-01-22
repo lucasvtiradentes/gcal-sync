@@ -219,8 +219,8 @@ function getGcalSyncDev(){
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '1.7.8', // version
-        build_date_time: '21/01/2024 21:34:30'
+        version: '1.8.0', // version
+        build_date_time: '21/01/2024 22:05:30'
     };
 
     const ERRORS = {

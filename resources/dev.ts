@@ -2,10 +2,10 @@ import GcalSync from '../src/index';
 import { configs } from './configs';
 
 const gcalsync = new GcalSync(configs);
-gcalsync.sync();
+console.log(gcalsync);
 
 // gcalsync.sync();
-// gcalsync.showTodayEventsStats();
-// gcalsync.cleanTodayEventsStats();
-// gcalsync.installGcalSync();
-// gcalsync.uninstallGcalSync();
+// gcalsync.install();
+// gcalsync.uninstall();
+// gcalsync.clearTodayEvents();
+// gcalsync.showTodayStats();

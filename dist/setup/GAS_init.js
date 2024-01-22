@@ -48,7 +48,7 @@ function getConfigs() {
 }
 
 function getGcalSync(){
-  const version = "1.7.8"
+  const version = "1.8.0"
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(gcalSyncContent)
   const configs = getConfigs()
@@ -56,25 +56,22 @@ function getGcalSync(){
   return gcalSync;
 }
 
-function setup() {
+function install() {
   const gcalSync = getGcalSync();
-  gcalSync.installGcalSync();
+  gcalSync.install();
 }
 
 function uninstall() {
   const gcalSync = getGcalSync();
-  gcalSync.uninstallGcalSync();
+  gcalSync.uninstall();
 }
 
 function sync(){
-  let gcalSync;
   try{
-    gcalSync = getGcalSync()
+    const gcalSync = getGcalSync()
     gcalSync.sync()
   } catch(e){
-    if (gcalSync){
-      gcalSync.sendErrorEmail(e.message)
-    }
+    console.log(e);
   }
 }
 

@@ -97,25 +97,22 @@ function getGcalSync(){
   return gcalSync;
 }
 
-function setup() {
+function install() {
   const gcalSync = getGcalSync();
-  gcalSync.installGcalSync();
+  gcalSync.install();
 }
 
 function uninstall() {
   const gcalSync = getGcalSync();
-  gcalSync.uninstallGcalSync();
+  gcalSync.uninstall();
 }
 
 function sync(){
-  let gcalSync;
   try{
-    gcalSync = getGcalSync()
+    const gcalSync = getGcalSync()
     gcalSync.sync()
   } catch(e){
-    if (gcalSync){
-      gcalSync.sendErrorEmail(e.message)
-    }
+    console.log(e);
   }
 }
 
