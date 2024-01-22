@@ -21,6 +21,7 @@
     <ul>
       <li><a href="#trumpet-overview">Overview</a></li>
       <li><a href="#dart-features">Features</a></li>
+      <li><a href="#question-motivation">Motivation</a></li>
       <li><a href="#warning-requirements">Requirements</a></li>
       <li>
         <a href="#bulb-usage">Usage</a>
@@ -41,7 +42,6 @@
       <li>
         <a href="#books-about">About</a>
         <ul>
-          <li><a href="#motivation">Motivation</a></li>
           <li><a href="#related">Related</a></li>
           <li><a href="#license">License</a></li>
           <li><a href="#feedback">Feedback</a></li>
@@ -83,19 +83,30 @@ Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a>
  </table>
 </div>
 
-In the above images it is shown my current usage of this tool:
+<div align="center">
+<details>
+  <summary>explanation of my usage on the above example</summary>
+  <div>
+    <br>
+      <ul align="left">
+        <li align="left"><b>black</b>: my past github commits;</li>
+        <li align="left"><b>green</b>: ticktick completed tasks;</li>
+        <li align="left">the others collors are for ticktick tasks to do:
+          <ul>
+            <li><b>red</b>: important tasks with pre-defined datetime;</li>
+            <li><b>blue</b>: planned tasks;</li>
+            <li><b>purple</b>: not tasks (games to watch, movie release dates, etc).</li>
+          </ul>
+        </li>
+      </ul>
 
-<ul align="left">
-  <li align="left"><b>black</b>: my past github commits;</li>
-  <li align="left"><b>green</b>: ticktick completed tasks;</li>
-  <li align="left">the others collors are for ticktick tasks to do:
-    <ul>
-      <li><b>red</b>: important tasks with pre-defined datetime;</li>
-      <li><b>blue</b>: planned tasks;</li>
-      <li><b>purple</b>: not tasks (games to watch, movie release dates, etc).</li>
-    </ul>
-  </li>
-</ul>
+  </div>
+</details>
+</div>
+
+## :question: Motivation<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
+
+This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project at the time.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
@@ -327,7 +338,7 @@ if you want to change the google event color, you can choose from 12 options:
   <summary>6 - setup the gcal-sync to run automatically every x minutes</summary>
   <div>
     <br>
-    <p>Just follow what the bellow image shows, which is to select the <code>setup</code> function and run it.<br>
+    <p>Just follow what the bellow image shows, which is to select the <code>install</code> function and run it.<br>
     After, a popup will appear asking your permission, and you'll have to accept it.</p>
     <p align="center"><img width="500" src="./.github/images/tutorial/tut6.webp" /></p>
   </div>
@@ -345,10 +356,9 @@ if you want to change the google event color, you can choose from 12 options:
 
 ### General tips
 
-- if you don't want to sync ticktick tasks, set `configs.options.syncTicktick` to `false`;
-- if you don't want to sync github commits, set `configs.options.syncGithub` to `false`;
+- if you don't want to sync ticktick tasks, remove the `ticktick_sync` object on the configs;
+- if you don't want to sync github commits, remove the `github_sync` object on the configs;
 - in case of deleted ticktick tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well. If not, they will be moved to its corresponding completed calendar;
-- before setting up the auto sync, you can use the `maintanceMode` to check if everything is okay by reading the app logs;
 - it is not necessary to generate a github token in order to sync commits, it is only required if you want to sync your contributions to private repos as well;
 - every update in ticktick may take 5 minutes to propagate to its ics calendars;
 
@@ -395,35 +405,22 @@ $ cd gcal-sync
 $ npm install
 ```
 
-If you want to [contribute](./docs/CONTRIBUTING.md) to the project, fork the project, make the necessary changes, and to test your work you can load your version in google apps scripts with almost no effort do this: replace the content of the <code>getGcalSync</code> with the following code to the apps script:
+If you want to [contribute](./docs/CONTRIBUTING.md) to the project, fork the project, make the necessary changes, and to test your work you can load your version in google apps scripts with almost no effort do this:
+
+run `npm run build` in order to generate the dist files. After that, create a new GAS file (ex: dev_gcal.gs) and paste the content of [GAS_gcalsync_dev](./dist/setup/GAS_gcalsync_dev.js) on this new GAS file.
+
+after that, replace the content of the <code>getGcalSync</code> function with the following code to the apps script:
 
 ```js
 function getGcalSync() {
   const configs = getConfigs();
-  // const version = "1.8.0" // version
-  // const gcalSyncContent = getGcalSyncProduction(version)
-  const gcalSyncContent = getGcalSyncDevelopment('yourgithub/gcalsync-fork', 'develop');
-  eval(gcalSyncContent);
+  const GcalSync = getGcalSyncDev(); // your work is here
   const gcalSync = new GcalSync(configs);
   return gcalSync;
 }
-
-function getGcalSyncProduction(version) {
-  return UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
-}
-
-function getGcalSyncDevelopment(repository, branch) {
-  const filePath = 'dist/GcalSync.min.js';
-  const final_link = `https://api.github.com/repos/${repository}/contents/${filePath}${branch ? `?ref=${branch}` : ''}`;
-  const response = UrlFetchApp.fetch(final_link, { method: 'get', contentType: 'application/json' });
-  const base64Content = JSON.parse(response.toString()).content;
-  const decodedArr = Utilities.base64Decode(base64Content);
-  const decodedAsString = Utilities.newBlob(decodedArr).getDataAsString();
-  return decodedAsString;
-}
 ```
 
-This will allow you to select the gcal-sync source place (github repository or npm package) and specify the intended version.
+now you can test your work on production/GAS!
 
   </div>
 </details>
@@ -481,10 +478,6 @@ This project uses the following thechnologies:
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
 ## :books: About<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
-
-## Motivation
-
-This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project at the time.
 
 ## Related
 
