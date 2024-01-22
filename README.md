@@ -62,7 +62,7 @@
 
 ## :trumpet: Overview
 
-Track your progress over time with an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a>.
+Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking capabilities and productivity analysis..
 
 <div align="center">
   <table align="center">
@@ -219,25 +219,22 @@ function getGcalSync(){
   return gcalSync;
 }
 
-function setup() {
+function install() {
   const gcalSync = getGcalSync();
-  gcalSync.installGcalSync();
+  gcalSync.install();
 }
 
 function uninstall() {
   const gcalSync = getGcalSync();
-  gcalSync.uninstallGcalSync();
+  gcalSync.uninstall();
 }
 
 function sync(){
-  let gcalSync;
   try{
-    gcalSync = getGcalSync()
+    const gcalSync = getGcalSync()
     gcalSync.sync()
   } catch(e){
-    if (gcalSync){
-      gcalSync.sendErrorEmail(e.message)
-    }
+    console.log(e);
   }
 }
 
