@@ -220,7 +220,7 @@ function getGcalSyncDev(){
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.0', // version
-        build_date_time: '21/01/2024 22:05:30'
+        build_date_time: '21/01/2024 22:24:36'
     };
 
     const ERRORS = {
