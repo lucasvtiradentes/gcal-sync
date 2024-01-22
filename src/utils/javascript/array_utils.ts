@@ -5,3 +5,16 @@ export function getUniqueElementsOnArrays(arrayA: string[], arrayB: string[]): s
   const uniqueInB = arrayB.filter((item) => !arrayA.includes(item));
   return uniqueInA.concat(uniqueInB);
 }
+
+export const asConstArrayToObject = <T extends ReadonlyArray<Record<K | V, any>>, K extends keyof T[number], V extends keyof T[number]>(array: T, keyField: K, valueField: V) => {
+  type TGasPropertiesMapper = {
+    [P in T[number][K]]: Extract<T[number], Record<K, P>>[V];
+  };
+
+  return array.reduce((acc, item) => {
+    const key = item[keyField];
+    const value = item[valueField];
+    acc[key as keyof TGasPropertiesMapper] = value as TGasPropertiesMapper[keyof TGasPropertiesMapper];
+    return acc;
+  }, {} as TGasPropertiesMapper);
+};

@@ -1,4 +1,4 @@
-import { TGasPropertiesSchema, TGasPropertiesSchemaKeys } from '../consts/configs';
+import { TGasPropertiesSchemaKeys, TGasPropertiesSchema } from '../consts/configs';
 
 // GENERAL =====================================================================
 
@@ -13,7 +13,7 @@ export function listAllGASProperties(): TGasPropertiesSchemaKeys[] {
   return allProperties;
 }
 
-export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty): TGasPropertiesSchema[TProperty]['initialValue'] {
+export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty): TGasPropertiesSchema[TProperty] {
   const value = PropertiesService.getScriptProperties().getProperty(property);
   let parsedValue;
 
@@ -26,7 +26,7 @@ export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(prope
   return parsedValue;
 }
 
-export function updateGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty, value: TGasPropertiesSchema[TProperty]['initialValue']) {
+export function updateGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty, value: TGasPropertiesSchema[TProperty]) {
   const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
   PropertiesService.getScriptProperties().setProperty(property, parsedValue);
 }

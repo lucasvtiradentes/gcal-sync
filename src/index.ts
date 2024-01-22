@@ -2,17 +2,15 @@ import { addAppsScriptsTrigger, deleteGASProperty, getGASProperty, isRunningOnGA
 import { createMissingCalendars } from './classes/GoogleCalendar';
 import { getUserEmail, sendEmail } from './classes/GoogleEmail';
 import { APP_INFO } from './consts/app_info';
-import { GAS_PROPERTIES, TGasPropertiesSchemaKeys } from './consts/configs';
+import { GAS_PROPERTIES_ENUM, GAS_PROPERTIES_INITIAL_VALUE_ENUM, TGasPropertiesSchemaKeys } from './consts/configs';
 import { ERRORS } from './consts/errors';
-import { TConfigs, githubConfigsKey, ticktickConfigsKey } from './consts/types';
+import { TConfigs, TSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
 import { getDailySummaryEmail, getNewReleaseEmail, getSessionEmail } from './methods/generate_emails';
-import { TGithubSyncResultInfo, syncGithub } from './methods/sync_github';
-import { TTicktickSyncResultInfo, syncTicktick } from './methods/sync_ticktick';
+import { syncGithub } from './methods/sync_github';
+import { syncTicktick } from './methods/sync_ticktick';
 import { validateConfigs } from './methods/validate_configs';
 import { logger } from './utils/abstractions/logger';
 import { getDateFixedByTimezone, isCurrentTimeAfter } from './utils/javascript/date_utils';
-
-export type TSessionStats = TTicktickSyncResultInfo & Omit<TGithubSyncResultInfo, 'commits_tracked_to_be_added' | 'commits_tracked_to_be_deleted'>;
 
 class GcalSync {
   private today_date: string;
@@ -34,10 +32,10 @@ class GcalSync {
 
   private createMissingGASProperties() {
     const allProperties = listAllGASProperties();
-    Object.keys(GAS_PROPERTIES).forEach((key: TGasPropertiesSchemaKeys) => {
+    Object.keys(GAS_PROPERTIES_ENUM).forEach((key: TGasPropertiesSchemaKeys) => {
       const doesPropertyExist = Object.keys(allProperties).includes(key);
       if (!doesPropertyExist) {
-        updateGASProperty(GAS_PROPERTIES[key].key, GAS_PROPERTIES[key].initialValue);
+        updateGASProperty(GAS_PROPERTIES_ENUM[key], GAS_PROPERTIES_INITIAL_VALUE_ENUM[key]);
       }
     });
   }
@@ -68,8 +66,8 @@ class GcalSync {
   async uninstall() {
     removeAppsScriptsTrigger(this.configs.settings.sync_function);
 
-    Object.keys(GAS_PROPERTIES).forEach((key: TGasPropertiesSchemaKeys) => {
-      deleteGASProperty(GAS_PROPERTIES[key].key);
+    Object.keys(GAS_PROPERTIES_ENUM).forEach((key) => {
+      deleteGASProperty(GAS_PROPERTIES_ENUM[key]);
     });
 
     logger.info(`${APP_INFO.name} automation was removed from appscript!`);
@@ -79,11 +77,11 @@ class GcalSync {
 
   private getTodayStats() {
     const todayStats: TSessionStats = {
-      added_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
-      updated_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key),
-      completed_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
-      commits_added: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
-      commits_deleted: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key)
+      added_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks),
+      updated_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks),
+      completed_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks),
+      commits_added: getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits),
+      commits_deleted: getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits)
     };
     return todayStats;
   }
@@ -93,11 +91,11 @@ class GcalSync {
   }
 
   clearTodayEvents() {
-    updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, []);
-    updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, []);
-    updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, []);
-    updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, []);
-    updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, []);
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, []);
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, []);
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, []);
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, []);
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, []);
 
     logger.info(`${this.today_date} stats were reseted!`);
   }
@@ -143,24 +141,24 @@ class GcalSync {
 
     const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
     if (shouldSyncTicktick && ticktickNewItems > 0) {
-      const todayAddedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key);
-      const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key);
-      const todayCompletedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key);
+      const todayAddedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks);
+      const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks);
+      const todayCompletedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks);
 
-      updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, [...todayAddedTasks, ...sessionData.added_tasks]);
-      updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
-      updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, [...todayCompletedTasks, ...sessionData.completed_tasks]);
+      updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, [...todayAddedTasks, ...sessionData.added_tasks]);
+      updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
+      updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, [...todayCompletedTasks, ...sessionData.completed_tasks]);
 
       logger.info(`added ${ticktickNewItems} new ticktick items to today's stats`);
     }
 
     const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
     if (shouldSyncGithub && githubNewItems > 0) {
-      const todayAddedCommits = getGASProperty(GAS_PROPERTIES.today_github_added_commits.key);
-      const todayDeletedCommits = getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key);
+      const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits);
+      const todayDeletedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits);
 
-      updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, [...todayAddedCommits, ...sessionData.commits_added]);
-      updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, [...todayDeletedCommits, ...sessionData.commits_deleted]);
+      updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [...todayAddedCommits, ...sessionData.commits_added]);
+      updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [...todayDeletedCommits, ...sessionData.commits_deleted]);
 
       logger.info(`added ${githubNewItems} new github items to today's stats`);
     }
@@ -178,15 +176,15 @@ class GcalSync {
 
     const isNowTimeAfterDailyEmails = isCurrentTimeAfter(this.configs.options.daily_summary_email_time, this.configs.settings.timezone_correction);
 
-    const alreadySentTodaySummaryEmail = this.today_date === getGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key);
+    const alreadySentTodaySummaryEmail = this.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date);
     if (isNowTimeAfterDailyEmails && this.configs.options.email_daily_summary && !alreadySentTodaySummaryEmail) {
-      updateGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key, this.today_date);
+      updateGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date, this.today_date);
       const dailySummaryEmail = getDailySummaryEmail(userEmail, this.getTodayStats(), this.today_date);
       sendEmail(dailySummaryEmail);
       this.clearTodayEvents();
     }
 
-    const alreadySentTodayNewReleaseEmail = this.today_date === getGASProperty(GAS_PROPERTIES.last_released_version_sent_date.key);
+    const alreadySentTodayNewReleaseEmail = this.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_released_version_sent_date);
 
     const parseGcalVersion = (v: string) => {
       return Number(v.replace('v', '').split('.').join(''));
@@ -199,17 +197,17 @@ class GcalSync {
     };
 
     if (isNowTimeAfterDailyEmails && this.configs.options.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
-      updateGASProperty(GAS_PROPERTIES.last_released_version_sent_date.key, this.today_date);
+      updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_sent_date, this.today_date);
 
       const latestRelease = getLatestGcalSyncRelease();
       const latestVersion = parseGcalVersion(latestRelease.tag_name);
       const currentVersion = parseGcalVersion(APP_INFO.version);
-      const lastAlertedVersion = getGASProperty(GAS_PROPERTIES.last_released_version_alerted.key) ?? '';
+      const lastAlertedVersion = getGASProperty(GAS_PROPERTIES_ENUM.last_released_version_alerted) ?? '';
 
       if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
         const newReleaseEmail = getNewReleaseEmail(userEmail, latestRelease);
         sendEmail(newReleaseEmail);
-        updateGASProperty(GAS_PROPERTIES.last_released_version_alerted.key, latestVersion.toString());
+        updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_alerted, latestVersion.toString());
       }
     }
 

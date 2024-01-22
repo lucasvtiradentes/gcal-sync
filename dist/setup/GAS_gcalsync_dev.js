@@ -56,57 +56,74 @@ function getGcalSyncDev(){
         }
     }
 
+    const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
+    function getUniqueElementsOnArrays(arrayA, arrayB) {
+        const uniqueInA = arrayA.filter((item) => !arrayB.includes(item));
+        const uniqueInB = arrayB.filter((item) => !arrayA.includes(item));
+        return uniqueInA.concat(uniqueInB);
+    }
+    const asConstArrayToObject = (array, keyField, valueField) => {
+        return array.reduce((acc, item) => {
+            const key = item[keyField];
+            const value = item[valueField];
+            acc[key] = value;
+            return acc;
+        }, {});
+    };
+
     const CONFIGS = {
         DEBUG_MODE: true,
         MAX_GCAL_TASKS: 2500,
         REQUIRED_GITHUB_VALIDATIONS_COUNT: 3
     };
-    const GAS_PROPERTIES = {
-        today_ticktick_added_tasks: {
+    const GAS_PROPERTIES = [
+        {
             key: 'today_ticktick_added_tasks',
-            initialValue: []
+            initial_value: []
         },
-        today_ticktick_updated_tasks: {
+        {
             key: 'today_ticktick_updated_tasks',
-            initialValue: []
+            initial_value: []
         },
-        today_ticktick_completed_tasks: {
+        {
             key: 'today_ticktick_completed_tasks',
-            initialValue: []
+            initial_value: []
         },
-        today_github_added_commits: {
+        {
             key: 'today_github_added_commits',
-            initialValue: []
+            initial_value: []
         },
-        today_github_deleted_commits: {
+        {
             key: 'today_github_deleted_commits',
-            initialValue: []
+            initial_value: []
         },
-        last_released_version_alerted: {
+        {
             key: 'last_released_version_alerted',
-            initialValue: ''
+            initial_value: ''
         },
-        last_released_version_sent_date: {
+        {
             key: 'last_released_version_sent_date',
-            initialValue: ''
+            initial_value: ''
         },
-        last_daily_email_sent_date: {
+        {
             key: 'last_daily_email_sent_date',
-            initialValue: ''
+            initial_value: ''
         },
-        github_commits_tracked_to_be_added: {
+        {
             key: 'github_commits_tracked_to_be_added',
-            initialValue: []
+            initial_value: []
         },
-        github_commits_tracked_to_be_deleted: {
+        {
             key: 'github_commits_tracked_to_be_deleted',
-            initialValue: []
+            initial_value: []
         },
-        github_commit_changes_count: {
+        {
             key: 'github_commit_changes_count',
-            initialValue: ''
+            initial_value: ''
         }
-    };
+    ];
+    const GAS_PROPERTIES_INITIAL_VALUE_ENUM = asConstArrayToObject(GAS_PROPERTIES, 'key', 'initial_value');
+    const GAS_PROPERTIES_ENUM = asConstArrayToObject(GAS_PROPERTIES, 'key', 'key');
 
     const logger = {
         info: (message, ...optionalParams) => {
@@ -220,7 +237,7 @@ function getGcalSyncDev(){
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.1', // version
-        build_date_time: '21/01/2024 22:29:17'
+        build_date_time: '22/01/2024 08:58:59'
     };
 
     const ERRORS = {
@@ -479,13 +496,6 @@ function getGcalSyncDev(){
             curString = curString.replace(key, value);
         }
         return curString;
-    }
-
-    const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
-    function getUniqueElementsOnArrays(arrayA, arrayB) {
-        const uniqueInA = arrayA.filter((item) => !arrayB.includes(item));
-        const uniqueInB = arrayB.filter((item) => !arrayA.includes(item));
-        return uniqueInA.concat(uniqueInB);
     }
 
     function resetGithubSyncProperties() {
@@ -988,10 +998,10 @@ function getGcalSyncDev(){
         // ===========================================================================
         createMissingGASProperties() {
             const allProperties = listAllGASProperties();
-            Object.keys(GAS_PROPERTIES).forEach((key) => {
+            Object.keys(GAS_PROPERTIES_ENUM).forEach((key) => {
                 const doesPropertyExist = Object.keys(allProperties).includes(key);
                 if (!doesPropertyExist) {
-                    updateGASProperty(GAS_PROPERTIES[key].key, GAS_PROPERTIES[key].initialValue);
+                    updateGASProperty(GAS_PROPERTIES_ENUM[key], GAS_PROPERTIES_INITIAL_VALUE_ENUM[key]);
                 }
             });
         }
@@ -1017,8 +1027,8 @@ function getGcalSyncDev(){
         uninstall() {
             return __awaiter(this, void 0, void 0, function* () {
                 removeAppsScriptsTrigger(this.configs.settings.sync_function);
-                Object.keys(GAS_PROPERTIES).forEach((key) => {
-                    deleteGASProperty(GAS_PROPERTIES[key].key);
+                Object.keys(GAS_PROPERTIES_ENUM).forEach((key) => {
+                    deleteGASProperty(GAS_PROPERTIES_ENUM[key]);
                 });
                 logger.info(`${APP_INFO.name} automation was removed from appscript!`);
             });
@@ -1026,11 +1036,11 @@ function getGcalSyncDev(){
         // ===========================================================================
         getTodayStats() {
             const todayStats = {
-                added_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key),
-                updated_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key),
-                completed_tasks: getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key),
-                commits_added: getGASProperty(GAS_PROPERTIES.today_github_added_commits.key),
-                commits_deleted: getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key)
+                added_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks),
+                updated_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks),
+                completed_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks),
+                commits_added: getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits),
+                commits_deleted: getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits)
             };
             return todayStats;
         }
@@ -1038,11 +1048,11 @@ function getGcalSyncDev(){
             logger.info(this.getTodayStats());
         }
         clearTodayEvents() {
-            updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, []);
-            updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, []);
-            updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, []);
-            updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, []);
-            updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, []);
+            updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, []);
+            updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, []);
+            updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, []);
+            updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, []);
+            updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, []);
             logger.info(`${this.today_date} stats were reseted!`);
         }
         // ===========================================================================
@@ -1076,20 +1086,20 @@ function getGcalSyncDev(){
                 const shouldSyncGithub = this.configs[githubConfigsKey];
                 const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
                 if (shouldSyncTicktick && ticktickNewItems > 0) {
-                    const todayAddedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key);
-                    const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key);
-                    const todayCompletedTasks = getGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key);
-                    updateGASProperty(GAS_PROPERTIES.today_ticktick_added_tasks.key, [...todayAddedTasks, ...sessionData.added_tasks]);
-                    updateGASProperty(GAS_PROPERTIES.today_ticktick_updated_tasks.key, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
-                    updateGASProperty(GAS_PROPERTIES.today_ticktick_completed_tasks.key, [...todayCompletedTasks, ...sessionData.completed_tasks]);
+                    const todayAddedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks);
+                    const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks);
+                    const todayCompletedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, [...todayAddedTasks, ...sessionData.added_tasks]);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, [...todayCompletedTasks, ...sessionData.completed_tasks]);
                     logger.info(`added ${ticktickNewItems} new ticktick items to today's stats`);
                 }
                 const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
                 if (shouldSyncGithub && githubNewItems > 0) {
-                    const todayAddedCommits = getGASProperty(GAS_PROPERTIES.today_github_added_commits.key);
-                    const todayDeletedCommits = getGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key);
-                    updateGASProperty(GAS_PROPERTIES.today_github_added_commits.key, [...todayAddedCommits, ...sessionData.commits_added]);
-                    updateGASProperty(GAS_PROPERTIES.today_github_deleted_commits.key, [...todayDeletedCommits, ...sessionData.commits_deleted]);
+                    const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits);
+                    const todayDeletedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [...todayAddedCommits, ...sessionData.commits_added]);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [...todayDeletedCommits, ...sessionData.commits_deleted]);
                     logger.info(`added ${githubNewItems} new github items to today's stats`);
                 }
                 const totalSessionNewItems = ticktickNewItems + githubNewItems;
@@ -1100,14 +1110,14 @@ function getGcalSyncDev(){
                     sendEmail(sessionEmail);
                 }
                 const isNowTimeAfterDailyEmails = isCurrentTimeAfter(this.configs.options.daily_summary_email_time, this.configs.settings.timezone_correction);
-                const alreadySentTodaySummaryEmail = this.today_date === getGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key);
+                const alreadySentTodaySummaryEmail = this.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date);
                 if (isNowTimeAfterDailyEmails && this.configs.options.email_daily_summary && !alreadySentTodaySummaryEmail) {
-                    updateGASProperty(GAS_PROPERTIES.last_daily_email_sent_date.key, this.today_date);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date, this.today_date);
                     const dailySummaryEmail = getDailySummaryEmail(userEmail, this.getTodayStats(), this.today_date);
                     sendEmail(dailySummaryEmail);
                     this.clearTodayEvents();
                 }
-                const alreadySentTodayNewReleaseEmail = this.today_date === getGASProperty(GAS_PROPERTIES.last_released_version_sent_date.key);
+                const alreadySentTodayNewReleaseEmail = this.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_released_version_sent_date);
                 const parseGcalVersion = (v) => {
                     return Number(v.replace('v', '').split('.').join(''));
                 };
@@ -1118,15 +1128,15 @@ function getGcalSyncDev(){
                     return lastReleaseObj;
                 };
                 if (isNowTimeAfterDailyEmails && this.configs.options.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
-                    updateGASProperty(GAS_PROPERTIES.last_released_version_sent_date.key, this.today_date);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_sent_date, this.today_date);
                     const latestRelease = getLatestGcalSyncRelease();
                     const latestVersion = parseGcalVersion(latestRelease.tag_name);
                     const currentVersion = parseGcalVersion(APP_INFO.version);
-                    const lastAlertedVersion = (_a = getGASProperty(GAS_PROPERTIES.last_released_version_alerted.key)) !== null && _a !== void 0 ? _a : '';
+                    const lastAlertedVersion = (_a = getGASProperty(GAS_PROPERTIES_ENUM.last_released_version_alerted)) !== null && _a !== void 0 ? _a : '';
                     if (latestVersion > currentVersion && latestVersion.toString() != lastAlertedVersion) {
                         const newReleaseEmail = getNewReleaseEmail(userEmail, latestRelease);
                         sendEmail(newReleaseEmail);
-                        updateGASProperty(GAS_PROPERTIES.last_released_version_alerted.key, latestVersion.toString());
+                        updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_alerted, latestVersion.toString());
                     }
                 }
                 logger.info({ sessionData });

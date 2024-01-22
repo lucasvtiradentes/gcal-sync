@@ -1,4 +1,4 @@
-import { TSessionStats } from '..';
+import { TSessionStats } from '../consts/types';
 import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../classes/GoogleCalendar';
 import { TEmail } from '../classes/GoogleEmail';
 import { TDate } from '../classes/ICS';
