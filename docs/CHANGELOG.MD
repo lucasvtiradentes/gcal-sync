@@ -1,5 +1,22 @@
 # CHANGELOG HISTORY
 
+## [1.8.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.8...v1.8.0) (2024-01-22)
+
+
+### ✨ feature:
+
+* add gas properties types ([3c03929](https://github.com/lucasvtiradentes/gcal-sync/commit/3c03929221f9d6652a50137e63191d43fcfb71cc))
+* add method to get all gcal tasks ([f433727](https://github.com/lucasvtiradentes/gcal-sync/commit/f43372736b1341de6bb8e96973989d8739bdb9de))
+* add methos to get all ticktick tasks and github commits ([ab9ffc4](https://github.com/lucasvtiradentes/gcal-sync/commit/ab9ffc406260384cefddb80a181fb10b236fd10e))
+* update email methods ([6db3067](https://github.com/lucasvtiradentes/gcal-sync/commit/6db3067e0be12a8b00f37b9f831573221a766f56))
+* updated sync tasks from ticktick to gcal ([bff2161](https://github.com/lucasvtiradentes/gcal-sync/commit/bff216175915ddedf346fa0ae60a44be1158b4a9))
+
+
+### 🐛 bugfix:
+
+* commit date error ([49df15e](https://github.com/lucasvtiradentes/gcal-sync/commit/49df15ef21457a32974924d4deb4923fbc468356))
+* remove commits error ([369536a](https://github.com/lucasvtiradentes/gcal-sync/commit/369536a6462f174261f0f317cbbe843b946aad5c))
+
 ## [1.7.8](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.7...v1.7.8) (2023-05-23)
 
 ## [1.7.7](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.6...v1.7.7) (2023-05-22)
