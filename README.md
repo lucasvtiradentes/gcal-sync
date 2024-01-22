@@ -222,7 +222,7 @@ function getConfigs() {
 }
 
 function getGcalSync(){
-  const version = "1.8.0"
+  const version = "1.8.1"
   const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
   eval(gcalSyncContent)
   const configs = getConfigs()
