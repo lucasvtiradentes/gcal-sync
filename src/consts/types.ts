@@ -46,3 +46,9 @@ export const ticktickConfigsKey = 'ticktick_sync' as const;
 export const githubConfigsKey = 'github_sync' as const;
 
 export type TConfigs = TBasicConfig & { [ticktickConfigsKey]?: TTicktickSync } & { [githubConfigsKey]?: TGithubSync };
+
+export type TExtendedConfigs = {
+  today_date: string;
+  user_email: string;
+  configs: TConfigs;
+};

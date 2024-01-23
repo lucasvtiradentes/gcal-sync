@@ -1,5 +1,5 @@
-import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar } from '../classes/GoogleCalendar';
-import { TExtendedParsedTicktickTask, getIcsCalendarTasks } from '../classes/ICS';
+import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar } from '../modules/GoogleCalendar';
+import { TExtendedParsedTicktickTask, getIcsCalendarTasks } from '../modules/ICS';
 import { ERRORS } from '../consts/errors';
 import { TConfigs, TIcsCalendar, ticktickConfigsKey } from '../consts/types';
 import { mergeArraysOfArrays } from '../utils/javascript/array_utils';
