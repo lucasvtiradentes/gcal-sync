@@ -1,4 +1,4 @@
-import { isRunningOnGAS } from '../../classes/GoogleAppsScript';
+import { isRunningOnGAS } from '../../modules/GoogleAppsScript';
 
 export async function fetcher(url: string) {
   if (isRunningOnGAS()) {

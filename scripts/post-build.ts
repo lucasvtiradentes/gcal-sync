@@ -40,8 +40,7 @@ type TReadmeDynamicFields = (typeof README_DYNAMIC_FIELDS)[keyof typeof README_D
 
   const VERSION_UPDATE = `// version`;
   replaceFileContent(FILES.readme, VERSION_UPDATE, `// const version = "${VERSION}" ${VERSION_UPDATE}`);
-
-  unlinkSync(FILES.gcalSync);
+  // unlinkSync(FILES.gcalSync);
 })();
 
 function getAppsScriptAllowPermissionFileContent() {

@@ -1,6 +1,6 @@
-import { TParsedGithubCommit, getAllGithubCommits, parseGithubEmojisString } from '../classes/Github';
-import { getGASProperty, updateGASProperty } from '../classes/GoogleAppsScript';
-import { TGcalPrivateGithub, TGoogleCalendar, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, removeCalendarEvent } from '../classes/GoogleCalendar';
+import { TParsedGithubCommit, getAllGithubCommits, parseGithubEmojisString } from '../modules/Github';
+import { getGASProperty, updateGASProperty } from '../modules/GoogleAppsScript';
+import { TGcalPrivateGithub, TGoogleCalendar, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, removeCalendarEvent } from '../modules/GoogleCalendar';
 import { CONFIGS } from '../consts/configs';
 import { TConfigs, githubConfigsKey } from '../consts/types';
 import { logger } from '../utils/abstractions/logger';

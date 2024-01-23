@@ -1,7 +1,7 @@
 import { TSessionStats } from '../consts/types';
-import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../classes/GoogleCalendar';
-import { TEmail } from '../classes/GoogleEmail';
-import { TDate } from '../classes/ICS';
+import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../modules/GoogleCalendar';
+import { TEmail } from '../modules/GoogleEmail';
+import { TDate } from '../modules/ICS';
 import { APP_INFO } from '../consts/app_info';
 
 export function getSessionEmail(sendToEmail: string, sessionStats: TSessionStats) {

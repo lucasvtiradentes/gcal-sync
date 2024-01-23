@@ -1,10 +1,11 @@
-import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../classes/GoogleCalendar';
+import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../modules/GoogleCalendar';
 import { asConstArrayToObject } from '../utils/javascript/array_utils';
 
 export const CONFIGS = {
   DEBUG_MODE: true,
   MAX_GCAL_TASKS: 2500,
-  REQUIRED_GITHUB_VALIDATIONS_COUNT: 3
+  REQUIRED_GITHUB_VALIDATIONS_COUNT: 3,
+  IS_TEST_ENVIRONMENT: process.env.NODE_ENV
 } as const;
 
 const GAS_PROPERTIES = [
