@@ -18,7 +18,7 @@ function getGcalSyncDev(){
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.1',
-        build_date_time: '23/01/2024 07:47:51'
+        build_date_time: '23/01/2024 08:17:43'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -103,6 +103,15 @@ function getGcalSyncDev(){
 
     const ticktickConfigsKey = 'ticktick_sync';
     const githubConfigsKey = 'github_sync';
+
+    function checkIfShouldSync(extendedConfigs) {
+        const shouldSyncGithub = extendedConfigs.configs[githubConfigsKey].commits_configs.should_sync;
+        const shouldSyncTicktick = extendedConfigs.configs[ticktickConfigsKey].should_sync;
+        return {
+            shouldSyncGithub,
+            shouldSyncTicktick
+        };
+    }
 
     // GENERAL =====================================================================
     function isRunningOnGAS() {
@@ -316,8 +325,7 @@ function getGcalSyncDev(){
     function handleSessionData(extendedConfigs, sessionData) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const shouldSyncTicktick = extendedConfigs.configs[ticktickConfigsKey];
-            const shouldSyncGithub = extendedConfigs.configs[githubConfigsKey];
+            const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(extendedConfigs);
             const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
             if (shouldSyncTicktick && ticktickNewItems > 0) {
                 const todayAddedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks);
@@ -339,13 +347,13 @@ function getGcalSyncDev(){
             const totalSessionNewItems = ticktickNewItems + githubNewItems;
             // =========================================================================
             const userEmail = extendedConfigs.user_email;
-            if (extendedConfigs.configs.options.email_session && totalSessionNewItems > 0) {
+            if (extendedConfigs.configs.settings.per_sync_emails.email_session && totalSessionNewItems > 0) {
                 const sessionEmail = getSessionEmail(userEmail, sessionData);
                 sendEmail(sessionEmail);
             }
-            const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.options.daily_summary_email_time, extendedConfigs.configs.settings.timezone_correction);
+            const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.settings.per_day_emails.time_to_send, extendedConfigs.configs.settings.timezone_correction);
             const alreadySentTodaySummaryEmail = extendedConfigs.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date);
-            if (isNowTimeAfterDailyEmails && extendedConfigs.configs.options.email_daily_summary && !alreadySentTodaySummaryEmail) {
+            if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_daily_summary && !alreadySentTodaySummaryEmail) {
                 updateGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date, extendedConfigs.today_date);
                 const dailySummaryEmail = getDailySummaryEmail(userEmail, getTodayStats(), extendedConfigs.today_date);
                 sendEmail(dailySummaryEmail);
@@ -361,7 +369,7 @@ function getGcalSyncDev(){
                 const lastReleaseObj = (_a = JSON.parse(json_encoded.getContentText())[0]) !== null && _a !== void 0 ? _a : { tag_name: APP_INFO.version };
                 return lastReleaseObj;
             };
-            if (isNowTimeAfterDailyEmails && extendedConfigs.configs.options.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
+            if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
                 updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_sent_date, extendedConfigs.today_date);
                 const latestRelease = getLatestGcalSyncRelease();
                 const latestVersion = parseGcalVersion(latestRelease.tag_name);
@@ -1026,22 +1034,26 @@ function getGcalSyncDev(){
         settings: {
             sync_function: '',
             timezone_correction: -3,
-            update_frequency: 4
-        },
-        options: {
-            daily_summary_email_time: '15:00',
-            email_new_gcal_sync_release: false,
-            email_daily_summary: false,
-            email_errors: false,
-            email_session: false
+            update_frequency: 4,
+            per_day_emails: {
+                time_to_send: '15:00',
+                email_new_gcal_sync_release: false,
+                email_daily_summary: false
+            },
+            per_sync_emails: {
+                email_errors: false,
+                email_session: false
+            }
         }
     };
     const ticktickRequiredObjectShape = {
+        should_sync: false,
         ics_calendars: []
     };
     const githubRequiredObjectShape = {
         username: '',
         commits_configs: {
+            should_sync: false,
             commits_calendar: '',
             ignored_repos: [],
             parse_commit_emojis: false
@@ -1057,12 +1069,8 @@ function getGcalSyncDev(){
             github: true
         };
         isValid.basic = validateObjectSchema(configs, basicRequiredObjectShape);
-        if (ticktickConfigsKey in configs) {
-            isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
-        }
-        if (githubConfigsKey in configs) {
-            isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
-        }
+        isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
+        isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
         return Object.values(isValid).every((isSchemaValid) => isSchemaValid === true);
     }
 
@@ -1089,8 +1097,7 @@ function getGcalSyncDev(){
             });
         }
         createMissingGcalCalendars() {
-            const shouldSyncGithub = this.extended_configs.configs[githubConfigsKey];
-            const shouldSyncTicktick = this.extended_configs.configs[ticktickConfigsKey];
+            const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
             // prettier-ignore
             const allGoogleCalendars = [...new Set([]
                     .concat(shouldSyncGithub ? [this.extended_configs.configs[githubConfigsKey].commits_configs.commits_calendar] : [])
@@ -1119,8 +1126,7 @@ function getGcalSyncDev(){
         // ===========================================================================
         sync() {
             return __awaiter(this, void 0, void 0, function* () {
-                const shouldSyncGithub = this.extended_configs.configs[githubConfigsKey];
-                const shouldSyncTicktick = this.extended_configs.configs[ticktickConfigsKey];
+                const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
                 if (!shouldSyncGithub && !shouldSyncTicktick) {
                     logger.info('nothing to sync');
                     return;

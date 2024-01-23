@@ -38,9 +38,7 @@ type TReadmeDynamicFields = (typeof README_DYNAMIC_FIELDS)[keyof typeof README_D
   readmeFile.updateField(README_DYNAMIC_FIELDS.gasAppsScriptContent, `<pre>\n${gasAllowPermissionContent}\n</pre>`);
   readmeFile.saveFile();
 
-  const VERSION_UPDATE = `// version`;
-  replaceFileContent(FILES.readme, VERSION_UPDATE, `// const version = "${VERSION}" ${VERSION_UPDATE}`);
-  // unlinkSync(FILES.gcalSync);
+  unlinkSync(FILES.gcalSync);
 })();
 
 function getAppsScriptAllowPermissionFileContent() {
@@ -129,19 +127,4 @@ function doGet(e) {
 }`;
 
   return gasSetupContent;
-}
-
-/* ========================================================================== */
-
-function replaceFileContent(file: string, strToFind: string, strToReplace: string) {
-  const originalContent = readFileSync(file, { encoding: 'utf8' });
-  const newContent = originalContent
-    .split('\n')
-    .map((line) => {
-      const hasSearchedStr = line.search(strToFind) > 0;
-      const identation = line.length - line.trimStart().length;
-      return hasSearchedStr ? `${' '.repeat(identation)}${strToReplace}` : line;
-    })
-    .join('\n');
-  writeFileSync(file, newContent);
 }

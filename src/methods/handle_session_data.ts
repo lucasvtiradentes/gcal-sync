@@ -1,6 +1,7 @@
+import { checkIfShouldSync } from '../utils/check_if_should_sync';
 import { APP_INFO } from '../consts/app_info';
 import { GAS_PROPERTIES_ENUM } from '../consts/configs';
-import { TExtendedConfigs, TSessionStats, githubConfigsKey, ticktickConfigsKey } from '../consts/types';
+import { TExtendedConfigs, TSessionStats } from '../consts/types';
 import { getGASProperty, updateGASProperty } from '../modules/GoogleAppsScript';
 import { sendEmail } from '../modules/GoogleEmail';
 import { logger } from '../utils/abstractions/logger';
@@ -29,8 +30,7 @@ function clearTodayEvents() {
 }
 
 export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData: TSessionStats) {
-  const shouldSyncTicktick = extendedConfigs.configs[ticktickConfigsKey];
-  const shouldSyncGithub = extendedConfigs.configs[githubConfigsKey];
+  const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(extendedConfigs);
 
   const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
   if (shouldSyncTicktick && ticktickNewItems > 0) {
@@ -62,15 +62,15 @@ export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessi
 
   const userEmail = extendedConfigs.user_email;
 
-  if (extendedConfigs.configs.options.email_session && totalSessionNewItems > 0) {
+  if (extendedConfigs.configs.settings.per_sync_emails.email_session && totalSessionNewItems > 0) {
     const sessionEmail = getSessionEmail(userEmail, sessionData);
     sendEmail(sessionEmail);
   }
 
-  const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.options.daily_summary_email_time, extendedConfigs.configs.settings.timezone_correction);
+  const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.settings.per_day_emails.time_to_send, extendedConfigs.configs.settings.timezone_correction);
 
   const alreadySentTodaySummaryEmail = extendedConfigs.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date);
-  if (isNowTimeAfterDailyEmails && extendedConfigs.configs.options.email_daily_summary && !alreadySentTodaySummaryEmail) {
+  if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_daily_summary && !alreadySentTodaySummaryEmail) {
     updateGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date, extendedConfigs.today_date);
     const dailySummaryEmail = getDailySummaryEmail(userEmail, getTodayStats(), extendedConfigs.today_date);
     sendEmail(dailySummaryEmail);
@@ -89,7 +89,7 @@ export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessi
     return lastReleaseObj;
   };
 
-  if (isNowTimeAfterDailyEmails && extendedConfigs.configs.options.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
+  if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_new_gcal_sync_release && !alreadySentTodayNewReleaseEmail) {
     updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_sent_date, extendedConfigs.today_date);
 
     const latestRelease = getLatestGcalSyncRelease();

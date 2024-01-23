@@ -84,7 +84,7 @@ const TABLE_STYLES = {
   tableRowColumnStyle: `style="border: 1px solid #333"`
 };
 
-export const getParsedDateTime = (str: TDate) => ('date' in str ? str.date : str.dateTime);
+const getParsedDateTime = (str: TDate) => ('date' in str ? str.date : str.dateTime);
 
 function getTotalSessionEvents(session: TSessionStats) {
   const todayEventsCount = session.added_tasks.length + session.updated_tasks.length + session.completed_tasks.length + session.commits_added.length + session.commits_deleted.length;
