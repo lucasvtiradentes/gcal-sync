@@ -6,24 +6,28 @@ const basicRequiredObjectShape: TBasicConfig = {
   settings: {
     sync_function: '',
     timezone_correction: -3,
-    update_frequency: 4
-  },
-  options: {
-    daily_summary_email_time: '15:00',
-    email_new_gcal_sync_release: false,
-    email_daily_summary: false,
-    email_errors: false,
-    email_session: false
+    update_frequency: 4,
+    per_day_emails: {
+      time_to_send: '15:00',
+      email_new_gcal_sync_release: false,
+      email_daily_summary: false
+    },
+    per_sync_emails: {
+      email_errors: false,
+      email_session: false
+    }
   }
 };
 
 const ticktickRequiredObjectShape: TTicktickSync = {
+  should_sync: false,
   ics_calendars: []
 };
 
 const githubRequiredObjectShape: TGithubSync = {
   username: '',
   commits_configs: {
+    should_sync: false,
     commits_calendar: '',
     ignored_repos: [],
     parse_commit_emojis: false
@@ -41,14 +45,8 @@ export function validateConfigs(configs: unknown) {
   };
 
   isValid.basic = validateObjectSchema(configs, basicRequiredObjectShape);
-
-  if (ticktickConfigsKey in configs) {
-    isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
-  }
-
-  if (githubConfigsKey in configs) {
-    isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
-  }
+  isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
+  isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
 
   return Object.values(isValid).every((isSchemaValid) => isSchemaValid === true);
 }

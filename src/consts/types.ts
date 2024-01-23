@@ -13,6 +13,7 @@ export type TIcsCalendar = {
 };
 
 export type TTicktickSync = {
+  should_sync: boolean;
   ics_calendars: TIcsCalendar[];
 };
 
@@ -20,6 +21,7 @@ export type TGithubSync = {
   username: string;
   personal_token: string;
   commits_configs: {
+    should_sync: boolean;
     commits_calendar: string;
     ignored_repos: string[];
     parse_commit_emojis: boolean;
@@ -31,21 +33,22 @@ export type TBasicConfig = {
     timezone_correction: number;
     sync_function: string;
     update_frequency: number;
-  };
-  options: {
-    email_errors: boolean;
-    email_session: boolean;
-    // daily_summary
-    email_new_gcal_sync_release: boolean;
-    email_daily_summary: boolean;
-    daily_summary_email_time: string;
+    per_day_emails: {
+      time_to_send: string;
+      email_new_gcal_sync_release: boolean;
+      email_daily_summary: boolean;
+    };
+    per_sync_emails: {
+      email_errors: boolean;
+      email_session: boolean;
+    };
   };
 };
 
 export const ticktickConfigsKey = 'ticktick_sync' as const;
 export const githubConfigsKey = 'github_sync' as const;
 
-export type TConfigs = TBasicConfig & { [ticktickConfigsKey]?: TTicktickSync } & { [githubConfigsKey]?: TGithubSync };
+export type TConfigs = TBasicConfig & { [ticktickConfigsKey]: TTicktickSync } & { [githubConfigsKey]: TGithubSync };
 
 export type TExtendedConfigs = {
   today_date: string;

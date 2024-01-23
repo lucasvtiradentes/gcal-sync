@@ -10,6 +10,7 @@ import { addAppsScriptsTrigger, deleteGASProperty, isRunningOnGAS, listAllGASPro
 import { createMissingCalendars } from './modules/GoogleCalendar';
 import { getUserEmail } from './modules/GoogleEmail';
 import { logger } from './utils/abstractions/logger';
+import { checkIfShouldSync } from './utils/check_if_should_sync';
 import { getDateFixedByTimezone } from './utils/javascript/date_utils';
 
 class GcalSync {
@@ -42,8 +43,7 @@ class GcalSync {
   }
 
   private createMissingGcalCalendars() {
-    const shouldSyncGithub = this.extended_configs.configs[githubConfigsKey];
-    const shouldSyncTicktick = this.extended_configs.configs[ticktickConfigsKey];
+    const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
 
     // prettier-ignore
     const allGoogleCalendars: string[] = [... new Set([]
@@ -77,8 +77,7 @@ class GcalSync {
   // ===========================================================================
 
   async sync() {
-    const shouldSyncGithub = this.extended_configs.configs[githubConfigsKey];
-    const shouldSyncTicktick = this.extended_configs.configs[ticktickConfigsKey];
+    const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
 
     if (!shouldSyncGithub && !shouldSyncTicktick) {
       logger.info('nothing to sync');

@@ -23,6 +23,7 @@
     "prepare": "husky install",
     "start": "node ./dist/index.min.js",
     "dev": "tsx ./resources/dev.ts",
+    "build_type_check": "tsc",
     "build": "rimraf ./dist && rollup -c rollup.config.js",
     "postbuild": "tsx ./scripts/post-build.ts",
     "test": "jest",
