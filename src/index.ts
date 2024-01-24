@@ -1,7 +1,7 @@
 import { APP_INFO } from './consts/app_info';
 import { GAS_PROPERTIES_ENUM, GAS_PROPERTIES_INITIAL_VALUE_ENUM, TGasPropertiesSchemaKeys } from './consts/configs';
 import { ERRORS } from './consts/errors';
-import { TConfigs, TExtendedConfigs, TSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
+import { TConfigs, TExtendedConfigs, TExtendedSessionStats, TSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
 import { handleSessionData } from './methods/handle_session_data';
 import { syncGithub } from './methods/sync_github';
 import { syncTicktick } from './methods/sync_ticktick';
@@ -14,7 +14,11 @@ import { checkIfShouldSync } from './utils/check_if_should_sync';
 import { getDateFixedByTimezone } from './utils/javascript/date_utils';
 
 class GcalSync {
-  private extended_configs: TExtendedConfigs;
+  private extended_configs: TExtendedConfigs = {
+    today_date: '',
+    user_email: '',
+    configs: {} as TConfigs
+  };
 
   constructor(configs: TConfigs) {
     if (!validateConfigs(configs)) {
@@ -27,6 +31,7 @@ class GcalSync {
 
     this.extended_configs.user_email = getUserEmail();
     this.extended_configs.today_date = getDateFixedByTimezone(configs.settings.timezone_correction).toISOString().split('T')[0];
+    this.extended_configs.configs = configs;
     logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
   }
 
@@ -99,7 +104,7 @@ class GcalSync {
     const ticktickSync = await syncTicktick(this.extended_configs.configs);
     const githubSync = await syncGithub(this.extended_configs.configs);
 
-    const sessionData: TSessionStats = {
+    const sessionData: TExtendedSessionStats = {
       ...emptySessionData,
       ...(shouldSyncTicktick && ticktickSync),
       ...(shouldSyncGithub && githubSync)

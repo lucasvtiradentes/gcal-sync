@@ -3,6 +3,8 @@ import { TTicktickSyncResultInfo } from '../methods/sync_ticktick';
 
 export type TSessionStats = TTicktickSyncResultInfo & Omit<TGithubSyncResultInfo, 'commits_tracked_to_be_added' | 'commits_tracked_to_be_deleted'>;
 
+export type TExtendedSessionStats = TTicktickSyncResultInfo & TGithubSyncResultInfo;
+
 export type TIcsCalendar = {
   link: string;
   gcal: string;

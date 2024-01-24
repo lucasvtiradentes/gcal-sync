@@ -18,6 +18,7 @@ export type TGcalPrivateGithub = {
     commitDate: string;
     commitMessage: string;
     repositoryName: string;
+    repositoryLink: string;
     commitId: string;
   };
 };

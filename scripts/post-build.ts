@@ -1,14 +1,14 @@
 import { DynMarkdown } from 'dyn-markdown';
-import { readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const FILES = {
   package: './package.json',
   readme: './README.md',
   configs: './resources/configs.ts',
-  gasAppsScript: './dist/setup/GAS_appsscript.json',
-  gasSetup: './dist/setup/GAS_init.js',
-  gcalSyncDev: './dist/setup/GAS_gcalsync_dev.js',
-  gcalSync: './dist/index.js'
+  gas_permissions: './dist/setup/permissions.json',
+  gas_setup: './dist/setup/setup.js',
+  gas_dev: './dist/setup/GAS_gcalsync_dev.js',
+  gas_prod: './dist/index.js'
 };
 
 const VERSION = JSON.parse(readFileSync(FILES.package, { encoding: 'utf8' })).version;
@@ -24,21 +24,19 @@ type TReadmeDynamicFields = (typeof README_DYNAMIC_FIELDS)[keyof typeof README_D
   mkdirSync('./dist/setup');
 
   const initFileContent = getGasInitFileContent(FILES.configs, VERSION);
-  writeFileSync(FILES.gasSetup, initFileContent, { encoding: 'utf-8' });
+  writeFileSync(FILES.gas_setup, initFileContent, { encoding: 'utf-8' });
 
   const gasAllowPermissionContent = getAppsScriptAllowPermissionFileContent();
-  writeFileSync(FILES.gasAppsScript, gasAllowPermissionContent, { encoding: 'utf-8' });
+  writeFileSync(FILES.gas_permissions, gasAllowPermissionContent, { encoding: 'utf-8' });
 
-  const originalContent = readFileSync(FILES.gcalSync, { encoding: 'utf8' });
+  const originalContent = readFileSync(FILES.gas_prod, { encoding: 'utf8' });
   const gcalSyncDevContent = originalContent.split('/* global Reflect, Promise, SuppressedError, Symbol */\r\n\r\n\r\n')[1].split('\n').slice(0, -2).join('\n');
-  writeFileSync(FILES.gcalSyncDev, `function getGcalSyncDev(){\n${gcalSyncDevContent}\n}`, { encoding: 'utf-8' });
+  writeFileSync(FILES.gas_dev, `function getGcalSyncDev(){\n${gcalSyncDevContent}\n}`, { encoding: 'utf-8' });
 
   const readmeFile = new DynMarkdown<TReadmeDynamicFields>(FILES.readme);
   readmeFile.updateField(README_DYNAMIC_FIELDS.gasSetupContent, `<pre>\n${initFileContent}\n</pre>`);
   readmeFile.updateField(README_DYNAMIC_FIELDS.gasAppsScriptContent, `<pre>\n${gasAllowPermissionContent}\n</pre>`);
   readmeFile.saveFile();
-
-  unlinkSync(FILES.gcalSync);
 })();
 
 function getAppsScriptAllowPermissionFileContent() {
