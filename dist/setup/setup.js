@@ -51,11 +51,21 @@ function getConfigs() {
 }
 
 function getGcalSync(){
-  const version = "1.8.1"
-  const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
-  eval(gcalSyncContent)
+
+  let gcalSync;
   const configs = getConfigs()
-  const gcalSync = new GcalSync(configs);
+  const useDevVersion = false
+
+  if (useDevVersion){
+    const GcalSync = getGcalSyncDev()
+    gcalSync = new GcalSync(configs);
+  } else {
+    const version = "1.8.1"
+    const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@1.8.1`).getContentText();
+    eval(gcalSyncContent)
+    gcalSync = new GcalSync(configs);
+  }
+
   return gcalSync;
 }
 
