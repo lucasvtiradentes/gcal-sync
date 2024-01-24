@@ -84,11 +84,21 @@ function getGasInitFileContent(configFile: string, version: string) {
 }
 
 function getGcalSync(){
-  const version = "${version}"
-  const gcalSyncContent = UrlFetchApp.fetch(\`https://cdn.jsdelivr.net/npm/gcal-sync@\${version}\`).getContentText();
-  eval(gcalSyncContent)
+
+  let gcalSync;
   const configs = getConfigs()
-  const gcalSync = new GcalSync(configs);
+  const useDevVersion = false
+
+  if (useDevVersion){
+    const GcalSync = getGcalSyncDev()
+    gcalSync = new GcalSync(configs);
+  } else {
+    const version = "${version}"
+    const gcalSyncContent = UrlFetchApp.fetch(\`https://cdn.jsdelivr.net/npm/gcal-sync@${version}\`).getContentText();
+    eval(gcalSyncContent)
+    gcalSync = new GcalSync(configs);
+  }
+
   return gcalSync;
 }
 

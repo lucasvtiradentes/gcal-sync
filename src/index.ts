@@ -2,13 +2,14 @@ import { APP_INFO } from './consts/app_info';
 import { GAS_PROPERTIES_ENUM, GAS_PROPERTIES_INITIAL_VALUE_ENUM, TGasPropertiesSchemaKeys } from './consts/configs';
 import { ERRORS } from './consts/errors';
 import { TConfigs, TExtendedConfigs, TExtendedSessionStats, TSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
+import { getErrorEmail } from './methods/generate_emails';
 import { handleSessionData } from './methods/handle_session_data';
 import { syncGithub } from './methods/sync_github';
 import { syncTicktick } from './methods/sync_ticktick';
 import { validateConfigs } from './methods/validate_configs';
 import { addAppsScriptsTrigger, deleteGASProperty, isRunningOnGAS, listAllGASProperties, removeAppsScriptsTrigger, updateGASProperty } from './modules/GoogleAppsScript';
 import { createMissingCalendars } from './modules/GoogleCalendar';
-import { getUserEmail } from './modules/GoogleEmail';
+import { getUserEmail, sendEmail } from './modules/GoogleEmail';
 import { logger } from './utils/abstractions/logger';
 import { checkIfShouldSync } from './utils/check_if_should_sync';
 import { getDateFixedByTimezone } from './utils/javascript/date_utils';
@@ -111,6 +112,11 @@ class GcalSync {
     };
 
     await handleSessionData(this.extended_configs, sessionData);
+  }
+
+  async sendErrorEmail(errorMessage: string) {
+    const errorEmail = getErrorEmail(this.extended_configs.user_email, errorMessage);
+    sendEmail(errorEmail);
   }
 }
 

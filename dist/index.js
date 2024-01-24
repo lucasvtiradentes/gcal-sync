@@ -40,7 +40,7 @@
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.1',
-        build_date_time: '24/01/2024 20:36:11'
+        build_date_time: '24/01/2024 20:45:33'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -127,100 +127,6 @@
     const ticktickConfigsKey = 'ticktick_sync';
     const githubConfigsKey = 'github_sync';
 
-    function checkIfShouldSync(extendedConfigs) {
-        const shouldSyncGithub = extendedConfigs.configs[githubConfigsKey].commits_configs.should_sync;
-        const shouldSyncTicktick = extendedConfigs.configs[ticktickConfigsKey].should_sync;
-        return {
-            shouldSyncGithub,
-            shouldSyncTicktick
-        };
-    }
-
-    // GENERAL =====================================================================
-    function isRunningOnGAS() {
-        return typeof Calendar !== 'undefined';
-    }
-    // PROPERTIES ==================================================================
-    function listAllGASProperties() {
-        const allProperties = PropertiesService.getScriptProperties().getProperties();
-        return allProperties;
-    }
-    function getGASProperty(property) {
-        const value = PropertiesService.getScriptProperties().getProperty(property);
-        let parsedValue;
-        try {
-            parsedValue = JSON.parse(value);
-        }
-        catch (_a) {
-            parsedValue = value;
-        }
-        return parsedValue;
-    }
-    function updateGASProperty(property, value) {
-        const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
-        PropertiesService.getScriptProperties().setProperty(property, parsedValue);
-    }
-    function deleteGASProperty(property) {
-        PropertiesService.getScriptProperties().deleteProperty(property);
-    }
-    // TRIGGERS ====================================================================
-    function getAppsScriptsTriggers() {
-        return ScriptApp.getProjectTriggers();
-    }
-    function addAppsScriptsTrigger(functionName, minutesLoop) {
-        ScriptApp.newTrigger(functionName).timeBased().everyMinutes(minutesLoop).create();
-    }
-    function removeAppsScriptsTrigger(functionName) {
-        const allAppsScriptTriggers = getAppsScriptsTriggers();
-        const tickSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
-        if (tickSyncTrigger) {
-            ScriptApp.deleteTrigger(tickSyncTrigger);
-        }
-    }
-
-    function getUserEmail() {
-        return Session.getActiveUser().getEmail();
-    }
-    function sendEmail(emailObj) {
-        MailApp.sendEmail(emailObj);
-    }
-
-    const logger = {
-        info: (message, ...optionalParams) => {
-            if (!CONFIGS.IS_TEST_ENVIRONMENT) {
-                console.log(message, ...optionalParams);
-            }
-        },
-        error: (message, ...optionalParams) => {
-            if (!CONFIGS.IS_TEST_ENVIRONMENT) {
-                console.error(message, ...optionalParams);
-            }
-        }
-    };
-
-    function getDateFixedByTimezone(timeZoneIndex) {
-        const date = new Date();
-        date.setHours(date.getHours() + timeZoneIndex);
-        return date;
-    }
-    function getParsedTimeStamp(stamp) {
-        const splitArr = stamp.split('T');
-        const year = splitArr[0].substring(0, 4);
-        const month = splitArr[0].substring(4, 6);
-        const day = splitArr[0].substring(6, 8);
-        const hours = splitArr[1] ? splitArr[1].substring(0, 2) : '00';
-        const minutes = splitArr[1] ? splitArr[1].substring(2, 4) : '00';
-        const seconds = splitArr[1] ? splitArr[1].substring(4, 6) : '00';
-        return { year, month, day, hours, minutes, seconds };
-    }
-    function isCurrentTimeAfter(timeToCompare, timezone) {
-        const dateFixedByTimezone = getDateFixedByTimezone(timezone);
-        const curStamp = Number(dateFixedByTimezone.getHours()) * 60 + Number(dateFixedByTimezone.getMinutes());
-        const timeArr = timeToCompare.split(':');
-        const specifiedStamp = Number(timeArr[0]) * 60 + Number(timeArr[1]);
-        return curStamp >= specifiedStamp;
-    }
-
     function getSessionEmail(sendToEmail, sessionStats) {
         const content = generateReportEmailContent(sessionStats);
         const emailObj = {
@@ -261,6 +167,23 @@
             name: `${APP_INFO.name}`,
             subject: `new version [${lastReleaseObj.tag_name}] was released - ${APP_INFO.name}`,
             htmlBody: message
+        };
+        return emailObj;
+    }
+    function getErrorEmail(sendToEmail, errorMessage) {
+        const content = `Hi!
+    <br/><br/>
+    an error recently occurred: <br/><br/>
+    <b>${errorMessage}</b>
+    <br /><br />
+    Regards,
+    your <a href='https://github.com/${APP_INFO.github_repository}'>${APP_INFO.name}</a> bot
+  `;
+        const emailObj = {
+            to: sendToEmail,
+            name: `${APP_INFO.name}`,
+            subject: `an error occurred - ${APP_INFO.name}`,
+            htmlBody: content
         };
         return emailObj;
     }
@@ -326,6 +249,106 @@
         content += getGithubEmailContant(session);
         content += `<br/>Regards,<br/>your <a href='https://github.com/${APP_INFO.github_repository}'>${APP_INFO.name}</a> bot`;
         return content;
+    }
+
+    function checkIfShouldSync(extendedConfigs) {
+        const shouldSyncGithub = extendedConfigs.configs[githubConfigsKey].commits_configs.should_sync;
+        const shouldSyncTicktick = extendedConfigs.configs[ticktickConfigsKey].should_sync;
+        return {
+            shouldSyncGithub,
+            shouldSyncTicktick
+        };
+    }
+
+    // GENERAL =====================================================================
+    function isRunningOnGAS() {
+        return typeof Calendar !== 'undefined';
+    }
+    // PROPERTIES ==================================================================
+    function listAllGASProperties() {
+        const allProperties = PropertiesService.getScriptProperties().getProperties();
+        return allProperties;
+    }
+    function getGASProperty(property) {
+        const value = PropertiesService.getScriptProperties().getProperty(property);
+        let parsedValue;
+        try {
+            parsedValue = JSON.parse(value);
+        }
+        catch (_a) {
+            parsedValue = value;
+        }
+        return parsedValue;
+    }
+    function updateGASProperty(property, value) {
+        const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
+        PropertiesService.getScriptProperties().setProperty(property, parsedValue);
+    }
+    function deleteGASProperty(property) {
+        PropertiesService.getScriptProperties().deleteProperty(property);
+    }
+    // TRIGGERS ====================================================================
+    function getAppsScriptsTriggers() {
+        return ScriptApp.getProjectTriggers();
+    }
+    function addAppsScriptsTrigger(functionName, minutesLoop) {
+        ScriptApp.newTrigger(functionName).timeBased().everyMinutes(minutesLoop).create();
+    }
+    function removeAppsScriptsTrigger(functionName) {
+        const allAppsScriptTriggers = getAppsScriptsTriggers();
+        const tickSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
+        if (tickSyncTrigger) {
+            ScriptApp.deleteTrigger(tickSyncTrigger);
+        }
+    }
+
+    function getUserEmail() {
+        return Session.getActiveUser().getEmail();
+    }
+    function sendEmail(emailObj) {
+        MailApp.sendEmail(emailObj);
+    }
+
+    class Logger {
+        constructor() {
+            this.logs = [];
+        }
+        info(message, ...optionalParams) {
+            if (!CONFIGS.IS_TEST_ENVIRONMENT) {
+                console.log(message, ...optionalParams);
+                this.logs.push(message);
+            }
+        }
+        error(message, ...optionalParams) {
+            if (!CONFIGS.IS_TEST_ENVIRONMENT) {
+                console.error(message, ...optionalParams);
+                this.logs.push(message);
+            }
+        }
+    }
+    const logger = new Logger();
+
+    function getDateFixedByTimezone(timeZoneIndex) {
+        const date = new Date();
+        date.setHours(date.getHours() + timeZoneIndex);
+        return date;
+    }
+    function getParsedTimeStamp(stamp) {
+        const splitArr = stamp.split('T');
+        const year = splitArr[0].substring(0, 4);
+        const month = splitArr[0].substring(4, 6);
+        const day = splitArr[0].substring(6, 8);
+        const hours = splitArr[1] ? splitArr[1].substring(0, 2) : '00';
+        const minutes = splitArr[1] ? splitArr[1].substring(2, 4) : '00';
+        const seconds = splitArr[1] ? splitArr[1].substring(4, 6) : '00';
+        return { year, month, day, hours, minutes, seconds };
+    }
+    function isCurrentTimeAfter(timeToCompare, timezone) {
+        const dateFixedByTimezone = getDateFixedByTimezone(timezone);
+        const curStamp = Number(dateFixedByTimezone.getHours()) * 60 + Number(dateFixedByTimezone.getMinutes());
+        const timeArr = timeToCompare.split(':');
+        const specifiedStamp = Number(timeArr[0]) * 60 + Number(timeArr[1]);
+        return curStamp >= specifiedStamp;
     }
 
     function getTodayStats() {
@@ -1200,6 +1223,12 @@
                 const githubSync = yield syncGithub(this.extended_configs.configs);
                 const sessionData = Object.assign(Object.assign(Object.assign({}, emptySessionData), (shouldSyncTicktick && ticktickSync)), (shouldSyncGithub && githubSync));
                 yield handleSessionData(this.extended_configs, sessionData);
+            });
+        }
+        sendErrorEmail(errorMessage) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const errorEmail = getErrorEmail(this.extended_configs.user_email, errorMessage);
+                sendEmail(errorEmail);
             });
         }
     }
