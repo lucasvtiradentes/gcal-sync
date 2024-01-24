@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "a8f8df94-38a7-4f0c-b081-bedf9eb87f00",
+    "name": "github",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "11269016"
+  },
+  "item": [
+    {
+      "name": "commits",
+      "item": [
+        {
+          "name": "get_commit_from_repo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.github.com/repos/{{user}}/{{repository}}/commits/{{commit_id}}",
+              "protocol": "https",
+              "host": ["api", "github", "com"],
+              "path": ["repos", "{{user}}", "{{repository}}", "commits", "{{commit_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get_all_commits_from_all_repos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.github.com/search/commits?q=author:{{user}}&page=1&sort=committer-date&per_page=100",
+              "protocol": "https",
+              "host": ["api", "github", "com"],
+              "path": ["search", "commits"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "author:{{user}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "sort",
+                  "value": "committer-date"
+                },
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get_all_commits_from_repo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.github.com/repos/{{user}}/{{repository}}/commits",
+              "protocol": "https",
+              "host": ["api", "github", "com"],
+              "path": ["repos", "{{user}}", "{{repository}}", "commits"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "repos",
+      "item": [
+        {
+          "name": "get_all_repos_from_user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.github.com/users/{{user}}/repos",
+              "protocol": "https",
+              "host": ["api", "github", "com"],
+              "path": ["users", "{{user}}", "repos"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "user",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "repository",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "commit_id",
+      "value": ""
+    },
+    {
+      "key": "commit_id_alt",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
