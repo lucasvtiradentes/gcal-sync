@@ -29,7 +29,7 @@ function clearTodayEvents() {
   logger.info(`today stats were reseted!`);
 }
 
-export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData: TExtendedSessionStats) {
+export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData: TExtendedSessionStats) {
   const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(extendedConfigs);
 
   const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
@@ -105,7 +105,7 @@ export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessi
   }
 
   const { added_tasks, updated_tasks, completed_tasks, commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
-  logger.info({
+  return {
     added_tasks: added_tasks.length,
     updated_tasks: updated_tasks.length,
     completed_tasks: completed_tasks.length,
@@ -113,5 +113,5 @@ export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessi
     commits_deleted: commits_deleted.length,
     commits_tracked_to_be_added: commits_tracked_to_be_added.length,
     commits_tracked_to_be_deleted: commits_tracked_to_be_deleted.length
-  });
+  };
 }

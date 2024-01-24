@@ -254,24 +254,32 @@ function uninstall() {
 }
 
 function sync(){
+  const gcalSync = getGcalSync()
+
   try{
-    const gcalSync = getGcalSync()
-    gcalSync.sync()
+    console.log(gcalSync.sync())
   } catch(e){
-    console.log(e);
+    gcalSync.handleError(e)
   }
 }
 
-function doGet(e) {
-  let response = {}
-  try{
-    const gcalSync = getGcalSync()
-    const content = gcalSync.sync()
-    const logs = gcalSync.SESSION_LOGS
-    response = {...content, logs}
-  } catch(e){
-    response = {error: e.message}
+function doGet(reqParams) {
+  const gcalSync = getGcalSync()
+
+  const response = {
+    sessionData: {},
+    logs: [],
+    error: null
   }
+
+  try {
+    response.sessionData = gcalSync.sync()
+    response.logs = gcalSync.getSessionLogs()
+  } catch (e){
+    response.error = e
+    gcalSync.handleError(e)
+  }
+
   return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON)
 }
 </pre>

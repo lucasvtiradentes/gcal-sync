@@ -29,9 +29,9 @@ function resetGithubSyncProperties() {
   updateGASProperty('github_commits_tracked_to_be_deleted', []);
 }
 
-export async function syncGithub(configs: TConfigs) {
+export function syncGithub(configs: TConfigs) {
   const info: TInfo = {
-    githubCommits: await getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
+    githubCommits: getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
     githubGcalCommits: getTasksFromGoogleCalendars([configs[githubConfigsKey].commits_configs.commits_calendar])
   };
 
@@ -58,8 +58,8 @@ export async function syncGithub(configs: TConfigs) {
   const onlyCommitsFromValidRepositories = onlyCommitsOnUserRepositories.filter((item) => configs[githubConfigsKey].commits_configs.ignored_repos.includes(item.repositoryName) === false);
 
   const result: TGithubSyncResultInfo = {
-    ...(await syncGithubCommitsToAdd({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories, parseCommitEmojis: configs[githubConfigsKey].commits_configs.parse_commit_emojis })),
-    ...(await syncGithubCommitsToDelete({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories }))
+    ...syncGithubCommitsToAdd({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories, parseCommitEmojis: configs[githubConfigsKey].commits_configs.parse_commit_emojis }),
+    ...syncGithubCommitsToDelete({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories })
   };
 
   if (result.commits_tracked_to_be_added.length === 0 && result.commits_tracked_to_be_deleted.length === 0) {
@@ -80,7 +80,7 @@ type TSyncGithubCommitsToAdd = {
   parseCommitEmojis: boolean;
 };
 
-async function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }: TSyncGithubCommitsToAdd) {
+function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }: TSyncGithubCommitsToAdd) {
   const githubSessionStats: TResultInfoAdded = {
     commits_tracked_to_be_added: [],
     commits_added: []
@@ -166,7 +166,7 @@ type TSyncGithubCommitsToDelete = {
   githubGcalCommits: TParsedGoogleEvent<TGcalPrivateGithub>[];
 };
 
-async function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, onlyCommitsFromValidRepositories }: TSyncGithubCommitsToDelete) {
+function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, onlyCommitsFromValidRepositories }: TSyncGithubCommitsToDelete) {
   const githubSessionStats: TResultInfoDeleted = {
     commits_deleted: [],
     commits_tracked_to_be_deleted: []
