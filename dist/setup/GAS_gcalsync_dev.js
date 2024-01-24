@@ -18,7 +18,7 @@ function getGcalSyncDev(){
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.1',
-        build_date_time: '23/01/2024 08:17:43'
+        build_date_time: '24/01/2024 07:40:47'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -424,7 +424,7 @@ function getGcalSyncDev(){
             }
             const parsedCommits = allCommitsArr.map((it) => {
                 const commitObj = {
-                    commitDate: it.commit.committer.date,
+                    commitDate: it.commit.author.date,
                     commitMessage: it.commit.message.split('\n')[0],
                     commitId: it.html_url.split('commit/')[1],
                     commitUrl: it.html_url,
