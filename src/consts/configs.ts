@@ -5,7 +5,7 @@ export const CONFIGS = {
   DEBUG_MODE: true,
   MAX_GCAL_TASKS: 2500,
   REQUIRED_GITHUB_VALIDATIONS_COUNT: 3,
-  IS_TEST_ENVIRONMENT: process.env.NODE_ENV
+  IS_TEST_ENVIRONMENT: typeof process !== 'object' ? false : process?.env?.NODE_ENV
 } as const;
 
 const GAS_PROPERTIES = [

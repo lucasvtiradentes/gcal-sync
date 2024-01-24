@@ -127,8 +127,9 @@ function getGithubEmailContant(session: TSessionStats) {
 
     // prettier-ignore
     const tableItems = items.map((gcalItem) => {
+      const {repositoryLink, commitMessage, repositoryName} = gcalItem.extendedProperties.private
       const parsedDate = getParsedDateTime(gcalItem.start as TDate).split('T')[0]
-      const itemHtmlRow = [parsedDate, gcalItem.extendedProperties.private.repositoryName, `<a href="${gcalItem.htmlLink}">${gcalItem.extendedProperties.private.commitMessage}</a>`].map(it => `<td ${TABLE_STYLES.tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n')
+      const itemHtmlRow = [parsedDate, `<a href="${repositoryLink}">${repositoryName}</a>`, `<a href="${gcalItem.htmlLink}">${commitMessage}</a>`].map(it => `<td ${TABLE_STYLES.tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n')
       return `<tr ${TABLE_STYLES.tableRowStyle}">\n${itemHtmlRow}\n</tr>`
     }).join('\n');
 

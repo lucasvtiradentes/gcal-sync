@@ -99,6 +99,7 @@ async function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, curren
           commitDate: githubCommitItem.commitDate,
           repository: githubCommitItem.repository,
           repositoryName: githubCommitItem.repositoryName,
+          repositoryLink: githubCommitItem.repositoryLink,
           commitId: githubCommitItem.commitId
         }
       };
@@ -144,8 +145,8 @@ async function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, curren
     for (let x = 0; x < githubSessionStats.commits_tracked_to_be_added.length; x++) {
       try {
         const item = githubSessionStats.commits_tracked_to_be_added[x];
-        const commitGcalEvent = addEventToCalendar(githubCalendar, item);
-        githubSessionStats.commits_added.push(item);
+        const commitGcalEvent = addEventToCalendar(githubCalendar, item) as TParsedGoogleEvent<TGcalPrivateGithub>;
+        githubSessionStats.commits_added.push(commitGcalEvent);
         logger.info(`${x + 1}/${githubSessionStats.commits_tracked_to_be_added.length} add new commit to gcal: ${item.extendedProperties.private.commitDate} - ${commitGcalEvent.extendedProperties.private.repositoryName} - ${commitGcalEvent.extendedProperties.private.commitMessage}`);
       } catch (e: any) {
         throw new Error(e.message);

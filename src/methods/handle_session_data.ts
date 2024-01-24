@@ -1,7 +1,7 @@
 import { checkIfShouldSync } from '../utils/check_if_should_sync';
 import { APP_INFO } from '../consts/app_info';
 import { GAS_PROPERTIES_ENUM } from '../consts/configs';
-import { TExtendedConfigs, TSessionStats } from '../consts/types';
+import { TExtendedConfigs, TExtendedSessionStats, TSessionStats } from '../consts/types';
 import { getGASProperty, updateGASProperty } from '../modules/GoogleAppsScript';
 import { sendEmail } from '../modules/GoogleEmail';
 import { logger } from '../utils/abstractions/logger';
@@ -29,7 +29,7 @@ function clearTodayEvents() {
   logger.info(`today stats were reseted!`);
 }
 
-export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData: TSessionStats) {
+export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData: TExtendedSessionStats) {
   const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(extendedConfigs);
 
   const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
@@ -104,5 +104,14 @@ export async function handleSessionData(extendedConfigs: TExtendedConfigs, sessi
     }
   }
 
-  logger.info({ sessionData });
+  const { added_tasks, updated_tasks, completed_tasks, commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
+  logger.info({
+    added_tasks: added_tasks.length,
+    updated_tasks: updated_tasks.length,
+    completed_tasks: completed_tasks.length,
+    commits_added: commits_added.length,
+    commits_deleted: commits_deleted.length,
+    commits_tracked_to_be_added: commits_tracked_to_be_added.length,
+    commits_tracked_to_be_deleted: commits_tracked_to_be_deleted.length
+  });
 }

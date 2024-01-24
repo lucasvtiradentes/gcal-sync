@@ -7,5 +7,3 @@ console.log(gcalsync);
 // gcalsync.sync();
 // gcalsync.install();
 // gcalsync.uninstall();
-// gcalsync.clearTodayEvents();
-// gcalsync.showTodayStats();

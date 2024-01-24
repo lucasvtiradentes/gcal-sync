@@ -8,6 +8,7 @@ export type TParsedGithubCommit = {
   repository: string;
   repositoryId: string;
   repositoryName: string;
+  repositoryLink: string;
   repositoryOwner: string;
   repositoryDescription: string;
   isRepositoryPrivate: boolean;
@@ -68,6 +69,7 @@ export async function getAllGithubCommits(username: string, personalToken: strin
       commitId: it.html_url.split('commit/')[1],
       commitUrl: it.html_url,
       repository: it.repository.full_name,
+      repositoryLink: `https://github.com/${it.repository.full_name}`,
       repositoryId: it.repository.id,
       repositoryName: it.repository.name,
       repositoryOwner: it.repository.owner.login,
