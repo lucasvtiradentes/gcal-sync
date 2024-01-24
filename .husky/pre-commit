@@ -4,6 +4,5 @@
 echo "🐶 husky script: [pre-commit]"
 npm run lint:staged
 npm run build
-git add .
 echo "✅ husky script: [pre-commit]"
 echo ""
