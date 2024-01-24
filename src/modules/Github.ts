@@ -15,7 +15,7 @@ export type TParsedGithubCommit = {
   isRepositoryFork: boolean;
 };
 
-export async function getAllGithubCommits(username: string, personalToken: string) {
+export function getAllGithubCommits(username: string, personalToken: string) {
   const allCommitsArr = [];
 
   let pageNumber = 1;

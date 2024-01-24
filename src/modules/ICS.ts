@@ -16,7 +16,7 @@ export type TExtendedParsedTicktickTask = TParsedTicktickTask & TIcsCalendar;
 
 export type TDate = { date: string } | { dateTime: string; timeZone: string };
 
-export const getIcsCalendarTasks = async (icsLink: string, timezoneCorrection: number) => {
+export const getIcsCalendarTasks = (icsLink: string, timezoneCorrection: number) => {
   const parsedLink = icsLink.replace('webcal://', 'https://');
   const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
   const data = urlResponse.getContentText() || '';

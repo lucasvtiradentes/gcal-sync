@@ -36,7 +36,7 @@ class GcalSync {
     logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
   }
 
-  // ===========================================================================
+  // setup methods =============================================================
 
   private createMissingGASProperties() {
     const allProperties = listAllGASProperties();
@@ -60,9 +60,25 @@ class GcalSync {
     createMissingCalendars(allGoogleCalendars);
   }
 
-  // ===========================================================================
+  // api methods ===============================================================
 
-  async install() {
+  getSessionLogs() {
+    return logger.logs;
+  }
+
+  handleError(error: unknown) {
+    if (this.extended_configs.configs.settings.per_sync_emails.email_errors) {
+      const parsedError = typeof error === 'string' ? error : error instanceof Error ? error.message : JSON.stringify(error);
+      const errorEmail = getErrorEmail(this.extended_configs.user_email, parsedError);
+      sendEmail(errorEmail);
+    } else {
+      logger.error(error);
+    }
+  }
+
+  // main methods ==============================================================
+
+  install() {
     removeAppsScriptsTrigger(this.extended_configs.configs.settings.sync_function);
     addAppsScriptsTrigger(this.extended_configs.configs.settings.sync_function, this.extended_configs.configs.settings.update_frequency);
     this.createMissingGASProperties();
@@ -70,7 +86,7 @@ class GcalSync {
     logger.info(`${APP_INFO.name} was set to run function "${this.extended_configs.configs.settings.sync_function}" every ${this.extended_configs.configs.settings.update_frequency} minutes`);
   }
 
-  async uninstall() {
+  uninstall() {
     removeAppsScriptsTrigger(this.extended_configs.configs.settings.sync_function);
 
     Object.keys(GAS_PROPERTIES_ENUM).forEach((key) => {
@@ -80,9 +96,7 @@ class GcalSync {
     logger.info(`${APP_INFO.name} automation was removed from appscript!`);
   }
 
-  // ===========================================================================
-
-  async sync() {
+  sync() {
     const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
 
     if (!shouldSyncGithub && !shouldSyncTicktick) {
@@ -102,8 +116,8 @@ class GcalSync {
       commits_deleted: []
     };
 
-    const ticktickSync = await syncTicktick(this.extended_configs.configs);
-    const githubSync = await syncGithub(this.extended_configs.configs);
+    const ticktickSync = syncTicktick(this.extended_configs.configs);
+    const githubSync = syncGithub(this.extended_configs.configs);
 
     const sessionData: TExtendedSessionStats = {
       ...emptySessionData,
@@ -111,12 +125,8 @@ class GcalSync {
       ...(shouldSyncGithub && githubSync)
     };
 
-    await handleSessionData(this.extended_configs, sessionData);
-  }
-
-  async sendErrorEmail(errorMessage: string) {
-    const errorEmail = getErrorEmail(this.extended_configs.user_email, errorMessage);
-    sendEmail(errorEmail);
+    const parsedSessionData = handleSessionData(this.extended_configs, sessionData);
+    return parsedSessionData;
   }
 }
 

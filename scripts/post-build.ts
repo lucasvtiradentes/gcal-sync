@@ -7,15 +7,15 @@ const FILES = {
   configs: './resources/configs.ts',
   gas_permissions: './dist/setup/permissions.json',
   gas_setup: './dist/setup/setup.js',
-  gas_dev: './dist/setup/GAS_gcalsync_dev.js',
+  gas_dev: './dist/setup/gcalsync_dev.js',
   gas_prod: './dist/index.js'
 };
 
 const VERSION = JSON.parse(readFileSync(FILES.package, { encoding: 'utf8' })).version;
 
 const README_DYNAMIC_FIELDS = {
-  gasAppsScriptContent: 'GAS_APPSSCRIPT',
-  gasSetupContent: 'GAS_SETUP'
+  permissions_content: 'GAS_APPSSCRIPT',
+  setup_content: 'GAS_SETUP'
 } as const;
 
 type TReadmeDynamicFields = (typeof README_DYNAMIC_FIELDS)[keyof typeof README_DYNAMIC_FIELDS];
@@ -30,12 +30,12 @@ type TReadmeDynamicFields = (typeof README_DYNAMIC_FIELDS)[keyof typeof README_D
   writeFileSync(FILES.gas_permissions, gasAllowPermissionContent, { encoding: 'utf-8' });
 
   const originalContent = readFileSync(FILES.gas_prod, { encoding: 'utf8' });
-  const gcalSyncDevContent = originalContent.split('/* global Reflect, Promise, SuppressedError, Symbol */\r\n\r\n\r\n')[1].split('\n').slice(0, -2).join('\n');
+  const gcalSyncDevContent = originalContent.split("})(this, (function () { 'use strict';\n")[1].split('\n').slice(0, -2).join('\n');
   writeFileSync(FILES.gas_dev, `function getGcalSyncDev(){\n${gcalSyncDevContent}\n}`, { encoding: 'utf-8' });
 
   const readmeFile = new DynMarkdown<TReadmeDynamicFields>(FILES.readme);
-  readmeFile.updateField(README_DYNAMIC_FIELDS.gasSetupContent, `<pre>\n${initFileContent}\n</pre>`);
-  readmeFile.updateField(README_DYNAMIC_FIELDS.gasAppsScriptContent, `<pre>\n${gasAllowPermissionContent}\n</pre>`);
+  readmeFile.updateField(README_DYNAMIC_FIELDS.setup_content, `<pre>\n${initFileContent}\n</pre>`);
+  readmeFile.updateField(README_DYNAMIC_FIELDS.permissions_content, `<pre>\n${gasAllowPermissionContent}\n</pre>`);
   readmeFile.saveFile();
 })();
 
@@ -84,11 +84,21 @@ function getGasInitFileContent(configFile: string, version: string) {
 }
 
 function getGcalSync(){
-  const version = "${version}"
-  const gcalSyncContent = UrlFetchApp.fetch(\`https://cdn.jsdelivr.net/npm/gcal-sync@\${version}\`).getContentText();
-  eval(gcalSyncContent)
+
+  let gcalSync;
   const configs = getConfigs()
-  const gcalSync = new GcalSync(configs);
+  const useDevVersion = false
+
+  if (useDevVersion){
+    const GcalSync = getGcalSyncDev()
+    gcalSync = new GcalSync(configs);
+  } else {
+    const version = "${version}"
+    const gcalSyncContent = UrlFetchApp.fetch(\`https://cdn.jsdelivr.net/npm/gcal-sync@${version}\`).getContentText();
+    eval(gcalSyncContent)
+    gcalSync = new GcalSync(configs);
+  }
+
   return gcalSync;
 }
 
@@ -103,24 +113,32 @@ function uninstall() {
 }
 
 function sync(){
+  const gcalSync = getGcalSync()
+
   try{
-    const gcalSync = getGcalSync()
-    gcalSync.sync()
+    console.log(gcalSync.sync())
   } catch(e){
-    console.log(e);
+    gcalSync.handleError(e)
   }
 }
 
-function doGet(e) {
-  let response = {}
-  try{
-    const gcalSync = getGcalSync()
-    const content = gcalSync.sync()
-    const logs = gcalSync.SESSION_LOGS
-    response = {...content, logs}
-  } catch(e){
-    response = {error: e.message}
+function doGet(reqParams) {
+  const gcalSync = getGcalSync()
+
+  const response = {
+    sessionData: {},
+    logs: [],
+    error: null
   }
+
+  try {
+    response.sessionData = gcalSync.sync()
+    response.logs = gcalSync.getSessionLogs()
+  } catch (e){
+    response.error = e
+    gcalSync.handleError(e)
+  }
+
   return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON)
 }`;
 
