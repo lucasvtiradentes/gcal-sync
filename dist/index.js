@@ -40,7 +40,7 @@
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.1',
-        build_date_time: '24/01/2024 09:03:34'
+        build_date_time: '24/01/2024 20:36:11'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -1081,6 +1081,11 @@
             }
         }
     };
+    const ticktickCalItemObjectShape = {
+        gcal: '',
+        gcal_done: '',
+        link: ''
+    };
     const ticktickRequiredObjectShape = {
         should_sync: false,
         ics_calendars: []
@@ -1101,11 +1106,21 @@
         const isValid = {
             basic: true,
             ticktick: true,
-            github: true
+            ticktickIcsItems: true,
+            github: true,
+            githubIgnoredRepos: true
         };
         isValid.basic = validateObjectSchema(configs, basicRequiredObjectShape);
-        isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
         isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
+        isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
+        if (typeof configs[ticktickConfigsKey] === 'object' && 'ics_calendars' in configs[ticktickConfigsKey] && Array.isArray(configs[ticktickConfigsKey].ics_calendars)) {
+            const itemsValidationArr = configs[ticktickConfigsKey].ics_calendars.map((item) => validateObjectSchema(item, ticktickCalItemObjectShape));
+            isValid.ticktickIcsItems = itemsValidationArr.every((item) => item === true);
+        }
+        if (typeof configs[githubConfigsKey] === 'object' && 'ignored_repos' in configs[githubConfigsKey] && Array.isArray(configs[githubConfigsKey].ignored_repos)) {
+            const itemsValidationArr = configs[githubConfigsKey].ignored_repos.map((item) => typeof item === 'string');
+            isValid.githubIgnoredRepos = itemsValidationArr.every((item) => item === true);
+        }
         return Object.values(isValid).every((isSchemaValid) => isSchemaValid === true);
     }
 

@@ -1,6 +1,6 @@
 import { isObject } from '../utils/javascript/object_utils';
 import { validateObjectSchema } from '../utils/validate_object_schema';
-import { TBasicConfig, TGithubSync, TTicktickSync, githubConfigsKey, ticktickConfigsKey } from '../consts/types';
+import { TBasicConfig, TGithubSync, TIcsCalendar, TTicktickSync, githubConfigsKey, ticktickConfigsKey } from '../consts/types';
 
 const basicRequiredObjectShape: TBasicConfig = {
   settings: {
@@ -17,6 +17,12 @@ const basicRequiredObjectShape: TBasicConfig = {
       email_session: false
     }
   }
+};
+
+const ticktickCalItemObjectShape: TIcsCalendar = {
+  gcal: '',
+  gcal_done: '',
+  link: ''
 };
 
 const ticktickRequiredObjectShape: TTicktickSync = {
@@ -41,12 +47,24 @@ export function validateConfigs(configs: unknown) {
   const isValid = {
     basic: true,
     ticktick: true,
-    github: true
+    ticktickIcsItems: true,
+    github: true,
+    githubIgnoredRepos: true
   };
 
   isValid.basic = validateObjectSchema(configs, basicRequiredObjectShape);
-  isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
   isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
+  isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
+
+  if (typeof configs[ticktickConfigsKey] === 'object' && 'ics_calendars' in configs[ticktickConfigsKey] && Array.isArray(configs[ticktickConfigsKey].ics_calendars)) {
+    const itemsValidationArr = configs[ticktickConfigsKey].ics_calendars.map((item) => validateObjectSchema(item, ticktickCalItemObjectShape));
+    isValid.ticktickIcsItems = itemsValidationArr.every((item) => item === true);
+  }
+
+  if (typeof configs[githubConfigsKey] === 'object' && 'ignored_repos' in configs[githubConfigsKey] && Array.isArray(configs[githubConfigsKey].ignored_repos)) {
+    const itemsValidationArr = configs[githubConfigsKey].ignored_repos.map((item) => typeof item === 'string');
+    isValid.githubIgnoredRepos = itemsValidationArr.every((item) => item === true);
+  }
 
   return Object.values(isValid).every((isSchemaValid) => isSchemaValid === true);
 }
