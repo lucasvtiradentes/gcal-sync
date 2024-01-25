@@ -6,6 +6,7 @@ export const configs: TConfigs = {
     sync_function: 'sync',                // function name to run every x minutes
     timezone_correction: -3,              // hour difference from your timezone to utc timezone | https://www.utctime.net/
     update_frequency: 5,                  // wait time between sync checks (must be multiple of 5: 10, 15, etc)
+    skip_mode: false,                     // if set to true, it will skip every sync (useful for not messing up your data if any bug occurs repeatedly)
     per_day_emails: {
       time_to_send: '22:00',              // time to email the summary
       email_daily_summary: false,         // email all the actions done in the day on the above time

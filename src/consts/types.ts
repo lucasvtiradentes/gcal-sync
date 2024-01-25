@@ -35,6 +35,7 @@ export type TBasicConfig = {
     timezone_correction: number;
     sync_function: string;
     update_frequency: number;
+    skip_mode: boolean;
     per_day_emails: {
       time_to_send: string;
       email_new_gcal_sync_release: boolean;
