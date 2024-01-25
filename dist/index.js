@@ -7,8 +7,8 @@
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '1.8.1',
-        build_date_time: '24/01/2024 22:29:50'
+        version: '1.9.0',
+        build_date_time: '24/01/2024 22:31:33'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);

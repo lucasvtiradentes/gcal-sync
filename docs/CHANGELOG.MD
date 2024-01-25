@@ -1,5 +1,37 @@
 # CHANGELOG HISTORY
 
+## [1.9.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.8.1...v1.9.0) (2024-01-25)
+
+
+### ✨ feature:
+
+* add api methods ([f5ac10e](https://github.com/lucasvtiradentes/gcal-sync/commit/f5ac10e3b390ef460ef0aef0eab00228338c08d1))
+* add maintenance mode ([14dd1bb](https://github.com/lucasvtiradentes/gcal-sync/commit/14dd1bb4b8e51589b1f2b97f60e912afeb98a192))
+* add session handler ([db4b016](https://github.com/lucasvtiradentes/gcal-sync/commit/db4b016d0722465485daf17c78c8ccf98270a0de))
+* improve gas properties enum ([dfa43e3](https://github.com/lucasvtiradentes/gcal-sync/commit/dfa43e32d89e8d67864ab7adb635afd7960c65ca))
+* update configs schema ([1a462fd](https://github.com/lucasvtiradentes/gcal-sync/commit/1a462fdc6c5f56824e67488c0fbb5f7bc139f088))
+
+
+### 🔧 config:
+
+* update dist gas files configs ([0dbe59b](https://github.com/lucasvtiradentes/gcal-sync/commit/0dbe59b8bdd80a157523bedca963200de686dcba))
+* update gas dist files configs ([24bfb0e](https://github.com/lucasvtiradentes/gcal-sync/commit/24bfb0e5692cae56bf1125d8cbd3b9b18566f782))
+
+
+### 🍱 assets:
+
+* add postman github api collection to resources ([bd4e656](https://github.com/lucasvtiradentes/gcal-sync/commit/bd4e656003ce927cf949dbd07459417d6b1bb565))
+
+
+### 🐛 bugfix:
+
+* revert original github commit datetime ([b33be51](https://github.com/lucasvtiradentes/gcal-sync/commit/b33be510d76e07bd56813abd5230cfa5d187fe53))
+
+
+### 🩹 fix:
+
+* github commit link table error ([fc0c570](https://github.com/lucasvtiradentes/gcal-sync/commit/fc0c570174aed9030b8322d1cf862ef2be1933ad))
+
 ## [1.8.1](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.8.0...v1.8.1) (2024-01-22)
 
 ## [1.8.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.7.8...v1.8.0) (2024-01-22)
