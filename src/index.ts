@@ -97,11 +97,16 @@ class GcalSync {
   }
 
   sync() {
+    if (this.extended_configs.configs.settings.skip_mode) {
+      logger.info('skip_mode is set to true, skipping sync');
+      return {};
+    }
+
     const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
 
     if (!shouldSyncGithub && !shouldSyncTicktick) {
       logger.info('nothing to sync');
-      return;
+      return {};
     }
 
     this.createMissingGcalCalendars();

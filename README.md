@@ -178,6 +178,7 @@ function getConfigs() {
       sync_function: 'sync',                // function name to run every x minutes
       timezone_correction: -3,              // hour difference from your timezone to utc timezone | https://www.utctime.net/
       update_frequency: 5,                  // wait time between sync checks (must be multiple of 5: 10, 15, etc)
+      skip_mode: false,                     // if set to true, it will skip every sync (useful for not messing up your data if any bug occurs repeatedly)
       per_day_emails: {
         time_to_send: '22:00',              // time to email the summary
         email_daily_summary: false,         // email all the actions done in the day on the above time
@@ -389,11 +390,10 @@ To update your esports-notifier instance and use the latest features, you just n
 
 <pre>
 function getGcalSync(){
+  // ...
   const version = "1.0.0" // update here to use the latest features
   const content = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@${version}`).getContentText();
-  eval(content)
-  const gcalSync = new GcalSync(CONFIGS)
-  return gcalSync;
+  // ...
 }
 </pre>
 
@@ -426,22 +426,25 @@ $ cd gcal-sync
 $ npm install
 ```
 
-If you want to [contribute](./docs/CONTRIBUTING.md) to the project, fork the project, make the necessary changes, and to test your work you can load your version in google apps scripts with almost no effort do this:
+If you want to [contribute](./docs/CONTRIBUTING.md) to the project, fork the project, make the necessary changes, and to test your work on google apps scripts with do this:
 
-run `npm run build` in order to generate the dist files. After that, create a new GAS file (ex: dev_gcal.gs) and paste the content of [GAS_gcalsync_dev](./dist/setup/GAS_gcalsync_dev.js) on this new GAS file.
+1. run `npm run build` in order to generate the dist files. After that, create a new GAS file (ex: dev_gcal.gs) and paste the content of [gcalsync_dev](./dist/setup/gcalsync_dev.js) on this new GAS file.
 
-after that, replace the content of the <code>getGcalSync</code> function with the following code to the apps script:
+2. after that, update the content of the <code>getGcalSync</code> as specified bellow:
 
 ```js
 function getGcalSync() {
-  const configs = getConfigs();
-  const GcalSync = getGcalSyncDev(); // your work is here
-  const gcalSync = new GcalSync(configs);
-  return gcalSync;
+  // ...
+  const useDevVersion = true; // set this to true to use your gcal-sync version
+
+  if (useDevVersion) {
+    const GcalSync = getGcalSyncDev(); // your work is here
+  }
+  // ...
 }
 ```
 
-now you can test your work on production/GAS!
+now you can test your work really easy on production/GAS!
 
   </div>
 </details>

@@ -8,7 +8,7 @@
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.8.1',
-        build_date_time: '24/01/2024 22:17:42'
+        build_date_time: '24/01/2024 22:29:50'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -1035,6 +1035,7 @@
     const basicRequiredObjectShape = {
         settings: {
             sync_function: '',
+            skip_mode: false,
             timezone_correction: -3,
             update_frequency: 4,
             per_day_emails: {
@@ -1157,10 +1158,14 @@
             logger.info(`${APP_INFO.name} automation was removed from appscript!`);
         }
         sync() {
+            if (this.extended_configs.configs.settings.skip_mode) {
+                logger.info('skip_mode is set to true, skipping sync');
+                return {};
+            }
             const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
             if (!shouldSyncGithub && !shouldSyncTicktick) {
                 logger.info('nothing to sync');
-                return;
+                return {};
             }
             this.createMissingGcalCalendars();
             this.createMissingGASProperties();
