@@ -29,6 +29,10 @@ export type TParsedGoogleEvent<TPrivate> = GcalCommon & { extendedProperties: TP
 
 // =============================================================================
 
+export const getCurrentTimezone = () => {
+  return CalendarApp.getDefaultCalendar().getTimeZone();
+};
+
 export const createMissingCalendars = (allGcalendarsNames: string[]) => {
   let createdCalendar = false;
 

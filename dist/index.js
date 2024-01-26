@@ -8,7 +8,7 @@
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.9.0',
-        build_date_time: '25/01/2024 21:57:24'
+        build_date_time: '25/01/2024 22:34:26'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -549,7 +549,6 @@
         return curString;
     }
 
-    // =============================================================================
     const createMissingCalendars = (allGcalendarsNames) => {
         let createdCalendar = false;
         allGcalendarsNames.forEach((calName) => {

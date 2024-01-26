@@ -62,7 +62,7 @@
 
 ## :trumpet: Overview
 
-Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking capabilities and productivity analysis..
+Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking capabilities and productivity analysis.
 
 <div align="center">
   <table align="center">

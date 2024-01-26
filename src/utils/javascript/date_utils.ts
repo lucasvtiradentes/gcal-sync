@@ -26,3 +26,32 @@ export function isCurrentTimeAfter(timeToCompare: string, timezone: number) {
 
   return curStamp >= specifiedStamp;
 }
+
+export function getCurrentDateInSpecifiedTimezone(timeZone: string) {
+  const date = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(date);
+  const findPart = (type: string) => parts.find((part) => part.type === type).value;
+
+  const isoDate = `${findPart('year')}-${findPart('month')}-${findPart('day')}T${findPart('hour')}:${findPart('minute')}:${findPart('second')}.000`;
+  return isoDate;
+}
+
+export function getTimezoneOffset(timezone: string) {
+  const date = new Date();
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
+  const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+
+  const offset = (Number(tzDate) - Number(utcDate)) / (1000 * 60 * 60);
+  return offset;
+}
