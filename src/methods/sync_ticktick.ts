@@ -1,4 +1,4 @@
-import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar } from '../modules/GoogleCalendar';
+import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar, updateEventFromCalendar } from '../modules/GoogleCalendar';
 import { TExtendedParsedTicktickTask, getIcsCalendarTasks } from '../modules/ICS';
 import { ERRORS } from '../consts/errors';
 import { TConfigs, TIcsCalendar, ticktickConfigsKey } from '../consts/types';
@@ -40,6 +40,8 @@ export const getFixedTaskName = (str: string) => {
   return fixedName;
 };
 
+export const generateGcalDescription = (curIcsTask: TExtendedParsedTicktickTask) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
+
 function convertTicktickTaskToGcal(ticktickTask: TExtendedParsedTicktickTask) {
   const properties: TGcalPrivateTicktick = {
     private: {
@@ -50,8 +52,6 @@ function convertTicktickTaskToGcal(ticktickTask: TExtendedParsedTicktickTask) {
   };
 
   const customColor = ticktickTask?.color ? { colorId: ticktickTask.color.toString() } : {};
-
-  const generateGcalDescription = (curIcsTask: TExtendedParsedTicktickTask) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
 
   const taskEvent: TGoogleEvent = {
     summary: getFixedTaskName(ticktickTask.name),
@@ -153,22 +153,39 @@ export function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }: TI
 
   for (const ticktickTask of ticktickTasks) {
     const taskOnGcal = ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
-    const correspondingCalendar = getCalendarByName(ticktickTask.gcal);
+    const taskGoogleCalendar = getCalendarByName(ticktickTask.gcal);
 
     if (!taskOnGcal) {
-      const addedTask = addTicktickTaskToGcal(correspondingCalendar, ticktickTask) as TParsedGoogleEvent<TGcalPrivateTicktick>;
+      const addedTask = addTicktickTaskToGcal(taskGoogleCalendar, ticktickTask) as TParsedGoogleEvent<TGcalPrivateTicktick>;
       result.added_tasks.push(addedTask);
     } else {
-      const hasChangedCalendar = correspondingCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
+      const hasChangedCalendar = taskGoogleCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
       const changedTicktickFields = checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
       const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
 
+      const extendProps: TGcalPrivateTicktick = {
+        private: {
+          calendar: ticktickTask.gcal,
+          completedCalendar: ticktickTask.gcal_done,
+          tickTaskId: ticktickTask.id
+        }
+      };
+
+      const modifiedFields = {
+        summary: ticktickTask.name,
+        description: generateGcalDescription(ticktickTask),
+        start: ticktickTask.start,
+        end: ticktickTask.end,
+        extendedProperties: extendProps,
+        colorId: ticktickTask?.color ? ticktickTask?.color.toString() : undefined
+      };
+
       if (hasChangedCalendar) {
-        const movedTask = moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }) as TParsedGoogleEvent<TGcalPrivateTicktick>;
+        const movedTask = moveEventToOtherCalendar(taskGoogleCalendar, taskDoneCalendar, { ...taskOnGcal, ...modifiedFields }) as TParsedGoogleEvent<TGcalPrivateTicktick>;
         result.updated_tasks.push(movedTask);
       } else if (changedTicktickFields.length > 0) {
-        const movedTask = moveEventToOtherCalendar(correspondingCalendar, taskDoneCalendar, { ...taskOnGcal, colorId: undefined }) as TParsedGoogleEvent<TGcalPrivateTicktick>;
-        result.updated_tasks.push(movedTask);
+        const updatedTask = updateEventFromCalendar(taskGoogleCalendar, taskOnGcal, modifiedFields) as TParsedGoogleEvent<TGcalPrivateTicktick>;
+        result.updated_tasks.push(updatedTask);
       }
     }
   }

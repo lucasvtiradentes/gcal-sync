@@ -56,10 +56,26 @@ export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData
     logger.info(`added ${githubNewItems} new github items to today's stats`);
   }
 
+  // =========================================================================
+
   const totalSessionNewItems = ticktickNewItems + githubNewItems;
+  sendSessionEmails(extendedConfigs, sessionData, totalSessionNewItems);
 
   // =========================================================================
 
+  const { added_tasks, updated_tasks, completed_tasks, commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
+  return {
+    added_tasks: added_tasks.length,
+    updated_tasks: updated_tasks.length,
+    completed_tasks: completed_tasks.length,
+    commits_added: commits_added.length,
+    commits_deleted: commits_deleted.length,
+    commits_tracked_to_be_added: commits_tracked_to_be_added.length,
+    commits_tracked_to_be_deleted: commits_tracked_to_be_deleted.length
+  };
+}
+
+function sendSessionEmails(extendedConfigs: TExtendedConfigs, sessionData: TExtendedSessionStats, totalSessionNewItems: number) {
   const userEmail = extendedConfigs.user_email;
 
   if (extendedConfigs.configs.settings.per_sync_emails.email_session && totalSessionNewItems > 0) {
@@ -103,15 +119,4 @@ export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData
       updateGASProperty(GAS_PROPERTIES_ENUM.last_released_version_alerted, latestVersion.toString());
     }
   }
-
-  const { added_tasks, updated_tasks, completed_tasks, commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
-  return {
-    added_tasks: added_tasks.length,
-    updated_tasks: updated_tasks.length,
-    completed_tasks: completed_tasks.length,
-    commits_added: commits_added.length,
-    commits_deleted: commits_deleted.length,
-    commits_tracked_to_be_added: commits_tracked_to_be_added.length,
-    commits_tracked_to_be_deleted: commits_tracked_to_be_deleted.length
-  };
 }

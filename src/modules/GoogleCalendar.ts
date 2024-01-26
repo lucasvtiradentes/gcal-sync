@@ -120,6 +120,17 @@ export function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEven
   return eventFinal;
 }
 
+export function updateEventFromCalendar(calendar: TGoogleCalendar, event: TGoogleEvent, updatedProps: any) {
+  const updatedEvent = getEventById(calendar, event.id);
+
+  const finalObj = {
+    ...updatedEvent,
+    ...updatedProps
+  };
+
+  return Calendar.Events.update(finalObj, calendar.id, event.id);
+}
+
 export function moveEventToOtherCalendar(calendar: TGoogleCalendar, newCalendar: TGoogleCalendar, event: TGoogleEvent) {
   removeCalendarEvent(calendar, event);
   Utilities.sleep(2000);

@@ -1,14 +1,15 @@
 import { APP_INFO } from './consts/app_info';
 import { GAS_PROPERTIES_ENUM, GAS_PROPERTIES_INITIAL_VALUE_ENUM, TGasPropertiesSchemaKeys } from './consts/configs';
 import { ERRORS } from './consts/errors';
-import { TConfigs, TExtendedConfigs, TExtendedSessionStats, TSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
+import { TConfigs, TExtendedConfigs, TExtendedSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
 import { getErrorEmail } from './methods/generate_emails';
 import { handleSessionData } from './methods/handle_session_data';
-import { syncGithub } from './methods/sync_github';
-import { syncTicktick } from './methods/sync_ticktick';
+import { getFilterGithubRepos, syncGithub } from './methods/sync_github';
+import { getAllTicktickTasks, syncTicktick } from './methods/sync_ticktick';
 import { validateConfigs } from './methods/validate_configs';
+import { getAllGithubCommits } from './modules/Github';
 import { addAppsScriptsTrigger, deleteGASProperty, isRunningOnGAS, listAllGASProperties, removeAppsScriptsTrigger, updateGASProperty } from './modules/GoogleAppsScript';
-import { createMissingCalendars } from './modules/GoogleCalendar';
+import { createMissingCalendars, getTasksFromGoogleCalendars } from './modules/GoogleCalendar';
 import { getUserEmail, sendEmail } from './modules/GoogleEmail';
 import { logger } from './utils/abstractions/logger';
 import { checkIfShouldSync } from './utils/check_if_should_sync';
@@ -62,10 +63,6 @@ class GcalSync {
 
   // api methods ===============================================================
 
-  getSessionLogs() {
-    return logger.logs;
-  }
-
   handleError(error: unknown) {
     if (this.extended_configs.configs.settings.per_sync_emails.email_errors) {
       const parsedError = typeof error === 'string' ? error : error instanceof Error ? error.message : JSON.stringify(error);
@@ -74,6 +71,23 @@ class GcalSync {
     } else {
       logger.error(error);
     }
+  }
+
+  getSessionLogs() {
+    return logger.logs;
+  }
+
+  getTicktickTasks() {
+    return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.configs.settings.timezone_correction);
+  }
+
+  getGoogleEvents() {
+    return getTasksFromGoogleCalendars([...new Set(this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal))]);
+  }
+
+  getGithubCommits() {
+    const githubCommits = getAllGithubCommits(this.extended_configs.configs[githubConfigsKey].username, this.extended_configs.configs[githubConfigsKey].personal_token);
+    return getFilterGithubRepos(this.extended_configs.configs, githubCommits);
   }
 
   // main methods ==============================================================
@@ -112,22 +126,21 @@ class GcalSync {
     this.createMissingGcalCalendars();
     this.createMissingGASProperties();
 
-    const emptySessionData: TSessionStats = {
+    const emptySessionData: TExtendedSessionStats = {
       added_tasks: [],
       updated_tasks: [],
       completed_tasks: [],
 
       commits_added: [],
-      commits_deleted: []
+      commits_deleted: [],
+      commits_tracked_to_be_added: [],
+      commits_tracked_to_be_deleted: []
     };
-
-    const ticktickSync = syncTicktick(this.extended_configs.configs);
-    const githubSync = syncGithub(this.extended_configs.configs);
 
     const sessionData: TExtendedSessionStats = {
       ...emptySessionData,
-      ...(shouldSyncTicktick && ticktickSync),
-      ...(shouldSyncGithub && githubSync)
+      ...(shouldSyncTicktick && syncTicktick(this.extended_configs.configs)),
+      ...(shouldSyncGithub && syncGithub(this.extended_configs.configs))
     };
 
     const parsedSessionData = handleSessionData(this.extended_configs, sessionData);

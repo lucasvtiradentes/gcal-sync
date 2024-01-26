@@ -29,6 +29,13 @@ function resetGithubSyncProperties() {
   updateGASProperty('github_commits_tracked_to_be_deleted', []);
 }
 
+export function getFilterGithubRepos(configs: TConfigs, commits: TParsedGithubCommit[]) {
+  const commitsSortedByDate = commits.sort((a, b) => Number(new Date(b.commitDate)) - Number(new Date(a.commitDate)));
+  const onlyCommitsOnUserRepositories = commitsSortedByDate.filter((item) => item.repository.includes(configs[githubConfigsKey].username));
+  const filteredRepos = onlyCommitsOnUserRepositories.filter((item) => configs[githubConfigsKey].commits_configs.ignored_repos.includes(item.repositoryName) === false);
+  return filteredRepos;
+}
+
 export function syncGithub(configs: TConfigs) {
   const info: TInfo = {
     githubCommits: getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
@@ -52,14 +59,12 @@ export function syncGithub(configs: TConfigs) {
     logger.info(`making commit changes if succeed: ${currentGithubSyncIndex}/${CONFIGS.REQUIRED_GITHUB_VALIDATIONS_COUNT}`);
   }
 
-  const githubCalendar = getCalendarByName(configs[githubConfigsKey].commits_configs.commits_calendar);
-  const commitsSortedByDate = info.githubCommits.sort((a, b) => Number(new Date(b.commitDate)) - Number(new Date(a.commitDate)));
-  const onlyCommitsOnUserRepositories = commitsSortedByDate.filter((item) => item.repository.includes(configs[githubConfigsKey].username));
-  const onlyCommitsFromValidRepositories = onlyCommitsOnUserRepositories.filter((item) => configs[githubConfigsKey].commits_configs.ignored_repos.includes(item.repositoryName) === false);
+  const filteredRepos = getFilterGithubRepos(configs, info.githubCommits);
 
+  const githubCalendar = getCalendarByName(configs[githubConfigsKey].commits_configs.commits_calendar);
   const result: TGithubSyncResultInfo = {
-    ...syncGithubCommitsToAdd({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories, parseCommitEmojis: configs[githubConfigsKey].commits_configs.parse_commit_emojis }),
-    ...syncGithubCommitsToDelete({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, onlyCommitsFromValidRepositories })
+    ...syncGithubCommitsToAdd({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, filteredRepos: filteredRepos, parseCommitEmojis: configs[githubConfigsKey].commits_configs.parse_commit_emojis }),
+    ...syncGithubCommitsToDelete({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, filteredRepos: filteredRepos })
   };
 
   if (result.commits_tracked_to_be_added.length === 0 && result.commits_tracked_to_be_deleted.length === 0) {
@@ -73,20 +78,20 @@ export function syncGithub(configs: TConfigs) {
 // =============================================================================
 
 type TSyncGithubCommitsToAdd = {
-  onlyCommitsFromValidRepositories: TParsedGithubCommit[];
+  filteredRepos: TParsedGithubCommit[];
   githubCalendar: TGoogleCalendar;
   currentGithubSyncIndex: number;
   githubGcalCommits: TParsedGoogleEvent<TGcalPrivateGithub>[];
   parseCommitEmojis: boolean;
 };
 
-function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }: TSyncGithubCommitsToAdd) {
+function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }: TSyncGithubCommitsToAdd) {
   const githubSessionStats: TResultInfoAdded = {
     commits_tracked_to_be_added: [],
     commits_added: []
   };
 
-  for (const githubCommitItem of onlyCommitsFromValidRepositories) {
+  for (const githubCommitItem of filteredRepos) {
     const sameRepoCommits = githubGcalCommits.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubCommitItem.repository);
     const hasEquivalentGcalTask = sameRepoCommits.find((gcalItem) => gcalItem.extendedProperties.private.commitDate === githubCommitItem.commitDate && parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage) === parseGithubEmojisString(githubCommitItem.commitMessage));
 
@@ -160,13 +165,13 @@ function syncGithubCommitsToAdd({ onlyCommitsFromValidRepositories, currentGithu
 }
 
 type TSyncGithubCommitsToDelete = {
-  onlyCommitsFromValidRepositories: TParsedGithubCommit[];
+  filteredRepos: TParsedGithubCommit[];
   githubCalendar: TGoogleCalendar;
   currentGithubSyncIndex: number;
   githubGcalCommits: TParsedGoogleEvent<TGcalPrivateGithub>[];
 };
 
-function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, onlyCommitsFromValidRepositories }: TSyncGithubCommitsToDelete) {
+function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, filteredRepos }: TSyncGithubCommitsToDelete) {
   const githubSessionStats: TResultInfoDeleted = {
     commits_deleted: [],
     commits_tracked_to_be_deleted: []
@@ -174,7 +179,7 @@ function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentG
 
   githubGcalCommits.forEach((gcalItem) => {
     const gcalProperties = gcalItem.extendedProperties.private;
-    const onlySameRepoCommits = onlyCommitsFromValidRepositories.filter((item) => item.repository === gcalProperties.repository);
+    const onlySameRepoCommits = filteredRepos.filter((item) => item.repository === gcalProperties.repository);
 
     const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => item.commitDate === gcalProperties.commitDate && parseGithubEmojisString(item.commitMessage) === parseGithubEmojisString(gcalProperties.commitMessage));
 

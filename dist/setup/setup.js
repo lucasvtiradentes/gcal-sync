@@ -61,8 +61,8 @@ function getGcalSync(){
     const GcalSync = getGcalSyncDev()
     gcalSync = new GcalSync(configs);
   } else {
-    const version = "1.8.1"
-    const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@1.8.1`).getContentText();
+    const version = "1.9.0"
+    const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@1.9.0`).getContentText();
     eval(gcalSyncContent)
     gcalSync = new GcalSync(configs);
   }
