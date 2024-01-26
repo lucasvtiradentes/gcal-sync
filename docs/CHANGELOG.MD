@@ -1,5 +1,17 @@
 # CHANGELOG HISTORY
 
+## [1.10.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.9.0...v1.10.0) (2024-01-26)
+
+
+### ✨ feature:
+
+* add date utils to get timezone correction ([81f4597](https://github.com/lucasvtiradentes/gcal-sync/commit/81f459755520e16e2b9179ac0f69efc4a5660ba6))
+
+
+### 🐛 bugfix:
+
+* updated tasks error ([#113](https://github.com/lucasvtiradentes/gcal-sync/issues/113)) ([c44f001](https://github.com/lucasvtiradentes/gcal-sync/commit/c44f001591c6db19b52ec3c4c2fb870fc8be8b67))
+
 ## [1.9.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.8.1...v1.9.0) (2024-01-25)
 
 
