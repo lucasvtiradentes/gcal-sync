@@ -1,5 +1,12 @@
 # CHANGELOG HISTORY
 
+## [1.11.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.10.0...v1.11.0) (2024-01-28)
+
+
+### ✨ feature:
+
+* get user timezone from google calendar ([#111](https://github.com/lucasvtiradentes/gcal-sync/issues/111)) ([aa0346d](https://github.com/lucasvtiradentes/gcal-sync/commit/aa0346df85e50a8db0aa4baa141f3d40565af4ce))
+
 ## [1.10.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.9.0...v1.10.0) (2024-01-26)
 
 

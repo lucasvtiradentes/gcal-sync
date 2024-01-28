@@ -3,8 +3,8 @@ function getGcalSyncDev(){
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '1.10.0',
-        build_date_time: '28/01/2024 18:56:48'
+        version: '1.11.0',
+        build_date_time: '28/01/2024 19:00:37'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
