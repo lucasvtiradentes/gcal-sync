@@ -4,7 +4,7 @@ function getGcalSyncDev(){
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
         version: '1.10.0',
-        build_date_time: '25/01/2024 22:36:15'
+        build_date_time: '28/01/2024 18:56:48'
     };
 
     const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
@@ -314,6 +314,30 @@ function getGcalSyncDev(){
         const specifiedStamp = Number(timeArr[0]) * 60 + Number(timeArr[1]);
         return curStamp >= specifiedStamp;
     }
+    function getCurrentDateInSpecifiedTimezone(timeZone) {
+        const date = new Date();
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: timeZone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        const parts = formatter.formatToParts(date);
+        const findPart = (type) => parts.find((part) => part.type === type).value;
+        const isoDate = `${findPart('year')}-${findPart('month')}-${findPart('day')}T${findPart('hour')}:${findPart('minute')}:${findPart('second')}.000`;
+        return isoDate;
+    }
+    function getTimezoneOffset(timezone) {
+        const date = new Date();
+        const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
+        const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+        const offset = (Number(tzDate) - Number(utcDate)) / (1000 * 60 * 60);
+        return offset;
+    }
 
     function getTodayStats() {
         const todayStats = {
@@ -375,7 +399,7 @@ function getGcalSyncDev(){
             const sessionEmail = getSessionEmail(userEmail, sessionData);
             sendEmail(sessionEmail);
         }
-        const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.settings.per_day_emails.time_to_send, extendedConfigs.configs.settings.timezone_correction);
+        const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.settings.per_day_emails.time_to_send, extendedConfigs.timezone_offset);
         const alreadySentTodaySummaryEmail = extendedConfigs.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date);
         if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_daily_summary && !alreadySentTodaySummaryEmail) {
             updateGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date, extendedConfigs.today_date);
@@ -545,6 +569,10 @@ function getGcalSyncDev(){
         return curString;
     }
 
+    // =============================================================================
+    const getCurrentTimezoneFromGoogleCalendar = () => {
+        return CalendarApp.getDefaultCalendar().getTimeZone();
+    };
     const createMissingCalendars = (allGcalendarsNames) => {
         let createdCalendar = false;
         allGcalendarsNames.forEach((calName) => {
@@ -653,6 +681,7 @@ function getGcalSyncDev(){
         return filteredRepos;
     }
     function syncGithub(configs) {
+        logger.info(`syncing github commits`);
         const info = {
             githubCommits: getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
             githubGcalCommits: getTasksFromGoogleCalendars([configs[githubConfigsKey].commits_configs.commits_calendar])
@@ -798,7 +827,7 @@ function getGcalSyncDev(){
         return newStr.slice(0, newStr.search(substr2));
     };
 
-    const getIcsCalendarTasks = (icsLink, timezoneCorrection) => {
+    const getIcsCalendarTasks = (icsLink, timezone_offset) => {
         const parsedLink = icsLink.replace('webcal://', 'https://');
         const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
         const data = urlResponse.getContentText() || '';
@@ -829,7 +858,7 @@ function getGcalSyncDev(){
             return [...acc, eventObj];
         }, []);
         const allEventsParsedArr = allEventsArr.map((item) => {
-            const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezoneCorrection);
+            const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezone_offset);
             return {
                 id: item.UID,
                 name: item.SUMMARY,
@@ -841,7 +870,7 @@ function getGcalSyncDev(){
         });
         return allEventsParsedArr;
     };
-    function getParsedIcsDatetimes(dtstart, dtend, timezone, timezoneCorrection) {
+    function getParsedIcsDatetimes(dtstart, dtend, timezone, timezone_offset) {
         let finalDtstart = dtstart;
         let finalDtend = dtend;
         finalDtstart = finalDtstart.slice(finalDtstart.search(':') + 1);
@@ -862,7 +891,7 @@ function getGcalSyncDev(){
                 }
                 return `${fixer < 0 ? '-' : '+'}${String(Math.abs(fixer)).padStart(2, '0')}:00`;
             };
-            const timezoneFixedString = getTimeZoneFixedString(timezoneCorrection);
+            const timezoneFixedString = getTimeZoneFixedString(timezone_offset);
             finalDtstart = {
                 dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}${timezoneFixedString}`,
                 timeZone: timezone
@@ -878,10 +907,11 @@ function getGcalSyncDev(){
         };
     }
 
-    function syncTicktick(configs) {
-        const icsCalendarsConfigs = configs[ticktickConfigsKey].ics_calendars;
+    function syncTicktick(extendedConfigs) {
+        logger.info(`syncing ticktick tasks`);
+        const icsCalendarsConfigs = extendedConfigs.configs[ticktickConfigsKey].ics_calendars;
         const info = {
-            ticktickTasks: getAllTicktickTasks(icsCalendarsConfigs, configs.settings.timezone_correction),
+            ticktickTasks: getAllTicktickTasks(icsCalendarsConfigs, extendedConfigs.timezone_offset),
             ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
         };
         const resultInfo = Object.assign(Object.assign({}, addAndUpdateTasksOnGcal(info)), moveCompletedTasksToDoneGcal(info));
@@ -948,23 +978,23 @@ function getGcalSyncDev(){
         ];
         return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
     }
-    function getTicktickTasks(icsCalendarsArr, timezoneCorrection) {
+    function getTicktickTasks(icsCalendarsArr, timezone_offset) {
         const extendedTasks = [];
         for (const icsCal of icsCalendarsArr) {
-            const tasks = getIcsCalendarTasks(icsCal.link, timezoneCorrection);
+            const tasks = getIcsCalendarTasks(icsCal.link, timezone_offset);
             const extendedItem = tasks.map((item) => (Object.assign(Object.assign({}, item), icsCal)));
             extendedTasks.push(extendedItem);
         }
         return mergeArraysOfArrays(extendedTasks);
     }
-    function getAllTicktickTasks(icsCalendars, timezoneCorrection) {
-        const taggedTasks = getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.tag), timezoneCorrection);
-        const ignoredTaggedTasks = getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.ignoredTags), timezoneCorrection).filter((item) => {
+    function getAllTicktickTasks(icsCalendars, timezone_offset) {
+        const taggedTasks = getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.tag), timezone_offset);
+        const ignoredTaggedTasks = getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.ignoredTags), timezone_offset).filter((item) => {
             const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
             const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
             return shouldIgnoreTask === false;
         });
-        const commonTasks = getTicktickTasks(icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags), timezoneCorrection);
+        const commonTasks = getTicktickTasks(icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags), timezone_offset);
         return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
     }
     function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }) {
@@ -1063,7 +1093,7 @@ function getGcalSyncDev(){
         settings: {
             sync_function: '',
             skip_mode: false,
-            timezone_correction: -3,
+            timezone_offset_correction: 0,
             update_frequency: 4,
             per_day_emails: {
                 time_to_send: '15:00',
@@ -1122,6 +1152,8 @@ function getGcalSyncDev(){
     class GcalSync {
         constructor(configs) {
             this.extended_configs = {
+                timezone: '',
+                timezone_offset: 0,
                 today_date: '',
                 user_email: '',
                 configs: {}
@@ -1132,8 +1164,12 @@ function getGcalSyncDev(){
             if (!isRunningOnGAS()) {
                 throw new Error(ERRORS.production_only);
             }
+            const timezone = getCurrentTimezoneFromGoogleCalendar();
+            this.extended_configs.timezone = timezone;
+            this.extended_configs.timezone_offset = getTimezoneOffset(timezone) + configs.settings.timezone_offset_correction * -1;
+            const todayFixedByTimezone = getCurrentDateInSpecifiedTimezone(timezone);
+            this.extended_configs.today_date = todayFixedByTimezone.split('T')[0];
             this.extended_configs.user_email = getUserEmail();
-            this.extended_configs.today_date = getDateFixedByTimezone(configs.settings.timezone_correction).toISOString().split('T')[0];
             this.extended_configs.configs = configs;
             logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
         }
@@ -1171,7 +1207,7 @@ function getGcalSyncDev(){
             return logger.logs;
         }
         getTicktickTasks() {
-            return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.configs.settings.timezone_correction);
+            return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.timezone_offset);
         }
         getGoogleEvents() {
             return getTasksFromGoogleCalendars([...new Set(this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal))]);
@@ -1215,7 +1251,7 @@ function getGcalSyncDev(){
                 commits_tracked_to_be_added: [],
                 commits_tracked_to_be_deleted: []
             };
-            const sessionData = Object.assign(Object.assign(Object.assign({}, emptySessionData), (shouldSyncTicktick && syncTicktick(this.extended_configs.configs))), (shouldSyncGithub && syncGithub(this.extended_configs.configs)));
+            const sessionData = Object.assign(Object.assign(Object.assign({}, emptySessionData), (shouldSyncTicktick && syncTicktick(this.extended_configs))), (shouldSyncGithub && syncGithub(this.extended_configs.configs)));
             const parsedSessionData = handleSessionData(this.extended_configs, sessionData);
             return parsedSessionData;
         }

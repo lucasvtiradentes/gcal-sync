@@ -4,7 +4,7 @@ import { TConfigs } from '../src/consts/types';
 export const configs: TConfigs = {
   settings: {
     sync_function: 'sync',                // function name to run every x minutes
-    timezone_correction: -3,              // hour difference from your timezone to utc timezone | https://www.utctime.net/
+    timezone_offset_correction: 0,        // hour correction to match maybe a daylight saving difference (if you want the events 1 hour "before", then put -1)
     update_frequency: 5,                  // wait time between sync checks (must be multiple of 5: 10, 15, etc)
     skip_mode: false,                     // if set to true, it will skip every sync (useful for not messing up your data if any bug occurs repeatedly)
     per_day_emails: {

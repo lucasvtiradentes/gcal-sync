@@ -9,14 +9,16 @@ import { getAllTicktickTasks, syncTicktick } from './methods/sync_ticktick';
 import { validateConfigs } from './methods/validate_configs';
 import { getAllGithubCommits } from './modules/Github';
 import { addAppsScriptsTrigger, deleteGASProperty, isRunningOnGAS, listAllGASProperties, removeAppsScriptsTrigger, updateGASProperty } from './modules/GoogleAppsScript';
-import { createMissingCalendars, getTasksFromGoogleCalendars } from './modules/GoogleCalendar';
+import { createMissingCalendars, getCurrentTimezoneFromGoogleCalendar, getTasksFromGoogleCalendars } from './modules/GoogleCalendar';
 import { getUserEmail, sendEmail } from './modules/GoogleEmail';
 import { logger } from './utils/abstractions/logger';
 import { checkIfShouldSync } from './utils/check_if_should_sync';
-import { getDateFixedByTimezone } from './utils/javascript/date_utils';
+import { getCurrentDateInSpecifiedTimezone, getTimezoneOffset } from './utils/javascript/date_utils';
 
 class GcalSync {
   private extended_configs: TExtendedConfigs = {
+    timezone: '',
+    timezone_offset: 0,
     today_date: '',
     user_email: '',
     configs: {} as TConfigs
@@ -31,9 +33,15 @@ class GcalSync {
       throw new Error(ERRORS.production_only);
     }
 
+    const timezone = getCurrentTimezoneFromGoogleCalendar();
+    this.extended_configs.timezone = timezone;
+    this.extended_configs.timezone_offset = getTimezoneOffset(timezone) + configs.settings.timezone_offset_correction * -1;
+
+    const todayFixedByTimezone = getCurrentDateInSpecifiedTimezone(timezone);
+    this.extended_configs.today_date = todayFixedByTimezone.split('T')[0];
     this.extended_configs.user_email = getUserEmail();
-    this.extended_configs.today_date = getDateFixedByTimezone(configs.settings.timezone_correction).toISOString().split('T')[0];
     this.extended_configs.configs = configs;
+
     logger.info(`${APP_INFO.name} is running at version ${APP_INFO.version}!`);
   }
 
@@ -78,7 +86,7 @@ class GcalSync {
   }
 
   getTicktickTasks() {
-    return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.configs.settings.timezone_correction);
+    return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.timezone_offset);
   }
 
   getGoogleEvents() {
@@ -139,7 +147,7 @@ class GcalSync {
 
     const sessionData: TExtendedSessionStats = {
       ...emptySessionData,
-      ...(shouldSyncTicktick && syncTicktick(this.extended_configs.configs)),
+      ...(shouldSyncTicktick && syncTicktick(this.extended_configs)),
       ...(shouldSyncGithub && syncGithub(this.extended_configs.configs))
     };
 

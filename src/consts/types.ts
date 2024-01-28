@@ -32,7 +32,7 @@ export type TGithubSync = {
 
 export type TBasicConfig = {
   settings: {
-    timezone_correction: number;
+    timezone_offset_correction: number;
     sync_function: string;
     update_frequency: number;
     skip_mode: boolean;
@@ -54,6 +54,8 @@ export const githubConfigsKey = 'github_sync' as const;
 export type TConfigs = TBasicConfig & { [ticktickConfigsKey]: TTicktickSync } & { [githubConfigsKey]: TGithubSync };
 
 export type TExtendedConfigs = {
+  timezone: string;
+  timezone_offset: number;
   today_date: string;
   user_email: string;
   configs: TConfigs;

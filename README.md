@@ -176,7 +176,7 @@ function getConfigs() {
   const configs = {
     settings: {
       sync_function: 'sync',                // function name to run every x minutes
-      timezone_correction: -3,              // hour difference from your timezone to utc timezone | https://www.utctime.net/
+      timezone_offset_correction: 0,        // hour correction to match maybe a daylight saving difference (if you want the events 1 hour "before", then put -1)
       update_frequency: 5,                  // wait time between sync checks (must be multiple of 5: 10, 15, etc)
       skip_mode: false,                     // if set to true, it will skip every sync (useful for not messing up your data if any bug occurs repeatedly)
       per_day_emails: {
@@ -378,8 +378,6 @@ if you want to change the google event color, you can choose from 12 options:
 
 ### General tips
 
-- if you don't want to sync ticktick tasks, remove the `ticktick_sync` object on the configs;
-- if you don't want to sync github commits, remove the `github_sync` object on the configs;
 - in case of deleted ticktick tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well. If not, they will be moved to its corresponding completed calendar;
 - it is not necessary to generate a github token in order to sync commits, it is only required if you want to sync your contributions to private repos as well;
 - every update in ticktick may take 5 minutes to propagate to its ics calendars;
