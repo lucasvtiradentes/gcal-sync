@@ -37,6 +37,8 @@ export function getFilterGithubRepos(configs: TConfigs, commits: TParsedGithubCo
 }
 
 export function syncGithub(configs: TConfigs) {
+  logger.info(`syncing github commits`);
+
   const info: TInfo = {
     githubCommits: getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
     githubGcalCommits: getTasksFromGoogleCalendars([configs[githubConfigsKey].commits_configs.commits_calendar])

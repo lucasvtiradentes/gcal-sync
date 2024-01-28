@@ -6,7 +6,7 @@ const basicRequiredObjectShape: TBasicConfig = {
   settings: {
     sync_function: '',
     skip_mode: false,
-    timezone_correction: -3,
+    timezone_offset_correction: 0,
     update_frequency: 4,
     per_day_emails: {
       time_to_send: '15:00',

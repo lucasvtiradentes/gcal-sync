@@ -1,7 +1,8 @@
+import { ERRORS } from '../consts/errors';
+import { TExtendedConfigs, TIcsCalendar, ticktickConfigsKey } from '../consts/types';
 import { TGcalPrivateTicktick, TGoogleCalendar, TGoogleEvent, TParsedGoogleEvent, addEventToCalendar, getCalendarByName, getTasksFromGoogleCalendars, moveEventToOtherCalendar, updateEventFromCalendar } from '../modules/GoogleCalendar';
 import { TExtendedParsedTicktickTask, getIcsCalendarTasks } from '../modules/ICS';
-import { ERRORS } from '../consts/errors';
-import { TConfigs, TIcsCalendar, ticktickConfigsKey } from '../consts/types';
+import { logger } from '../utils/abstractions/logger';
 import { mergeArraysOfArrays } from '../utils/javascript/array_utils';
 
 type TInfo = {
@@ -15,11 +16,13 @@ export type TTicktickSyncResultInfo = {
   completed_tasks: TParsedGoogleEvent<TGcalPrivateTicktick>[];
 };
 
-export function syncTicktick(configs: TConfigs) {
-  const icsCalendarsConfigs = configs[ticktickConfigsKey].ics_calendars;
+export function syncTicktick(extendedConfigs: TExtendedConfigs) {
+  logger.info(`syncing ticktick tasks`);
+
+  const icsCalendarsConfigs = extendedConfigs.configs[ticktickConfigsKey].ics_calendars;
 
   const info: TInfo = {
-    ticktickTasks: getAllTicktickTasks(icsCalendarsConfigs, configs.settings.timezone_correction),
+    ticktickTasks: getAllTicktickTasks(icsCalendarsConfigs, extendedConfigs.timezone_offset),
     ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
   };
 
@@ -109,11 +112,11 @@ export function checkIfTicktickTaskInfoWasChanged(ticktickTask: TExtendedParsedT
   return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
 }
 
-export function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezoneCorrection: number) {
+export function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezone_offset: number) {
   const extendedTasks: TExtendedParsedTicktickTask[][] = [];
 
   for (const icsCal of icsCalendarsArr) {
-    const tasks = getIcsCalendarTasks(icsCal.link, timezoneCorrection);
+    const tasks = getIcsCalendarTasks(icsCal.link, timezone_offset);
     const extendedItem = tasks.map((item) => ({
       ...item,
       ...icsCal
@@ -124,14 +127,14 @@ export function getTicktickTasks(icsCalendarsArr: TIcsCalendar[], timezoneCorrec
   return mergeArraysOfArrays(extendedTasks);
 }
 
-export function getAllTicktickTasks(icsCalendars: TIcsCalendar[], timezoneCorrection: number) {
+export function getAllTicktickTasks(icsCalendars: TIcsCalendar[], timezone_offset: number) {
   const taggedTasks = getTicktickTasks(
     icsCalendars.filter((icsCal) => icsCal.tag),
-    timezoneCorrection
+    timezone_offset
   );
   const ignoredTaggedTasks = getTicktickTasks(
     icsCalendars.filter((icsCal) => icsCal.ignoredTags),
-    timezoneCorrection
+    timezone_offset
   ).filter((item) => {
     const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
     const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
@@ -139,7 +142,7 @@ export function getAllTicktickTasks(icsCalendars: TIcsCalendar[], timezoneCorrec
   });
   const commonTasks = getTicktickTasks(
     icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags),
-    timezoneCorrection
+    timezone_offset
   );
 
   return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];

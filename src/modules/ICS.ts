@@ -16,7 +16,7 @@ export type TExtendedParsedTicktickTask = TParsedTicktickTask & TIcsCalendar;
 
 export type TDate = { date: string } | { dateTime: string; timeZone: string };
 
-export const getIcsCalendarTasks = (icsLink: string, timezoneCorrection: number) => {
+export const getIcsCalendarTasks = (icsLink: string, timezone_offset: number) => {
   const parsedLink = icsLink.replace('webcal://', 'https://');
   const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
   const data = urlResponse.getContentText() || '';
@@ -52,7 +52,7 @@ export const getIcsCalendarTasks = (icsLink: string, timezoneCorrection: number)
   }, []);
 
   const allEventsParsedArr = allEventsArr.map((item) => {
-    const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezoneCorrection);
+    const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezone_offset);
     return {
       id: item.UID,
       name: item.SUMMARY,
@@ -66,7 +66,7 @@ export const getIcsCalendarTasks = (icsLink: string, timezoneCorrection: number)
   return allEventsParsedArr as TParsedTicktickTask[];
 };
 
-export function getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: string, timezoneCorrection: number) {
+export function getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: string, timezone_offset: number) {
   let finalDtstart: TDate | string = dtstart;
   let finalDtend: TDate | string = dtend;
 
@@ -89,7 +89,7 @@ export function getParsedIcsDatetimes(dtstart: string, dtend: string, timezone: 
       }
       return `${fixer < 0 ? '-' : '+'}${String(Math.abs(fixer)).padStart(2, '0')}:00`;
     };
-    const timezoneFixedString = getTimeZoneFixedString(timezoneCorrection);
+    const timezoneFixedString = getTimeZoneFixedString(timezone_offset);
 
     finalDtstart = {
       dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}${timezoneFixedString}`,
