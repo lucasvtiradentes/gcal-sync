@@ -3,7 +3,7 @@ function getGcalSyncDev(){
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '1.11.0'};
+        version: '2.0.0'};
 
     function getUniqueElementsOnArrays(arrayA, arrayB) {
         const uniqueInA = arrayA.filter((item) => !arrayB.includes(item));

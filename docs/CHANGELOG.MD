@@ -1,5 +1,24 @@
 # CHANGELOG HISTORY
 
+## [2.0.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.11.0...v2.0.0) (2025-02-23)
+
+
+### 📝 docs:
+
+* update readme instruction images ([44dce1c](https://github.com/lucasvtiradentes/gcal-sync/commit/44dce1c836e79becf4067fda33e6859ff8da3458))
+* update readme instructions ([7204397](https://github.com/lucasvtiradentes/gcal-sync/commit/7204397ca97eeed7c242ac283eac5a314cbe8c94))
+* update the docs images ([15348da](https://github.com/lucasvtiradentes/gcal-sync/commit/15348dae7af328a1ab43cebfeff0b8223e08bdc7))
+
+
+### 🔧 config:
+
+* update the main branch to main ([eeaef85](https://github.com/lucasvtiradentes/gcal-sync/commit/eeaef85bf0dc279724b2d44c1a4f83dcf44947b3))
+
+
+### 💥 breaking:
+
+* remove the ticktick sync feature ([c424ddf](https://github.com/lucasvtiradentes/gcal-sync/commit/c424ddf0a407fa14cd0f24661b5c9b93e4e8301c))
+
 ## [1.11.0](https://github.com/lucasvtiradentes/gcal-sync/compare/v1.10.0...v1.11.0) (2024-01-28)
 
 
