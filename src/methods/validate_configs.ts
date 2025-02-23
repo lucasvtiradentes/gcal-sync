@@ -1,6 +1,6 @@
+import { TBasicConfig, TGithubSync, githubConfigsKey } from '../consts/types';
 import { isObject } from '../utils/javascript/object_utils';
 import { validateObjectSchema } from '../utils/validate_object_schema';
-import { TBasicConfig, TGithubSync, TIcsCalendar, TTicktickSync, githubConfigsKey, ticktickConfigsKey } from '../consts/types';
 
 const basicRequiredObjectShape: TBasicConfig = {
   settings: {
@@ -20,17 +20,6 @@ const basicRequiredObjectShape: TBasicConfig = {
   }
 };
 
-const ticktickCalItemObjectShape: TIcsCalendar = {
-  gcal: '',
-  gcal_done: '',
-  link: ''
-};
-
-const ticktickRequiredObjectShape: TTicktickSync = {
-  should_sync: false,
-  ics_calendars: []
-};
-
 const githubRequiredObjectShape: TGithubSync = {
   username: '',
   commits_configs: {
@@ -47,20 +36,12 @@ export function validateConfigs(configs: unknown) {
 
   const isValid = {
     basic: true,
-    ticktick: true,
-    ticktickIcsItems: true,
     github: true,
     githubIgnoredRepos: true
   };
 
   isValid.basic = validateObjectSchema(configs, basicRequiredObjectShape);
   isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
-  isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
-
-  if (typeof configs[ticktickConfigsKey] === 'object' && 'ics_calendars' in configs[ticktickConfigsKey] && Array.isArray(configs[ticktickConfigsKey].ics_calendars)) {
-    const itemsValidationArr = configs[ticktickConfigsKey].ics_calendars.map((item) => validateObjectSchema(item, ticktickCalItemObjectShape));
-    isValid.ticktickIcsItems = itemsValidationArr.every((item) => item === true);
-  }
 
   if (typeof configs[githubConfigsKey] === 'object' && 'ignored_repos' in configs[githubConfigsKey] && Array.isArray(configs[githubConfigsKey].ignored_repos)) {
     const itemsValidationArr = configs[githubConfigsKey].ignored_repos.map((item) => typeof item === 'string');

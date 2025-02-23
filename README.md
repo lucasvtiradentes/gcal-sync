@@ -62,7 +62,7 @@
 
 ## :trumpet: Overview
 
-Add an one way synchronization from <a href="https://ticktick.com/">ticktick</a> tasks and <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking capabilities and productivity analysis.
+Add an one way synchronization from <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking capabilities and productivity analysis.
 
 <div align="center">
   <table align="center">
@@ -198,28 +198,6 @@ function getConfigs() {
         ignored_repos: ['github-assets'],   // ignored repositories string array: ['repo1', 'repo2']
         parse_commit_emojis: true           // parse string emojis (:tada:) to emojis (✨)
       }
-    },
-    ticktick_sync: {
-      should_sync: true,                    // controls if the ticktick sync should be done
-      ics_calendars: [
-        {
-          link: 'webcal://link_A',          // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done'
-          gcal: 'tasks',
-          gcal_done: 'done',
-        },
-        {
-          link: 'webcal://link_B',          // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done_healthy'
-          gcal: 'tasks',
-          gcal_done: 'done_healthy',
-          tag: "HEALTHY"                    // this is a flag where we can "mark" tasks from this config to be ignored on other ics_calendars
-        },
-        {
-          link: 'webcal://link_C',          // all items from ticktick, except the tasks marked with HEALTHY, will be added to 'tasks' cal and,  when completed, moved to 'done'
-          gcal: 'tasks',
-          gcal_done: 'done',
-          ignoredTags: ['HEALTHY']
-        }
-      ]
     }
   };
   return configs
@@ -522,10 +500,6 @@ If you have any questions or suggestions you are welcome to discuss it on [githu
   <p>
     <a target="_blank" href="https://www.linkedin.com/in/lucasvtiradentes/"><img src="https://img.shields.io/badge/-linkedin-blue?logo=Linkedin&logoColor=white" alt="LinkedIn"></a>
     <a target="_blank" href="mailto:lucasvtiradentes@gmail.com"><img src="https://img.shields.io/badge/gmail-red?logo=gmail&logoColor=white" alt="Gmail"></a>
-    <a target="_blank" href="https://discord.com/users/262326726892191744"><img src="https://img.shields.io/badge/discord-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
-    <a target="_blank" href="https://github.com/lucasvtiradentes/"><img src="https://img.shields.io/badge/github-gray?logo=github&logoColor=white" alt="Github"></a>
   </p>
   <p>Made with ❤️ by <b>Lucas Vieira</b></p>
-  <p>👉 See also all <a href="https://github.com/lucasvtiradentes/lucasvtiradentes/blob/master/portfolio/PROJECTS.md#TOC">my projects</a></p>
-  <p>👉 See also all <a href="https://github.com/lucasvtiradentes/my-tutorials/blob/master/README.md#TOC">my articles</a></p>
 </div>

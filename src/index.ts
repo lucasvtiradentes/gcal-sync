@@ -1,11 +1,10 @@
 import { APP_INFO } from './consts/app_info';
 import { GAS_PROPERTIES_ENUM, GAS_PROPERTIES_INITIAL_VALUE_ENUM, TGasPropertiesSchemaKeys } from './consts/configs';
 import { ERRORS } from './consts/errors';
-import { TConfigs, TExtendedConfigs, TExtendedSessionStats, githubConfigsKey, ticktickConfigsKey } from './consts/types';
+import { TConfigs, TExtendedConfigs, TExtendedSessionStats, githubConfigsKey } from './consts/types';
 import { getErrorEmail } from './methods/generate_emails';
 import { handleSessionData } from './methods/handle_session_data';
 import { getFilterGithubRepos, syncGithub } from './methods/sync_github';
-import { getAllTicktickTasks, syncTicktick } from './methods/sync_ticktick';
 import { validateConfigs } from './methods/validate_configs';
 import { getAllGithubCommits } from './modules/Github';
 import { addAppsScriptsTrigger, deleteGASProperty, isRunningOnGAS, listAllGASProperties, removeAppsScriptsTrigger, updateGASProperty } from './modules/GoogleAppsScript';
@@ -58,13 +57,9 @@ class GcalSync {
   }
 
   private createMissingGcalCalendars() {
-    const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
+    const { shouldSyncGithub } = checkIfShouldSync(this.extended_configs);
 
-    // prettier-ignore
-    const allGoogleCalendars: string[] = [... new Set([]
-      .concat(shouldSyncGithub ? [this.extended_configs.configs[githubConfigsKey].commits_configs.commits_calendar] : [])
-      .concat(shouldSyncTicktick ? [...this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
-    ]
+    const allGoogleCalendars: string[] = [...new Set([].concat(shouldSyncGithub ? [this.extended_configs.configs[githubConfigsKey].commits_configs.commits_calendar] : []))];
 
     createMissingCalendars(allGoogleCalendars);
   }
@@ -83,14 +78,6 @@ class GcalSync {
 
   getSessionLogs() {
     return logger.logs;
-  }
-
-  getTicktickTasks() {
-    return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.timezone_offset);
-  }
-
-  getGoogleEvents() {
-    return getTasksFromGoogleCalendars([...new Set(this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal))]);
   }
 
   getGithubCommits() {
@@ -124,9 +111,9 @@ class GcalSync {
       return {};
     }
 
-    const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
+    const { shouldSyncGithub } = checkIfShouldSync(this.extended_configs);
 
-    if (!shouldSyncGithub && !shouldSyncTicktick) {
+    if (!shouldSyncGithub) {
       logger.info('nothing to sync');
       return {};
     }
@@ -135,10 +122,6 @@ class GcalSync {
     this.createMissingGASProperties();
 
     const emptySessionData: TExtendedSessionStats = {
-      added_tasks: [],
-      updated_tasks: [],
-      completed_tasks: [],
-
       commits_added: [],
       commits_deleted: [],
       commits_tracked_to_be_added: [],
@@ -147,7 +130,6 @@ class GcalSync {
 
     const sessionData: TExtendedSessionStats = {
       ...emptySessionData,
-      ...(shouldSyncTicktick && syncTicktick(this.extended_configs)),
       ...(shouldSyncGithub && syncGithub(this.extended_configs.configs))
     };
 
