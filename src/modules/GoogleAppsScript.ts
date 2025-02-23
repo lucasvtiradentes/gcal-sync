@@ -47,9 +47,9 @@ export function addAppsScriptsTrigger(functionName: string, minutesLoop: number)
 
 export function removeAppsScriptsTrigger(functionName: string) {
   const allAppsScriptTriggers = getAppsScriptsTriggers();
-  const tickSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
+  const gcalSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
 
-  if (tickSyncTrigger) {
-    ScriptApp.deleteTrigger(tickSyncTrigger);
+  if (gcalSyncTrigger) {
+    ScriptApp.deleteTrigger(gcalSyncTrigger);
   }
 }

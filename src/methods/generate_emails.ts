@@ -1,8 +1,8 @@
+import { APP_INFO } from '../consts/app_info';
 import { TSessionStats } from '../consts/types';
-import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../modules/GoogleCalendar';
+import { TGcalPrivateGithub, TParsedGoogleEvent } from '../modules/GoogleCalendar';
 import { TEmail } from '../modules/GoogleEmail';
 import { TDate } from '../modules/ICS';
-import { APP_INFO } from '../consts/app_info';
 
 export function getSessionEmail(sendToEmail: string, sessionStats: TSessionStats) {
   const content = generateReportEmailContent(sessionStats);
@@ -87,35 +87,8 @@ const TABLE_STYLES = {
 const getParsedDateTime = (str: TDate) => ('date' in str ? str.date : str.dateTime);
 
 function getTotalSessionEvents(session: TSessionStats) {
-  const todayEventsCount = session.added_tasks.length + session.updated_tasks.length + session.completed_tasks.length + session.commits_added.length + session.commits_deleted.length;
+  const todayEventsCount = session.commits_added.length + session.commits_deleted.length;
   return todayEventsCount;
-}
-
-function getTicktickEmailContant(session: TSessionStats) {
-  const addedTicktickTasks = session.added_tasks;
-  const updatedTicktickTasks = session.updated_tasks;
-  const completedTicktickTasks = session.completed_tasks;
-
-  const getTicktickBodyItemsHtml = (items: TParsedGoogleEvent<TGcalPrivateTicktick>[]) => {
-    if (items.length === 0) return '';
-
-    // prettier-ignore
-    const tableItems = items.map((gcalItem) => {
-      const parsedDate = getParsedDateTime(gcalItem.start as TDate).split('T')[0]
-      const itemHtmlRow = [parsedDate, gcalItem.extendedProperties.private.calendar, `<a href="${gcalItem.htmlLink}">${gcalItem.summary}</a>`].map(it => `<td ${TABLE_STYLES.tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n')
-      return `<tr ${TABLE_STYLES.tableRowStyle}">\n${itemHtmlRow}\n</tr>`
-    }).join('\n');
-
-    return `${tableItems}`;
-  };
-
-  const ticktickTableHeader = `<tr ${TABLE_STYLES.tableRowStyle}">\n<th ${TABLE_STYLES.tableRowColumnStyle} width="80px">date</th><th ${TABLE_STYLES.tableRowColumnStyle} width="130px">calendar</th><th ${TABLE_STYLES.tableRowColumnStyle} width="auto">task</th>\n</tr>`;
-
-  let content = '';
-  content += addedTicktickTasks.length > 0 ? `<br/>added ticktick events    : ${addedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
-  content += updatedTicktickTasks.length > 0 ? `<br/>updated ticktick events  : ${updatedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
-  content += completedTicktickTasks.length > 0 ? `<br/>completed ticktick events: ${completedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
-  return content;
 }
 
 function getGithubEmailContant(session: TSessionStats) {
@@ -149,7 +122,6 @@ function generateReportEmailContent(session: TSessionStats) {
 
   let content = '';
   content = `Hi!<br/><br/>there were ${todayEventsCount} changes made to your google calendar:<br/>\n`;
-  content += getTicktickEmailContant(session);
   content += getGithubEmailContant(session);
   content += `<br/>Regards,<br/>your <a href='https://github.com/${APP_INFO.github_repository}'>${APP_INFO.name}</a> bot`;
   return content;

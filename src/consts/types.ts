@@ -1,9 +1,8 @@
 import { TGithubSyncResultInfo } from '../methods/sync_github';
-import { TTicktickSyncResultInfo } from '../methods/sync_ticktick';
 
-export type TSessionStats = TTicktickSyncResultInfo & Omit<TGithubSyncResultInfo, 'commits_tracked_to_be_added' | 'commits_tracked_to_be_deleted'>;
+export type TSessionStats = Omit<TGithubSyncResultInfo, 'commits_tracked_to_be_added' | 'commits_tracked_to_be_deleted'>;
 
-export type TExtendedSessionStats = TTicktickSyncResultInfo & TGithubSyncResultInfo;
+export type TExtendedSessionStats = TGithubSyncResultInfo;
 
 export type TIcsCalendar = {
   link: string;
@@ -12,11 +11,6 @@ export type TIcsCalendar = {
   color?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
   tag?: string;
   ignoredTags?: string[];
-};
-
-export type TTicktickSync = {
-  should_sync: boolean;
-  ics_calendars: TIcsCalendar[];
 };
 
 export type TGithubSync = {
@@ -48,10 +42,9 @@ export type TBasicConfig = {
   };
 };
 
-export const ticktickConfigsKey = 'ticktick_sync' as const;
 export const githubConfigsKey = 'github_sync' as const;
 
-export type TConfigs = TBasicConfig & { [ticktickConfigsKey]: TTicktickSync } & { [githubConfigsKey]: TGithubSync };
+export type TConfigs = TBasicConfig & { [githubConfigsKey]: TGithubSync };
 
 export type TExtendedConfigs = {
   timezone: string;

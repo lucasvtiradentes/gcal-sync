@@ -3,11 +3,8 @@ function getGcalSyncDev(){
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '1.11.0',
-        build_date_time: '28/01/2024 19:00:37'
-    };
+        version: '1.11.0'};
 
-    const mergeArraysOfArrays = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
     function getUniqueElementsOnArrays(arrayA, arrayB) {
         const uniqueInA = arrayA.filter((item) => !arrayB.includes(item));
         const uniqueInB = arrayB.filter((item) => !arrayA.includes(item));
@@ -24,24 +21,11 @@ function getGcalSyncDev(){
 
     var _a;
     const CONFIGS = {
-        DEBUG_MODE: true,
         MAX_GCAL_TASKS: 2500,
         REQUIRED_GITHUB_VALIDATIONS_COUNT: 3,
         IS_TEST_ENVIRONMENT: typeof process !== 'object' ? false : (_a = process === null || process === void 0 ? void 0 : process.env) === null || _a === void 0 ? void 0 : _a.NODE_ENV
     };
     const GAS_PROPERTIES = [
-        {
-            key: 'today_ticktick_added_tasks',
-            initial_value: []
-        },
-        {
-            key: 'today_ticktick_updated_tasks',
-            initial_value: []
-        },
-        {
-            key: 'today_ticktick_completed_tasks',
-            initial_value: []
-        },
         {
             key: 'today_github_added_commits',
             initial_value: []
@@ -81,14 +65,10 @@ function getGcalSyncDev(){
     const ERRORS = {
         invalid_configs: 'schema invalid',
         production_only: 'This method cannot run in non-production environments',
-        incorrect_ics_calendar: 'The link you provided is not a valid ICS calendar: ',
-        abusive_google_calendar_api_use: 'Due to the numerous operations in the last few hours, the google api is not responding.',
-        invalid_ics_calendar_link: 'You provided an invalid ICS calendar link: ',
         invalid_github_token: 'You provided an invalid github token',
         invalid_github_username: 'You provided an invalid github username'
     };
 
-    const ticktickConfigsKey = 'ticktick_sync';
     const githubConfigsKey = 'github_sync';
 
     function getSessionEmail(sendToEmail, sessionStats) {
@@ -159,30 +139,8 @@ function getGcalSyncDev(){
     };
     const getParsedDateTime = (str) => ('date' in str ? str.date : str.dateTime);
     function getTotalSessionEvents(session) {
-        const todayEventsCount = session.added_tasks.length + session.updated_tasks.length + session.completed_tasks.length + session.commits_added.length + session.commits_deleted.length;
+        const todayEventsCount = session.commits_added.length + session.commits_deleted.length;
         return todayEventsCount;
-    }
-    function getTicktickEmailContant(session) {
-        const addedTicktickTasks = session.added_tasks;
-        const updatedTicktickTasks = session.updated_tasks;
-        const completedTicktickTasks = session.completed_tasks;
-        const getTicktickBodyItemsHtml = (items) => {
-            if (items.length === 0)
-                return '';
-            // prettier-ignore
-            const tableItems = items.map((gcalItem) => {
-                const parsedDate = getParsedDateTime(gcalItem.start).split('T')[0];
-                const itemHtmlRow = [parsedDate, gcalItem.extendedProperties.private.calendar, `<a href="${gcalItem.htmlLink}">${gcalItem.summary}</a>`].map(it => `<td ${TABLE_STYLES.tableRowColumnStyle}>&nbsp;&nbsp;${it}</td>`).join('\n');
-                return `<tr ${TABLE_STYLES.tableRowStyle}">\n${itemHtmlRow}\n</tr>`;
-            }).join('\n');
-            return `${tableItems}`;
-        };
-        const ticktickTableHeader = `<tr ${TABLE_STYLES.tableRowStyle}">\n<th ${TABLE_STYLES.tableRowColumnStyle} width="80px">date</th><th ${TABLE_STYLES.tableRowColumnStyle} width="130px">calendar</th><th ${TABLE_STYLES.tableRowColumnStyle} width="auto">task</th>\n</tr>`;
-        let content = '';
-        content += addedTicktickTasks.length > 0 ? `<br/>added ticktick events    : ${addedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(addedTicktickTasks)}\n</table>\n</center>\n` : '';
-        content += updatedTicktickTasks.length > 0 ? `<br/>updated ticktick events  : ${updatedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(updatedTicktickTasks)}\n</table>\n</center>\n` : '';
-        content += completedTicktickTasks.length > 0 ? `<br/>completed ticktick events: ${completedTicktickTasks.length}<br/><br/> \n <center>\n<table ${TABLE_STYLES.tableStyle}>\n${ticktickTableHeader}\n${getTicktickBodyItemsHtml(completedTicktickTasks)}\n</table>\n</center>\n` : '';
-        return content;
     }
     function getGithubEmailContant(session) {
         const addedGithubCommits = session.commits_added;
@@ -209,7 +167,6 @@ function getGcalSyncDev(){
         const todayEventsCount = getTotalSessionEvents(session);
         let content = '';
         content = `Hi!<br/><br/>there were ${todayEventsCount} changes made to your google calendar:<br/>\n`;
-        content += getTicktickEmailContant(session);
         content += getGithubEmailContant(session);
         content += `<br/>Regards,<br/>your <a href='https://github.com/${APP_INFO.github_repository}'>${APP_INFO.name}</a> bot`;
         return content;
@@ -217,10 +174,8 @@ function getGcalSyncDev(){
 
     function checkIfShouldSync(extendedConfigs) {
         const shouldSyncGithub = extendedConfigs.configs[githubConfigsKey].commits_configs.should_sync;
-        const shouldSyncTicktick = extendedConfigs.configs[ticktickConfigsKey].should_sync;
         return {
-            shouldSyncGithub,
-            shouldSyncTicktick
+            shouldSyncGithub
         };
     }
 
@@ -260,9 +215,9 @@ function getGcalSyncDev(){
     }
     function removeAppsScriptsTrigger(functionName) {
         const allAppsScriptTriggers = getAppsScriptsTriggers();
-        const tickSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
-        if (tickSyncTrigger) {
-            ScriptApp.deleteTrigger(tickSyncTrigger);
+        const gcalSyncTrigger = allAppsScriptTriggers.find((item) => item.getHandlerFunction() === functionName);
+        if (gcalSyncTrigger) {
+            ScriptApp.deleteTrigger(gcalSyncTrigger);
         }
     }
 
@@ -296,16 +251,6 @@ function getGcalSyncDev(){
         const date = new Date();
         date.setHours(date.getHours() + timeZoneIndex);
         return date;
-    }
-    function getParsedTimeStamp(stamp) {
-        const splitArr = stamp.split('T');
-        const year = splitArr[0].substring(0, 4);
-        const month = splitArr[0].substring(4, 6);
-        const day = splitArr[0].substring(6, 8);
-        const hours = splitArr[1] ? splitArr[1].substring(0, 2) : '00';
-        const minutes = splitArr[1] ? splitArr[1].substring(2, 4) : '00';
-        const seconds = splitArr[1] ? splitArr[1].substring(4, 6) : '00';
-        return { year, month, day, hours, minutes, seconds };
     }
     function isCurrentTimeAfter(timeToCompare, timezone) {
         const dateFixedByTimezone = getDateFixedByTimezone(timezone);
@@ -341,9 +286,6 @@ function getGcalSyncDev(){
 
     function getTodayStats() {
         const todayStats = {
-            added_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks),
-            updated_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks),
-            completed_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks),
             commits_added: getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits),
             commits_deleted: getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits)
         };
@@ -352,23 +294,10 @@ function getGcalSyncDev(){
     function clearTodayEvents() {
         updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, []);
         updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, []);
-        updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, []);
-        updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, []);
-        updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, []);
         logger.info(`today stats were reseted!`);
     }
     function handleSessionData(extendedConfigs, sessionData) {
-        const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(extendedConfigs);
-        const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
-        if (shouldSyncTicktick && ticktickNewItems > 0) {
-            const todayAddedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks);
-            const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks);
-            const todayCompletedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks);
-            updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, [...todayAddedTasks, ...sessionData.added_tasks]);
-            updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
-            updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, [...todayCompletedTasks, ...sessionData.completed_tasks]);
-            logger.info(`added ${ticktickNewItems} new ticktick items to today's stats`);
-        }
+        const { shouldSyncGithub } = checkIfShouldSync(extendedConfigs);
         const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
         if (shouldSyncGithub && githubNewItems > 0) {
             const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits);
@@ -378,14 +307,11 @@ function getGcalSyncDev(){
             logger.info(`added ${githubNewItems} new github items to today's stats`);
         }
         // =========================================================================
-        const totalSessionNewItems = ticktickNewItems + githubNewItems;
+        const totalSessionNewItems = githubNewItems;
         sendSessionEmails(extendedConfigs, sessionData, totalSessionNewItems);
         // =========================================================================
-        const { added_tasks, updated_tasks, completed_tasks, commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
+        const { commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
         return {
-            added_tasks: added_tasks.length,
-            updated_tasks: updated_tasks.length,
-            completed_tasks: completed_tasks.length,
             commits_added: commits_added.length,
             commits_deleted: commits_deleted.length,
             commits_tracked_to_be_added: commits_tracked_to_be_added.length,
@@ -650,23 +576,8 @@ function getGcalSyncDev(){
         const eventFinal = Calendar.Events.insert(event, calendar.id);
         return eventFinal;
     }
-    function updateEventFromCalendar(calendar, event, updatedProps) {
-        const updatedEvent = getEventById(calendar, event.id);
-        const finalObj = Object.assign(Object.assign({}, updatedEvent), updatedProps);
-        return Calendar.Events.update(finalObj, calendar.id, event.id);
-    }
-    function moveEventToOtherCalendar(calendar, newCalendar, event) {
-        removeCalendarEvent(calendar, event);
-        Utilities.sleep(2000);
-        const newEvent = addEventToCalendar(newCalendar, event);
-        return newEvent;
-    }
     function removeCalendarEvent(calendar, event) {
         Calendar.Events.remove(calendar.id, event.id);
-    }
-    function getEventById(calendar, eventId) {
-        const event = Calendar.Events.get(calendar.id, eventId);
-        return event;
     }
 
     function resetGithubSyncProperties() {
@@ -822,241 +733,6 @@ function getGcalSyncDev(){
         return githubSessionStats;
     }
 
-    const getStrBetween = (str, substr1, substr2) => {
-        const newStr = str.slice(str.search(substr1)).replace(substr1, '');
-        return newStr.slice(0, newStr.search(substr2));
-    };
-
-    const getIcsCalendarTasks = (icsLink, timezone_offset) => {
-        const parsedLink = icsLink.replace('webcal://', 'https://');
-        const urlResponse = UrlFetchApp.fetch(parsedLink, { validateHttpsCertificates: false, muteHttpExceptions: true });
-        const data = urlResponse.getContentText() || '';
-        if (urlResponse.getResponseCode() !== 200) {
-            throw new Error(ERRORS.invalid_ics_calendar_link + parsedLink);
-        }
-        if (data.search('BEGIN:VCALENDAR') === -1) {
-            throw new Error(ERRORS.incorrect_ics_calendar);
-        }
-        const eventsArr = data.split('BEGIN:VEVENT\r\n').filter((item) => item.search('SUMMARY') > -1);
-        // prettier-ignore
-        const allEventsArr = data.search('SUMMARY:No task.') > 0 ? [] : eventsArr.reduce((acc, cur) => {
-            const alarmArr = cur.split('BEGIN:VALARM\r\n');
-            const eventObj = {
-                CALNAME: getStrBetween(data, 'X-WR-CALNAME:', '\r\n'),
-                DSTAMP: getStrBetween(cur, 'DTSTAMP:', '\r\n'),
-                DTSTART: getStrBetween(cur, 'DTSTART;', '\r\n'),
-                DTEND: getStrBetween(cur, 'DTEND;', '\r\n'),
-                SUMMARY: getStrBetween(cur, 'SUMMARY:', '\r\n'),
-                UID: getStrBetween(cur, 'UID:', '\r\n'),
-                DESCRIPTION: getStrBetween(cur, 'DESCRIPTION:', '\r\n'),
-                SEQUENCE: getStrBetween(cur, 'SEQUENCE:', '\r\n'),
-                TZID: getStrBetween(cur, 'TZID:', '\r\n'),
-                ALARM_TRIGGER: alarmArr.length === 1 ? '' : getStrBetween(alarmArr[1], 'TRIGGER:', '\r\n'),
-                ALARM_ACTION: alarmArr.length === 1 ? '' : getStrBetween(alarmArr[1], 'ACTION:', '\r\n'),
-                ALARM_DESCRIPTION: alarmArr.length === 1 ? '' : getStrBetween(alarmArr[1], 'DESCRIPTION:', '\r\n')
-            };
-            return [...acc, eventObj];
-        }, []);
-        const allEventsParsedArr = allEventsArr.map((item) => {
-            const parsedDateTime = getParsedIcsDatetimes(item.DTSTART, item.DTEND, item.TZID, timezone_offset);
-            return {
-                id: item.UID,
-                name: item.SUMMARY,
-                description: item.DESCRIPTION,
-                tzid: item.TZID,
-                start: parsedDateTime.finalDtstart,
-                end: parsedDateTime.finalDtend
-            };
-        });
-        return allEventsParsedArr;
-    };
-    function getParsedIcsDatetimes(dtstart, dtend, timezone, timezone_offset) {
-        let finalDtstart = dtstart;
-        let finalDtend = dtend;
-        finalDtstart = finalDtstart.slice(finalDtstart.search(':') + 1);
-        finalDtend = finalDtend.slice(finalDtend.search(':') + 1);
-        if (finalDtend === '') {
-            const startDateObj = getParsedTimeStamp(finalDtstart);
-            const nextDate = new Date(Date.UTC(Number(startDateObj.year), Number(startDateObj.month) - 1, Number(startDateObj.day), 0, 0, 0));
-            nextDate.setDate(nextDate.getDate() + 1);
-            finalDtend = { date: nextDate.toISOString().split('T')[0] };
-            finalDtstart = { date: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}` };
-        }
-        else {
-            const startDateObj = getParsedTimeStamp(finalDtstart);
-            const endDateObj = getParsedTimeStamp(finalDtend);
-            const getTimeZoneFixedString = (fixer) => {
-                if (fixer === 0) {
-                    return '';
-                }
-                return `${fixer < 0 ? '-' : '+'}${String(Math.abs(fixer)).padStart(2, '0')}:00`;
-            };
-            const timezoneFixedString = getTimeZoneFixedString(timezone_offset);
-            finalDtstart = {
-                dateTime: `${startDateObj.year}-${startDateObj.month}-${startDateObj.day}T${startDateObj.hours}:${startDateObj.minutes}:${startDateObj.seconds}${timezoneFixedString}`,
-                timeZone: timezone
-            };
-            finalDtend = {
-                dateTime: `${endDateObj.year}-${endDateObj.month}-${endDateObj.day}T${endDateObj.hours}:${endDateObj.minutes}:${endDateObj.seconds}${timezoneFixedString}`,
-                timeZone: timezone
-            };
-        }
-        return {
-            finalDtstart,
-            finalDtend
-        };
-    }
-
-    function syncTicktick(extendedConfigs) {
-        logger.info(`syncing ticktick tasks`);
-        const icsCalendarsConfigs = extendedConfigs.configs[ticktickConfigsKey].ics_calendars;
-        const info = {
-            ticktickTasks: getAllTicktickTasks(icsCalendarsConfigs, extendedConfigs.timezone_offset),
-            ticktickGcalTasks: getTasksFromGoogleCalendars([...new Set(icsCalendarsConfigs.map((item) => item.gcal))])
-        };
-        const resultInfo = Object.assign(Object.assign({}, addAndUpdateTasksOnGcal(info)), moveCompletedTasksToDoneGcal(info));
-        return resultInfo;
-    }
-    const getFixedTaskName = (str) => {
-        let fixedName = str;
-        fixedName = fixedName.replace(/\\,/g, ',');
-        fixedName = fixedName.replace(/\\;/g, ';');
-        fixedName = fixedName.replace(/\\"/g, '"');
-        fixedName = fixedName.replace(/\\\\/g, '\\');
-        return fixedName;
-    };
-    const generateGcalDescription = (curIcsTask) => `task: https://ticktick.com/webapp/#q/all/tasks/${curIcsTask.id.split('@')[0]}${curIcsTask.description ? '\n\n' + curIcsTask.description.replace(/\\n/g, '\n') : ''}`;
-    function convertTicktickTaskToGcal(ticktickTask) {
-        const properties = {
-            private: {
-                calendar: ticktickTask.gcal,
-                completedCalendar: ticktickTask.gcal_done,
-                tickTaskId: ticktickTask.id
-            }
-        };
-        const customColor = (ticktickTask === null || ticktickTask === void 0 ? void 0 : ticktickTask.color) ? { colorId: ticktickTask.color.toString() } : {};
-        const taskEvent = Object.assign({ summary: getFixedTaskName(ticktickTask.name), description: generateGcalDescription(ticktickTask), start: ticktickTask.start, end: ticktickTask.end, reminders: {
-                useDefault: true
-            }, extendedProperties: properties }, customColor);
-        return taskEvent;
-    }
-    function addTicktickTaskToGcal(gcal, ticktickTask) {
-        const taskEvent = convertTicktickTaskToGcal(ticktickTask);
-        try {
-            return addEventToCalendar(gcal, taskEvent);
-        }
-        catch (e) {
-            if (e.message.search('API call to calendar.events.insert failed with error: Required') > -1) {
-                throw new Error(ERRORS.abusive_google_calendar_api_use);
-            }
-            else {
-                throw new Error(e.message);
-            }
-        }
-    }
-    function checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal) {
-        const changedTaskName = getFixedTaskName(ticktickTask.name) !== taskOnGcal.summary;
-        const changedDateFormat = Object.keys(ticktickTask.start).length !== Object.keys(taskOnGcal.start).length;
-        const changedIntialDate = ticktickTask.start['date'] !== taskOnGcal.start['date'] || ticktickTask.start['dateTime'] !== taskOnGcal.start['dateTime'];
-        const changedFinalDate = ticktickTask.end['date'] !== taskOnGcal.end['date'] || ticktickTask.end['dateTime'] !== taskOnGcal.end['dateTime'];
-        const changedColor = (() => {
-            let tmpResult = false;
-            if ((ticktickTask === null || ticktickTask === void 0 ? void 0 : ticktickTask.color) === undefined) {
-                tmpResult = taskOnGcal.colorId !== undefined;
-            }
-            else {
-                tmpResult = ticktickTask.color.toString() !== taskOnGcal.colorId;
-            }
-            return tmpResult;
-        })();
-        const resultArr = [
-            { hasChanged: changedTaskName, field: 'name' },
-            { hasChanged: changedDateFormat, field: 'date format' },
-            { hasChanged: changedIntialDate, field: 'initial date' },
-            { hasChanged: changedFinalDate, field: 'final date' },
-            { hasChanged: changedColor, field: 'color' }
-        ];
-        return resultArr.filter((item) => item.hasChanged).map((item) => item.field);
-    }
-    function getTicktickTasks(icsCalendarsArr, timezone_offset) {
-        const extendedTasks = [];
-        for (const icsCal of icsCalendarsArr) {
-            const tasks = getIcsCalendarTasks(icsCal.link, timezone_offset);
-            const extendedItem = tasks.map((item) => (Object.assign(Object.assign({}, item), icsCal)));
-            extendedTasks.push(extendedItem);
-        }
-        return mergeArraysOfArrays(extendedTasks);
-    }
-    function getAllTicktickTasks(icsCalendars, timezone_offset) {
-        const taggedTasks = getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.tag), timezone_offset);
-        const ignoredTaggedTasks = getTicktickTasks(icsCalendars.filter((icsCal) => icsCal.ignoredTags), timezone_offset).filter((item) => {
-            const ignoredTasks = taggedTasks.map((it) => `${it.tag}${it.id}`);
-            const shouldIgnoreTask = item.ignoredTags.some((ignoredTag) => ignoredTasks.includes(`${ignoredTag}${item.id}`));
-            return shouldIgnoreTask === false;
-        });
-        const commonTasks = getTicktickTasks(icsCalendars.filter((icsCal) => !icsCal.tag && !icsCal.ignoredTags), timezone_offset);
-        return [...taggedTasks, ...ignoredTaggedTasks, ...commonTasks];
-    }
-    function addAndUpdateTasksOnGcal({ ticktickGcalTasks, ticktickTasks }) {
-        const result = {
-            added_tasks: [],
-            updated_tasks: []
-        };
-        for (const ticktickTask of ticktickTasks) {
-            const taskOnGcal = ticktickGcalTasks.find((item) => item.extendedProperties.private.tickTaskId === ticktickTask.id);
-            const taskGoogleCalendar = getCalendarByName(ticktickTask.gcal);
-            if (!taskOnGcal) {
-                const addedTask = addTicktickTaskToGcal(taskGoogleCalendar, ticktickTask);
-                result.added_tasks.push(addedTask);
-            }
-            else {
-                const hasChangedCalendar = taskGoogleCalendar.summary !== taskOnGcal.extendedProperties.private.calendar;
-                const changedTicktickFields = checkIfTicktickTaskInfoWasChanged(ticktickTask, taskOnGcal);
-                const taskDoneCalendar = getCalendarByName(ticktickTask.gcal_done);
-                const extendProps = {
-                    private: {
-                        calendar: ticktickTask.gcal,
-                        completedCalendar: ticktickTask.gcal_done,
-                        tickTaskId: ticktickTask.id
-                    }
-                };
-                const modifiedFields = {
-                    summary: ticktickTask.name,
-                    description: generateGcalDescription(ticktickTask),
-                    start: ticktickTask.start,
-                    end: ticktickTask.end,
-                    extendedProperties: extendProps,
-                    colorId: (ticktickTask === null || ticktickTask === void 0 ? void 0 : ticktickTask.color) ? ticktickTask === null || ticktickTask === void 0 ? void 0 : ticktickTask.color.toString() : undefined
-                };
-                if (hasChangedCalendar) {
-                    const movedTask = moveEventToOtherCalendar(taskGoogleCalendar, taskDoneCalendar, Object.assign(Object.assign({}, taskOnGcal), modifiedFields));
-                    result.updated_tasks.push(movedTask);
-                }
-                else if (changedTicktickFields.length > 0) {
-                    const updatedTask = updateEventFromCalendar(taskGoogleCalendar, taskOnGcal, modifiedFields);
-                    result.updated_tasks.push(updatedTask);
-                }
-            }
-        }
-        return result;
-    }
-    function moveCompletedTasksToDoneGcal({ ticktickGcalTasks, ticktickTasks }) {
-        const result = {
-            completed_tasks: []
-        };
-        const ticktickTasksOnGcal = ticktickGcalTasks.filter((item) => { var _a, _b; return (_b = (_a = item.extendedProperties) === null || _a === void 0 ? void 0 : _a.private) === null || _b === void 0 ? void 0 : _b.tickTaskId; });
-        for (const gcalTicktickTask of ticktickTasksOnGcal) {
-            const isTaskStillOnTicktick = ticktickTasks.map((item) => item.id).includes(gcalTicktickTask.extendedProperties.private.tickTaskId);
-            if (!isTaskStillOnTicktick) {
-                const taskCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.calendar);
-                const taskDoneCalendar = getCalendarByName(gcalTicktickTask.extendedProperties.private.completedCalendar);
-                const gcalEvent = moveEventToOtherCalendar(taskCalendar, taskDoneCalendar, Object.assign(Object.assign({}, gcalTicktickTask), { colorId: undefined }));
-                result.completed_tasks.push(gcalEvent);
-            }
-        }
-        return result;
-    }
-
     function isObject(obj) {
         return typeof obj === 'object' && obj !== null;
     }
@@ -1106,15 +782,6 @@ function getGcalSyncDev(){
             }
         }
     };
-    const ticktickCalItemObjectShape = {
-        gcal: '',
-        gcal_done: '',
-        link: ''
-    };
-    const ticktickRequiredObjectShape = {
-        should_sync: false,
-        ics_calendars: []
-    };
     const githubRequiredObjectShape = {
         username: '',
         commits_configs: {
@@ -1130,18 +797,11 @@ function getGcalSyncDev(){
             return false;
         const isValid = {
             basic: true,
-            ticktick: true,
-            ticktickIcsItems: true,
             github: true,
             githubIgnoredRepos: true
         };
         isValid.basic = validateObjectSchema(configs, basicRequiredObjectShape);
         isValid.github = validateObjectSchema(configs[githubConfigsKey], githubRequiredObjectShape);
-        isValid.ticktick = validateObjectSchema(configs[ticktickConfigsKey], ticktickRequiredObjectShape);
-        if (typeof configs[ticktickConfigsKey] === 'object' && 'ics_calendars' in configs[ticktickConfigsKey] && Array.isArray(configs[ticktickConfigsKey].ics_calendars)) {
-            const itemsValidationArr = configs[ticktickConfigsKey].ics_calendars.map((item) => validateObjectSchema(item, ticktickCalItemObjectShape));
-            isValid.ticktickIcsItems = itemsValidationArr.every((item) => item === true);
-        }
         if (typeof configs[githubConfigsKey] === 'object' && 'ignored_repos' in configs[githubConfigsKey] && Array.isArray(configs[githubConfigsKey].ignored_repos)) {
             const itemsValidationArr = configs[githubConfigsKey].ignored_repos.map((item) => typeof item === 'string');
             isValid.githubIgnoredRepos = itemsValidationArr.every((item) => item === true);
@@ -1184,12 +844,8 @@ function getGcalSyncDev(){
             });
         }
         createMissingGcalCalendars() {
-            const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
-            // prettier-ignore
-            const allGoogleCalendars = [...new Set([]
-                    .concat(shouldSyncGithub ? [this.extended_configs.configs[githubConfigsKey].commits_configs.commits_calendar] : [])
-                    .concat(shouldSyncTicktick ? [...this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal), ...this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal_done)] : []))
-            ];
+            const { shouldSyncGithub } = checkIfShouldSync(this.extended_configs);
+            const allGoogleCalendars = [...new Set([].concat(shouldSyncGithub ? [this.extended_configs.configs[githubConfigsKey].commits_configs.commits_calendar] : []))];
             createMissingCalendars(allGoogleCalendars);
         }
         // api methods ===============================================================
@@ -1205,12 +861,6 @@ function getGcalSyncDev(){
         }
         getSessionLogs() {
             return logger.logs;
-        }
-        getTicktickTasks() {
-            return getAllTicktickTasks(this.extended_configs.configs[ticktickConfigsKey].ics_calendars, this.extended_configs.timezone_offset);
-        }
-        getGoogleEvents() {
-            return getTasksFromGoogleCalendars([...new Set(this.extended_configs.configs[ticktickConfigsKey].ics_calendars.map((item) => item.gcal))]);
         }
         getGithubCommits() {
             const githubCommits = getAllGithubCommits(this.extended_configs.configs[githubConfigsKey].username, this.extended_configs.configs[githubConfigsKey].personal_token);
@@ -1235,23 +885,20 @@ function getGcalSyncDev(){
                 logger.info('skip_mode is set to true, skipping sync');
                 return {};
             }
-            const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(this.extended_configs);
-            if (!shouldSyncGithub && !shouldSyncTicktick) {
+            const { shouldSyncGithub } = checkIfShouldSync(this.extended_configs);
+            if (!shouldSyncGithub) {
                 logger.info('nothing to sync');
                 return {};
             }
             this.createMissingGcalCalendars();
             this.createMissingGASProperties();
             const emptySessionData = {
-                added_tasks: [],
-                updated_tasks: [],
-                completed_tasks: [],
                 commits_added: [],
                 commits_deleted: [],
                 commits_tracked_to_be_added: [],
                 commits_tracked_to_be_deleted: []
             };
-            const sessionData = Object.assign(Object.assign(Object.assign({}, emptySessionData), (shouldSyncTicktick && syncTicktick(this.extended_configs))), (shouldSyncGithub && syncGithub(this.extended_configs.configs)));
+            const sessionData = Object.assign(Object.assign({}, emptySessionData), (shouldSyncGithub && syncGithub(this.extended_configs.configs)));
             const parsedSessionData = handleSessionData(this.extended_configs, sessionData);
             return parsedSessionData;
         }

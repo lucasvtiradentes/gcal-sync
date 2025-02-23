@@ -1,4 +1,4 @@
-import { TGcalPrivateGithub, TGcalPrivateTicktick, TParsedGoogleEvent } from '../modules/GoogleCalendar';
+import { TGcalPrivateGithub, TParsedGoogleEvent } from '../modules/GoogleCalendar';
 import { asConstArrayToObject } from '../utils/javascript/array_utils';
 
 export const CONFIGS = {
@@ -9,18 +9,6 @@ export const CONFIGS = {
 } as const;
 
 const GAS_PROPERTIES = [
-  {
-    key: 'today_ticktick_added_tasks',
-    initial_value: [] as TParsedGoogleEvent<TGcalPrivateTicktick>[]
-  },
-  {
-    key: 'today_ticktick_updated_tasks',
-    initial_value: [] as TParsedGoogleEvent<TGcalPrivateTicktick>[]
-  },
-  {
-    key: 'today_ticktick_completed_tasks',
-    initial_value: [] as TParsedGoogleEvent<TGcalPrivateTicktick>[]
-  },
   {
     key: 'today_github_added_commits',
     initial_value: [] as TParsedGoogleEvent<TGcalPrivateGithub>[]

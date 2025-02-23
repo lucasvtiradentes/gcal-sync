@@ -4,14 +4,6 @@ import { logger } from '../utils/abstractions/logger';
 export type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
 export type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
 
-export type TGcalPrivateTicktick = {
-  private: {
-    tickTaskId: string;
-    calendar: string;
-    completedCalendar: string;
-  };
-};
-
 export type TGcalPrivateGithub = {
   private: {
     repository: string;

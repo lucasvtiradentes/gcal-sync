@@ -10,9 +10,6 @@ import { getDailySummaryEmail, getNewReleaseEmail, getSessionEmail } from './gen
 
 function getTodayStats() {
   const todayStats: TSessionStats = {
-    added_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks),
-    updated_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks),
-    completed_tasks: getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks),
     commits_added: getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits),
     commits_deleted: getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits)
   };
@@ -22,28 +19,12 @@ function getTodayStats() {
 function clearTodayEvents() {
   updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, []);
   updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, []);
-  updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, []);
-  updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, []);
-  updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, []);
 
   logger.info(`today stats were reseted!`);
 }
 
 export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData: TExtendedSessionStats) {
-  const { shouldSyncGithub, shouldSyncTicktick } = checkIfShouldSync(extendedConfigs);
-
-  const ticktickNewItems = sessionData.added_tasks.length + sessionData.updated_tasks.length + sessionData.completed_tasks.length;
-  if (shouldSyncTicktick && ticktickNewItems > 0) {
-    const todayAddedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks);
-    const todayUpdatedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks);
-    const todayCompletedTasks = getGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks);
-
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_added_tasks, [...todayAddedTasks, ...sessionData.added_tasks]);
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_updated_tasks, [...todayUpdatedTasks, ...sessionData.updated_tasks]);
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_ticktick_completed_tasks, [...todayCompletedTasks, ...sessionData.completed_tasks]);
-
-    logger.info(`added ${ticktickNewItems} new ticktick items to today's stats`);
-  }
+  const { shouldSyncGithub } = checkIfShouldSync(extendedConfigs);
 
   const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
   if (shouldSyncGithub && githubNewItems > 0) {
@@ -58,16 +39,13 @@ export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData
 
   // =========================================================================
 
-  const totalSessionNewItems = ticktickNewItems + githubNewItems;
+  const totalSessionNewItems = githubNewItems;
   sendSessionEmails(extendedConfigs, sessionData, totalSessionNewItems);
 
   // =========================================================================
 
-  const { added_tasks, updated_tasks, completed_tasks, commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
+  const { commits_added, commits_deleted, commits_tracked_to_be_added, commits_tracked_to_be_deleted } = sessionData;
   return {
-    added_tasks: added_tasks.length,
-    updated_tasks: updated_tasks.length,
-    completed_tasks: completed_tasks.length,
     commits_added: commits_added.length,
     commits_deleted: commits_deleted.length,
     commits_tracked_to_be_added: commits_tracked_to_be_added.length,

@@ -24,28 +24,6 @@ function getConfigs() {
         ignored_repos: ['github-assets'],   // ignored repositories string array: ['repo1', 'repo2']
         parse_commit_emojis: true           // parse string emojis (:tada:) to emojis (✨)
       }
-    },
-    ticktick_sync: {
-      should_sync: true,                    // controls if the ticktick sync should be done
-      ics_calendars: [
-        {
-          link: 'webcal://link_A',          // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done'
-          gcal: 'tasks',
-          gcal_done: 'done',
-        },
-        {
-          link: 'webcal://link_B',          // all items from ticktick will be added to 'tasks' cal and, when completed, moved to 'done_healthy'
-          gcal: 'tasks',
-          gcal_done: 'done_healthy',
-          tag: "HEALTHY"                    // this is a flag where we can "mark" tasks from this config to be ignored on other ics_calendars
-        },
-        {
-          link: 'webcal://link_C',          // all items from ticktick, except the tasks marked with HEALTHY, will be added to 'tasks' cal and,  when completed, moved to 'done'
-          gcal: 'tasks',
-          gcal_done: 'done',
-          ignoredTags: ['HEALTHY']
-        }
-      ]
     }
   };
   return configs
@@ -61,8 +39,8 @@ function getGcalSync(){
     const GcalSync = getGcalSyncDev()
     gcalSync = new GcalSync(configs);
   } else {
-    const version = "1.10.0"
-    const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@1.10.0`).getContentText();
+    const version = "1.11.0"
+    const gcalSyncContent = UrlFetchApp.fetch(`https://cdn.jsdelivr.net/npm/gcal-sync@1.11.0`).getContentText();
     eval(gcalSyncContent)
     gcalSync = new GcalSync(configs);
   }
