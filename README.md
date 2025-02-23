@@ -7,7 +7,7 @@
 <div align="center">
   <a href="https://www.npmjs.com/package/gcal-sync"><img src="https://img.shields.io/npm/v/gcal-sync.svg?style=flat" alt="npm version"></a>
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/made%20with-node-1f425f?logo=node.js&.svg" /></a>
-  <a href="https://www.google.com/script/start/"><img src="https://img.shields.io/badge/apps%20script-4285F4?logo=google&logoColor=white" /></a>
+  <a href="https://script.google.com/home"><img src="https://img.shields.io/badge/apps%20script-4285F4?logo=google&logoColor=white" /></a>
   <a href="https://github.com/lucasvtiradentes/gcal-sync#contributing"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions" /></a>
 </div>
 
@@ -85,7 +85,10 @@ Add an one way synchronization from <a href="https://github.com/">github</a> com
 
 ## :question: Motivation<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
-This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project at the time.
+This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project at the time. After some time I also thought it would be a good idea to add github commits sync to google calendar.
+
+> [!NOTE]
+> After TickTick finally introduced [two-way sync with Google Calendar](https://www.youtube.com/watch?v=Wr0ybMGlVz4), I decided to remove the one-way sync feature from TickTick to Google Calendar from gcal-sync. I believe it served its purpose well by providing a valuable solution for the community during the time when TickTick had not yet implemented this functionality. Now that the feature is natively available, it feels appropriate to transition to the built-in solution.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
@@ -101,7 +104,7 @@ The only thing you need to use this solution is a `gmail/google account`.
 
 ### How it works
 
-It basically sets a function to run in [google apps scripts](https://www.google.com/script/start/) to run at every 5 minutes, and this function is responsable for:
+It basically sets a function to run in [google apps scripts](https://script.google.com/home) to run at every 5 minutes, and this function is responsable for:
 
 - sync your github commits to google calendar;
 - send you optional emails about session. daily changes, errors and new versions.
@@ -121,7 +124,7 @@ To effectively use this project, do the following steps:
 </details>
 
 <details>
-  <summary>3 - setup the gcal-sync on GAS</summary>
+  <summary>2 - setup the gcal-sync on GAS</summary>
   <div>
     <br>
     <p>Click on the initial file, which is the <b>rectangle-1</b> on the image.</p>
@@ -230,7 +233,7 @@ function doGet(reqParams) {
 </details>
 
 <details>
-  <summary>4 - allow the required google permissions</summary>
+  <summary>3 - allow the required google permissions</summary>
   <div>
     <br>
     <p>Go to the project settings by clicking on the <b>first image rectangle</b>. After that, check the option to show the <code>appsscript.json</code> in our project, a file that manages the required google api access.</p>
@@ -281,7 +284,7 @@ function doGet(reqParams) {
 </details>
 
 <details>
-  <summary>6 - setup the gcal-sync to run automatically every x minutes</summary>
+  <summary>4 - setup the gcal-sync to run automatically every x minutes</summary>
   <div>
     <br>
     <p>Just follow what the bellow image shows, which is to select the <code>install</code> function and run it.<br>
@@ -291,7 +294,7 @@ function doGet(reqParams) {
 </details>
 
 <details>
-  <summary>7 - deploy an api to manually run the sync function (optional)</summary>
+  <summary>5 - deploy an api to manually run the sync function (optional)</summary>
   <div>
     <br>
     <p>It will allow you to sync whenever you go to a generated link.<br>
