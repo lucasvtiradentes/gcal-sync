@@ -83,40 +83,14 @@ Add an one way synchronization from <a href="https://github.com/">github</a> com
  </table>
 </div>
 
-<div align="center">
-<details>
-  <summary>explanation of my usage on the above example</summary>
-  <div>
-    <br>
-      <ul align="left">
-        <li align="left"><b>black</b>: my past github commits;</li>
-        <li align="left"><b>green</b>: ticktick completed tasks;</li>
-        <li align="left">the others collors are for ticktick tasks to do:
-          <ul>
-            <li><b>red</b>: important tasks with pre-defined datetime;</li>
-            <li><b>blue</b>: planned tasks;</li>
-            <li><b>purple</b>: not tasks (games to watch, movie release dates, etc).</li>
-          </ul>
-        </li>
-      </ul>
-
-  </div>
-</details>
-</div>
-
 ## :question: Motivation<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
 This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project at the time.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
-&nbsp;&nbsp;&nbsp;✔️ sync your ticktick tasks to google calendar;<br>
 &nbsp;&nbsp;&nbsp;✔️ sync your github commits to google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ every completed task in ticktick will be moved to its corresponding _completed_ google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ updates corresponding google calendar event in case of changes in ticktick task date or name;<br>
 &nbsp;&nbsp;&nbsp;✔️ option to send a daily summary notification of what gcalsync has done throughout the day;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to sync each ticktick list to a different google calendar;<br>
-&nbsp;&nbsp;&nbsp;✔️ option to ignore certain tasks based on tags;<br>
 &nbsp;&nbsp;&nbsp;✔️ you can add a url link to run the sync function manually whenever you want.<br>
 
 ## :warning: Requirements<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
@@ -129,7 +103,6 @@ The only thing you need to use this solution is a `gmail/google account`.
 
 It basically sets a function to run in [google apps scripts](https://www.google.com/script/start/) to run at every 5 minutes, and this function is responsable for:
 
-- sync your ticktick tasks to google calendar;
 - sync your github commits to google calendar;
 - send you optional emails about session. daily changes, errors and new versions.
 
@@ -138,18 +111,7 @@ It basically sets a function to run in [google apps scripts](https://www.google.
 To effectively use this project, do the following steps:
 
 <details>
-  <summary>1 - setup the ticktick ics calendars</summary>
-  <div>
-    <br>
-    <p>Go to <a href="https://ticktick.com/webapp/#settings/subscribe">this page</a> and create as many ics calendars as you want to sync. You can create a ics calendar to sync everything, or one calendar per list.<br>
-    Leave this browser tab open because you'll need the ics links in the next steps.
-    </p>
-    <p align="center"><img width="500" src="./.github/images/tutorial/tut1.webp" /></p>
-  </div>
-</details>
-
-<details>
-  <summary>2 - create a Google Apps Scripts (GAS) project</summary>
+  <summary>1 - create a Google Apps Scripts (GAS) project</summary>
   <div>
     <br>
     <p>Go to the <a href="">google apps script</a> and create a new project by clicking in the button showed in the next image.<br>
@@ -264,22 +226,6 @@ function doGet(reqParams) {
 </pre>
 <!-- </DYNFIELD:GAS_SETUP> -->
 
-if you want to change the google event color, you can choose from 12 options:
-
-```plain
-1   -> blue
-2   -> green
-3   -> purple
-4   -> red
-5   -> yellow
-6   -> orange
-7   -> turquoise
-8   -> gray
-9   -> bold blue
-10  -> bold green
-11  -> bold red
-```
-
   </div>
 </details>
 
@@ -356,13 +302,11 @@ if you want to change the google event color, you can choose from 12 options:
 
 ### General tips
 
-- in case of deleted ticktick tasks (that means, you dont intend to do it anymore) that are in gcal, make sure to delete in gcal as well. If not, they will be moved to its corresponding completed calendar;
 - it is not necessary to generate a github token in order to sync commits, it is only required if you want to sync your contributions to private repos as well;
-- every update in ticktick may take 5 minutes to propagate to its ics calendars;
 
 ### Updating
 
-To update your esports-notifier instance and use the latest features, you just need to change the `version` number in the `getGcalSync` function, as it is shown bellow:
+To update your gcal-sync instance and use the latest features, you just need to change the `version` number in the `getGcalSync` function, as it is shown bellow:
 
 <pre>
 function getGcalSync(){
@@ -489,10 +433,6 @@ This project uses the following thechnologies:
 ## License
 
 This project is distributed under the terms of the MIT License Version 2.0. A complete version of the license is available in the [LICENSE](LICENSE) file in this repository. Any contribution made to this project will be licensed under the MIT License Version 2.0.
-
-## Feedback
-
-If you have any questions or suggestions you are welcome to discuss it on [github issues](https://github.com/lucasvtiradentes/gcal-sync/issues) or, if you prefer, you can reach me in my social media provided bellow.
 
 <a href="#"><img src="./.github/images/divider.png" /></a>
 
