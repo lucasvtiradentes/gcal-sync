@@ -62,25 +62,10 @@
 
 ## :trumpet: Overview
 
-Add an one way synchronization from <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking capabilities and productivity analysis.
+Add an one way synchronization from <a href="https://github.com/">github</a> commits to your <a href="https://calendar.google.com/">google calendar</a> and boost your time-tracking and productivity analysis.
 
 <div align="center">
-  <table align="center">
-    <thead>
-      <tr>
-        <td><p align="center">Desktop view</p></td>
-        <td><p align="center">Mobile view</p></td>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><img width="100%" src="./.github/images/gcalsync_alt.png"></td>
-        <td>
-          <img width="250px" src="./.github/images/gcalsync.webp" />
-        </td>
-      </tr>
-    </tbody>
- </table>
+  <img width="80%" src="./.github/images/gcal-sync.png">
 </div>
 
 ## :question: Motivation<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
@@ -88,7 +73,7 @@ Add an one way synchronization from <a href="https://github.com/">github</a> com
 This project was deeply inspired by <a href="https://github.com/derekantrican/GAS-ICS-Sync">this tool</a>, and my main reason for creating this was to track my progress over my completed ticktick tasks, moving them to another calendar, which was not possible in the mentioned project at the time. After some time I also thought it would be a good idea to add github commits sync to google calendar.
 
 > [!NOTE]
-> After TickTick finally introduced [two-way sync with Google Calendar](https://www.youtube.com/watch?v=Wr0ybMGlVz4), I decided to remove the one-way sync feature from TickTick to Google Calendar from gcal-sync. I believe it served its purpose well by providing a valuable solution for the community during the time when TickTick had not yet implemented this functionality. Now that the feature is natively available, it feels appropriate to transition to the built-in solution.
+> After TickTick finally introduced [two-way sync with Google Calendar](https://www.youtube.com/watch?v=Wr0ybMGlVz4), I decided to remove the one-way sync from gcal-sync. I believe it served its purpose well by providing a valuable solution for the community during the time when TickTick had not yet implemented this functionality, but moving forward it feels appropriate to transition to the built-in ticktick solution.
 
 ## :dart: Features<a href="#TOC"><img align="right" src="./.github/images/up_arrow.png" width="22"></a>
 
