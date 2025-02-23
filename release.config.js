@@ -1,5 +1,5 @@
 module.exports = {
-  branches: ['master'],
+  branches: ['main'],
   repository: 'https://github.com/lucasvtiradentes/gcal-sync',
   plugins: [
     [
