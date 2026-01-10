@@ -16,7 +16,6 @@ runs:
         node-version: 20
         cache: 'pnpm'
         cache-dependency-path: pnpm-lock.yaml
-        registry-url: 'https://registry.npmjs.org'
 
     - name: Verify PNPM Cache Directory
       shell: sh
