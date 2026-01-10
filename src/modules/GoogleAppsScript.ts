@@ -28,7 +28,14 @@ export function getGASProperty<TProperty extends TGasPropertiesSchemaKeys>(prope
 
 export function updateGASProperty<TProperty extends TGasPropertiesSchemaKeys>(property: TProperty, value: TGasPropertiesSchema[TProperty]) {
   const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
-  PropertiesService.getScriptProperties().setProperty(property, parsedValue);
+  const sizeInBytes = parsedValue.length;
+  console.log(`updating property "${property}" with size: ${sizeInBytes} chars`);
+  try {
+    PropertiesService.getScriptProperties().setProperty(property, parsedValue);
+  } catch (e) {
+    console.log(`error updating property "${property}": ${e}`);
+    throw e;
+  }
 }
 
 export function deleteGASProperty(property: TGasPropertiesSchemaKeys) {

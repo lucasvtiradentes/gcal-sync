@@ -27,9 +27,12 @@ export const getCurrentTimezoneFromGoogleCalendar = () => {
 
 export const createMissingCalendars = (allGcalendarsNames: string[]) => {
   let createdCalendar = false;
+  logger.info(`checking calendars to create: ${JSON.stringify(allGcalendarsNames)}`);
 
   allGcalendarsNames.forEach((calName: string) => {
-    if (!checkIfCalendarExists(calName)) {
+    const exists = checkIfCalendarExists(calName);
+    logger.info(`calendar "${calName}" exists: ${!!exists}`);
+    if (!exists) {
       createCalendar(calName);
       logger.info(`created google calendar: [${calName}]`);
       createdCalendar = true;
@@ -114,6 +117,35 @@ export function getTasksFromGoogleCalendars<TPrivate>(allCalendars: string[]) {
 export function addEventToCalendar(calendar: TGoogleCalendar, event: TGoogleEvent) {
   const eventFinal = Calendar.Events.insert(event, calendar.id);
   return eventFinal;
+}
+
+export function addEventsToCalendarBatch(calendar: TGoogleCalendar, events: TGoogleEvent[]) {
+  if (events.length === 0) return [];
+
+  const token = ScriptApp.getOAuthToken();
+  const baseUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events`;
+
+  const requests = events.map((event) => ({
+    url: baseUrl,
+    method: 'post' as const,
+    contentType: 'application/json',
+    headers: { Authorization: `Bearer ${token}` },
+    payload: JSON.stringify(event),
+    muteHttpExceptions: true
+  }));
+
+  const responses = UrlFetchApp.fetchAll(requests);
+
+  const results = responses.map((response, index) => {
+    if (response.getResponseCode() === 200) {
+      return JSON.parse(response.getContentText());
+    } else {
+      logger.info(`failed to add event ${index}: ${response.getContentText()}`);
+      return null;
+    }
+  });
+
+  return results.filter((r) => r !== null);
 }
 
 export function updateEventFromCalendar(calendar: TGoogleCalendar, event: TGoogleEvent, updatedProps: any) {
