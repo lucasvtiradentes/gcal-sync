@@ -54,15 +54,62 @@ export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData
   const { shouldSyncGithub } = checkIfShouldSync(extendedConfigs);
 
   const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
+  logger.info(`[DEBUG][SESSION] shouldSyncGithub: ${shouldSyncGithub}, githubNewItems: ${githubNewItems}`);
+
   if (shouldSyncGithub && githubNewItems > 0) {
-    const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits);
-    const todayDeletedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits);
+    const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits) ?? [];
+    const todayDeletedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits) ?? [];
+
+    logger.info(`[DEBUG][SESSION] current todayAddedCommits: ${todayAddedCommits.length}, todayDeletedCommits: ${todayDeletedCommits.length}`);
 
     const minimalAdded = sessionData.commits_added.map(toMinimalCommit);
     const minimalDeleted = sessionData.commits_deleted.map(toMinimalCommit);
 
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [...todayAddedCommits, ...minimalAdded] as any);
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [...todayDeletedCommits, ...minimalDeleted] as any);
+    logger.info(`[DEBUG][SESSION] adding ${minimalAdded.length} commits, deleting ${minimalDeleted.length} commits`);
+
+    const newAddedCommits = [...todayAddedCommits, ...minimalAdded];
+    const newDeletedCommits = [...todayDeletedCommits, ...minimalDeleted];
+
+    const addedSize = JSON.stringify(newAddedCommits).length;
+    const deletedSize = JSON.stringify(newDeletedCommits).length;
+
+    logger.info(`[DEBUG][SESSION] new added commits size: ${addedSize} chars, deleted size: ${deletedSize} chars`);
+
+    const MAX_PROPERTY_SIZE = 450000;
+
+    if (addedSize > MAX_PROPERTY_SIZE) {
+      logger.info(`[WARN][SESSION] added commits size (${addedSize}) exceeds limit (${MAX_PROPERTY_SIZE}), keeping only recent ${Math.min(100, newAddedCommits.length)} commits`);
+      const recentAdded = newAddedCommits.slice(-100);
+      try {
+        updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, recentAdded as any);
+      } catch (e) {
+        logger.info(`[ERROR][SESSION] failed to store added commits even after truncation: ${e}`);
+        updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [] as any);
+      }
+    } else {
+      try {
+        updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, newAddedCommits as any);
+      } catch (e) {
+        logger.info(`[ERROR][SESSION] failed to store added commits: ${e}`);
+      }
+    }
+
+    if (deletedSize > MAX_PROPERTY_SIZE) {
+      logger.info(`[WARN][SESSION] deleted commits size (${deletedSize}) exceeds limit (${MAX_PROPERTY_SIZE}), keeping only recent ${Math.min(100, newDeletedCommits.length)} commits`);
+      const recentDeleted = newDeletedCommits.slice(-100);
+      try {
+        updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, recentDeleted as any);
+      } catch (e) {
+        logger.info(`[ERROR][SESSION] failed to store deleted commits even after truncation: ${e}`);
+        updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [] as any);
+      }
+    } else {
+      try {
+        updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, newDeletedCommits as any);
+      } catch (e) {
+        logger.info(`[ERROR][SESSION] failed to store deleted commits: ${e}`);
+      }
+    }
 
     logger.info(`added ${githubNewItems} new github items to today's stats`);
   }

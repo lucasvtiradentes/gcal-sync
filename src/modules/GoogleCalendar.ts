@@ -1,6 +1,7 @@
 import { CONFIGS } from '../consts/configs';
 import { logger } from '../utils/abstractions/logger';
 
+
 export type TGoogleCalendar = GoogleAppsScript.Calendar.Schema.Calendar;
 export type TGoogleEvent = GoogleAppsScript.Calendar.Schema.Event;
 
@@ -103,6 +104,37 @@ function getEventsFromCalendar(calendar: TGoogleCalendar) {
   return parsedEventsArr;
 }
 
+function getEventsFromCalendarWithDateRange(calendar: TGoogleCalendar, startDate: string, endDate: string) {
+  logger.info(`[DEBUG][GCAL] fetching events from ${calendar.id} between ${startDate} and ${endDate}`);
+
+  const allEvents: GoogleAppsScript.Calendar.Schema.Event[] = [];
+  let pageToken: string | undefined = undefined;
+  let pageCount = 0;
+
+  do {
+    const response = Calendar.Events.list(calendar.id, {
+      maxResults: 2500,
+      timeMin: new Date(startDate).toISOString(),
+      timeMax: new Date(endDate).toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      pageToken: pageToken
+    });
+
+    const items = response.items ?? [];
+    allEvents.push(...items);
+    pageToken = response.nextPageToken;
+    pageCount++;
+
+    logger.info(`[DEBUG][GCAL] page ${pageCount}: fetched ${items.length} events (total: ${allEvents.length})`);
+  } while (pageToken);
+
+  logger.info(`[DEBUG][GCAL] fetched ${allEvents.length} total events from calendar in ${pageCount} pages`);
+
+  const parsedEventsArr = allEvents.map((ev) => parseGoogleEvent(ev));
+  return parsedEventsArr;
+}
+
 export function getTasksFromGoogleCalendars<TPrivate>(allCalendars: string[]) {
   const tasks: TParsedGoogleEvent<TPrivate>[] = allCalendars.reduce((acc, cur) => {
     const taskCalendar = cur;
@@ -111,6 +143,24 @@ export function getTasksFromGoogleCalendars<TPrivate>(allCalendars: string[]) {
     return [...acc, ...tasksArray];
   }, []);
 
+  return tasks;
+}
+
+export function getTasksFromGoogleCalendarsWithDateRange<TPrivate>(allCalendars: string[], startDate: string, endDate: string) {
+  logger.info(`[DEBUG][GCAL] getTasksFromGoogleCalendarsWithDateRange called for ${allCalendars.length} calendars`);
+
+  const tasks: TParsedGoogleEvent<TPrivate>[] = allCalendars.reduce((acc, cur) => {
+    const taskCalendar = cur;
+    const calendar = getCalendarByName(taskCalendar);
+    if (!calendar) {
+      logger.info(`[DEBUG][GCAL] calendar "${taskCalendar}" not found`);
+      return acc;
+    }
+    const tasksArray = getEventsFromCalendarWithDateRange(calendar, startDate, endDate);
+    return [...acc, ...tasksArray];
+  }, []);
+
+  logger.info(`[DEBUG][GCAL] total tasks from all calendars: ${tasks.length}`);
   return tasks;
 }
 

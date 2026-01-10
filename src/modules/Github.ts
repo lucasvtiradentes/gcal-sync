@@ -21,8 +21,8 @@ function getDateRanges(monthsBack: number = CONFIGS.GITHUB_MONTHS_TO_FETCH): { s
   const now = new Date();
 
   for (let i = 0; i < monthsBack; i++) {
-    const end = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const start = new Date(now.getFullYear(), now.getMonth() - i - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
 
     ranges.push({
       start: start.toISOString().split('T')[0],
@@ -31,6 +31,17 @@ function getDateRanges(monthsBack: number = CONFIGS.GITHUB_MONTHS_TO_FETCH): { s
   }
 
   return ranges;
+}
+
+export function getGithubDateRange() {
+  const now = new Date();
+  const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const startDate = new Date(now.getFullYear(), now.getMonth() - CONFIGS.GITHUB_MONTHS_TO_FETCH, 1);
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  };
 }
 
 function fetchCommitsForDateRange(username: string, personalToken: string, startDate: string, endDate: string) {

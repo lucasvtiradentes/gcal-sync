@@ -16,7 +16,6 @@ function getGcalSyncDev(){
 
     var _a;
     const CONFIGS = {
-        MAX_GCAL_TASKS: 2500,
         REQUIRED_GITHUB_VALIDATIONS_COUNT: 3,
         BATCH_SIZE: 15,
         BATCH_DELAY_MS: 2000,
@@ -316,15 +315,61 @@ function getGcalSyncDev(){
         logger.info(`today stats were reseted!`);
     }
     function handleSessionData(extendedConfigs, sessionData) {
+        var _a, _b;
         const { shouldSyncGithub } = checkIfShouldSync(extendedConfigs);
         const githubNewItems = sessionData.commits_added.length + sessionData.commits_deleted.length;
+        logger.info(`[DEBUG][SESSION] shouldSyncGithub: ${shouldSyncGithub}, githubNewItems: ${githubNewItems}`);
         if (shouldSyncGithub && githubNewItems > 0) {
-            const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits);
-            const todayDeletedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits);
+            const todayAddedCommits = (_a = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits)) !== null && _a !== void 0 ? _a : [];
+            const todayDeletedCommits = (_b = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits)) !== null && _b !== void 0 ? _b : [];
+            logger.info(`[DEBUG][SESSION] current todayAddedCommits: ${todayAddedCommits.length}, todayDeletedCommits: ${todayDeletedCommits.length}`);
             const minimalAdded = sessionData.commits_added.map(toMinimalCommit);
             const minimalDeleted = sessionData.commits_deleted.map(toMinimalCommit);
-            updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [...todayAddedCommits, ...minimalAdded]);
-            updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [...todayDeletedCommits, ...minimalDeleted]);
+            logger.info(`[DEBUG][SESSION] adding ${minimalAdded.length} commits, deleting ${minimalDeleted.length} commits`);
+            const newAddedCommits = [...todayAddedCommits, ...minimalAdded];
+            const newDeletedCommits = [...todayDeletedCommits, ...minimalDeleted];
+            const addedSize = JSON.stringify(newAddedCommits).length;
+            const deletedSize = JSON.stringify(newDeletedCommits).length;
+            logger.info(`[DEBUG][SESSION] new added commits size: ${addedSize} chars, deleted size: ${deletedSize} chars`);
+            const MAX_PROPERTY_SIZE = 450000;
+            if (addedSize > MAX_PROPERTY_SIZE) {
+                logger.info(`[WARN][SESSION] added commits size (${addedSize}) exceeds limit (${MAX_PROPERTY_SIZE}), keeping only recent ${Math.min(100, newAddedCommits.length)} commits`);
+                const recentAdded = newAddedCommits.slice(-100);
+                try {
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, recentAdded);
+                }
+                catch (e) {
+                    logger.info(`[ERROR][SESSION] failed to store added commits even after truncation: ${e}`);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, []);
+                }
+            }
+            else {
+                try {
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, newAddedCommits);
+                }
+                catch (e) {
+                    logger.info(`[ERROR][SESSION] failed to store added commits: ${e}`);
+                }
+            }
+            if (deletedSize > MAX_PROPERTY_SIZE) {
+                logger.info(`[WARN][SESSION] deleted commits size (${deletedSize}) exceeds limit (${MAX_PROPERTY_SIZE}), keeping only recent ${Math.min(100, newDeletedCommits.length)} commits`);
+                const recentDeleted = newDeletedCommits.slice(-100);
+                try {
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, recentDeleted);
+                }
+                catch (e) {
+                    logger.info(`[ERROR][SESSION] failed to store deleted commits even after truncation: ${e}`);
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, []);
+                }
+            }
+            else {
+                try {
+                    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, newDeletedCommits);
+                }
+                catch (e) {
+                    logger.info(`[ERROR][SESSION] failed to store deleted commits: ${e}`);
+                }
+            }
             logger.info(`added ${githubNewItems} new github items to today's stats`);
         }
         // =========================================================================
@@ -382,14 +427,23 @@ function getGcalSyncDev(){
         const ranges = [];
         const now = new Date();
         for (let i = 0; i < monthsBack; i++) {
-            const end = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const start = new Date(now.getFullYear(), now.getMonth() - i - 1, 1);
+            const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+            const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
             ranges.push({
                 start: start.toISOString().split('T')[0],
                 end: end.toISOString().split('T')[0]
             });
         }
         return ranges;
+    }
+    function getGithubDateRange() {
+        const now = new Date();
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const startDate = new Date(now.getFullYear(), now.getMonth() - CONFIGS.GITHUB_MONTHS_TO_FETCH, 1);
+        return {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+        };
     }
     function fetchCommitsForDateRange(username, personalToken, startDate, endDate) {
         var _a, _b, _c;
@@ -609,18 +663,44 @@ function getGcalSyncDev(){
         };
         return parsedGoogleEvent;
     }
-    function getEventsFromCalendar(calendar) {
-        const allEvents = Calendar.Events.list(calendar.id, { maxResults: CONFIGS.MAX_GCAL_TASKS }).items;
+    function getEventsFromCalendarWithDateRange(calendar, startDate, endDate) {
+        var _a;
+        logger.info(`[DEBUG][GCAL] fetching events from ${calendar.id} between ${startDate} and ${endDate}`);
+        const allEvents = [];
+        let pageToken = undefined;
+        let pageCount = 0;
+        do {
+            const response = Calendar.Events.list(calendar.id, {
+                maxResults: 2500,
+                timeMin: new Date(startDate).toISOString(),
+                timeMax: new Date(endDate).toISOString(),
+                singleEvents: true,
+                orderBy: 'startTime',
+                pageToken: pageToken
+            });
+            const items = (_a = response.items) !== null && _a !== void 0 ? _a : [];
+            allEvents.push(...items);
+            pageToken = response.nextPageToken;
+            pageCount++;
+            logger.info(`[DEBUG][GCAL] page ${pageCount}: fetched ${items.length} events (total: ${allEvents.length})`);
+        } while (pageToken);
+        logger.info(`[DEBUG][GCAL] fetched ${allEvents.length} total events from calendar in ${pageCount} pages`);
         const parsedEventsArr = allEvents.map((ev) => parseGoogleEvent(ev));
         return parsedEventsArr;
     }
-    function getTasksFromGoogleCalendars(allCalendars) {
+    function getTasksFromGoogleCalendarsWithDateRange(allCalendars, startDate, endDate) {
+        logger.info(`[DEBUG][GCAL] getTasksFromGoogleCalendarsWithDateRange called for ${allCalendars.length} calendars`);
         const tasks = allCalendars.reduce((acc, cur) => {
             const taskCalendar = cur;
             const calendar = getCalendarByName(taskCalendar);
-            const tasksArray = getEventsFromCalendar(calendar);
+            if (!calendar) {
+                logger.info(`[DEBUG][GCAL] calendar "${taskCalendar}" not found`);
+                return acc;
+            }
+            const tasksArray = getEventsFromCalendarWithDateRange(calendar, startDate, endDate);
             return [...acc, ...tasksArray];
         }, []);
+        logger.info(`[DEBUG][GCAL] total tasks from all calendars: ${tasks.length}`);
         return tasks;
     }
     function addEventsToCalendarBatch(calendar, events) {
@@ -671,13 +751,21 @@ function getGcalSyncDev(){
     function syncGithub(configs) {
         var _a;
         logger.info(`syncing github commits`);
+        const dateRange = getGithubDateRange();
+        logger.info(`[DEBUG] github date range: ${dateRange.startDate} to ${dateRange.endDate}`);
+        const githubCommits = getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token);
+        logger.info(`[DEBUG] fetched ${githubCommits.length} total commits from github`);
+        const githubGcalCommits = getTasksFromGoogleCalendarsWithDateRange([configs[githubConfigsKey].commits_configs.commits_calendar], dateRange.startDate, dateRange.endDate);
+        logger.info(`[DEBUG] fetched ${githubGcalCommits.length} events from gcal within date range`);
         const info = {
-            githubCommits: getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
-            githubGcalCommits: getTasksFromGoogleCalendars([configs[githubConfigsKey].commits_configs.commits_calendar])
+            githubCommits,
+            githubGcalCommits
         };
         const oldGithubSyncIndex = getGASProperty('github_commit_changes_count');
         const currentGithubSyncIndex = Number(oldGithubSyncIndex) + 1;
+        logger.info(`[DEBUG] sync index: ${oldGithubSyncIndex} -> ${currentGithubSyncIndex}`);
         if (oldGithubSyncIndex === null) {
+            logger.info(`[DEBUG] oldGithubSyncIndex is null, resetting properties`);
             resetGithubSyncProperties();
         }
         updateGASProperty('github_commit_changes_count', currentGithubSyncIndex.toString());
@@ -692,6 +780,7 @@ function getGcalSyncDev(){
         }
         const filteredRepos = getFilterGithubRepos(configs, info.githubCommits);
         logger.info(`found ${filteredRepos.length} commits after filtering`);
+        logger.info(`[DEBUG] filtering removed ${info.githubCommits.length - filteredRepos.length} commits`);
         const githubCalendar = getCalendarByName(configs[githubConfigsKey].commits_configs.commits_calendar);
         logger.info(`github calendar "${configs[githubConfigsKey].commits_configs.commits_calendar}" found: ${!!githubCalendar}, id: ${(_a = githubCalendar === null || githubCalendar === void 0 ? void 0 : githubCalendar.id) !== null && _a !== void 0 ? _a : 'N/A'}`);
         const result = Object.assign(Object.assign({}, syncGithubCommitsToAdd({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, filteredRepos: filteredRepos, parseCommitEmojis: configs[githubConfigsKey].commits_configs.parse_commit_emojis })), syncGithubCommitsToDelete({ currentGithubSyncIndex, githubCalendar, githubGcalCommits: info.githubGcalCommits, filteredRepos: filteredRepos }));
@@ -702,14 +791,93 @@ function getGcalSyncDev(){
         return result;
     }
     function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }) {
+        var _a, _b, _c, _d;
+        logger.info(`[DEBUG][ADD] starting syncGithubCommitsToAdd`);
+        logger.info(`[DEBUG][ADD] filteredRepos: ${filteredRepos.length}, gcalCommits: ${githubGcalCommits.length}, parseEmojis: ${parseCommitEmojis}`);
         const githubSessionStats = {
             commits_tracked_to_be_added: [],
             commits_added: []
         };
+        const uniqueRepos = new Set(filteredRepos.map((c) => c.repository));
+        const gcalRepos = new Set(githubGcalCommits.map((c) => { var _a, _b; return (_b = (_a = c.extendedProperties) === null || _a === void 0 ? void 0 : _a.private) === null || _b === void 0 ? void 0 : _b.repository; }).filter(Boolean));
+        logger.info(`[DEBUG][ADD] unique github repos: ${uniqueRepos.size}, unique gcal repos: ${gcalRepos.size}`);
+        const missingRepos = [...uniqueRepos].filter((r) => !gcalRepos.has(r));
+        if (missingRepos.length > 0) {
+            logger.info(`[DEBUG][ADD] repos in github but NOT in gcal: ${missingRepos.join(', ')}`);
+        }
+        const gcalCommitsByRepo = new Map();
+        for (const gcalItem of githubGcalCommits) {
+            const repo = (_b = (_a = gcalItem.extendedProperties) === null || _a === void 0 ? void 0 : _a.private) === null || _b === void 0 ? void 0 : _b.repository;
+            if (repo) {
+                if (!gcalCommitsByRepo.has(repo)) {
+                    gcalCommitsByRepo.set(repo, []);
+                }
+                gcalCommitsByRepo.get(repo).push(gcalItem);
+            }
+        }
+        let matchedCount = 0;
+        let noMatchReasonStats = { noSameRepo: 0, noDateMatch: 0, noMessageMatch: 0 };
+        const sampleMismatches = [];
         for (const githubCommitItem of filteredRepos) {
-            const sameRepoCommits = githubGcalCommits.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubCommitItem.repository);
-            const hasEquivalentGcalTask = sameRepoCommits.find((gcalItem) => gcalItem.extendedProperties.private.commitDate === githubCommitItem.commitDate && parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage) === parseGithubEmojisString(githubCommitItem.commitMessage));
-            if (!hasEquivalentGcalTask) {
+            const sameRepoCommits = (_c = gcalCommitsByRepo.get(githubCommitItem.repository)) !== null && _c !== void 0 ? _c : [];
+            if (sameRepoCommits.length === 0) {
+                noMatchReasonStats.noSameRepo++;
+                const commitMessage = parseCommitEmojis ? parseGithubEmojisString(githubCommitItem.commitMessage) : githubCommitItem.commitMessage;
+                const extendProps = {
+                    private: {
+                        commitMessage,
+                        commitDate: githubCommitItem.commitDate,
+                        repository: githubCommitItem.repository,
+                        repositoryName: githubCommitItem.repositoryName,
+                        repositoryLink: githubCommitItem.repositoryLink,
+                        commitId: githubCommitItem.commitId
+                    }
+                };
+                const taskEvent = {
+                    summary: `${githubCommitItem.repositoryName} - ${commitMessage}`,
+                    description: `repository: https://github.com/${githubCommitItem.repository}\ncommit: ${githubCommitItem.commitUrl}`,
+                    start: { dateTime: githubCommitItem.commitDate },
+                    end: { dateTime: githubCommitItem.commitDate },
+                    reminders: { useDefault: false, overrides: [] },
+                    extendedProperties: extendProps
+                };
+                githubSessionStats.commits_tracked_to_be_added.push(taskEvent);
+                if (sampleMismatches.length < 5) {
+                    sampleMismatches.push({ repo: githubCommitItem.repository, ghDate: githubCommitItem.commitDate, ghMsg: githubCommitItem.commitMessage.slice(0, 50) });
+                }
+                continue;
+            }
+            let foundMatch = false;
+            let hadDateMismatch = false;
+            let hadMessageMismatch = false;
+            for (const gcalItem of sameRepoCommits) {
+                const gcalPrivate = (_d = gcalItem.extendedProperties) === null || _d === void 0 ? void 0 : _d.private;
+                if (!gcalPrivate)
+                    continue;
+                const dateMatch = gcalPrivate.commitDate === githubCommitItem.commitDate;
+                const gcalMsg = parseGithubEmojisString(gcalPrivate.commitMessage || '');
+                const ghMsg = parseGithubEmojisString(githubCommitItem.commitMessage);
+                const msgMatch = gcalMsg === ghMsg;
+                if (dateMatch && msgMatch) {
+                    foundMatch = true;
+                    break;
+                }
+                if (!dateMatch)
+                    hadDateMismatch = true;
+                if (dateMatch && !msgMatch)
+                    hadMessageMismatch = true;
+            }
+            if (foundMatch) {
+                matchedCount++;
+            }
+            else {
+                if (hadMessageMismatch)
+                    noMatchReasonStats.noMessageMatch++;
+                else if (hadDateMismatch)
+                    noMatchReasonStats.noDateMatch++;
+                if (sampleMismatches.length < 5) {
+                    sampleMismatches.push({ repo: githubCommitItem.repository, ghDate: githubCommitItem.commitDate, ghMsg: githubCommitItem.commitMessage.slice(0, 50) });
+                }
                 const commitMessage = parseCommitEmojis ? parseGithubEmojisString(githubCommitItem.commitMessage) : githubCommitItem.commitMessage;
                 const extendProps = {
                     private: {
@@ -735,14 +903,31 @@ function getGcalSyncDev(){
                 githubSessionStats.commits_tracked_to_be_added.push(taskEvent);
             }
         }
+        logger.info(`[DEBUG][ADD] matched ${matchedCount}/${filteredRepos.length} commits`);
+        logger.info(`[DEBUG][ADD] commits to add: ${githubSessionStats.commits_tracked_to_be_added.length}`);
+        logger.info(`[DEBUG][ADD] no match reasons: noSameRepo=${noMatchReasonStats.noSameRepo}, noDateMatch=${noMatchReasonStats.noDateMatch}, noMessageMatch=${noMatchReasonStats.noMessageMatch}`);
+        if (sampleMismatches.length > 0) {
+            logger.info(`[DEBUG][ADD] sample commits that didn't match (first ${sampleMismatches.length}):`);
+            sampleMismatches.forEach((m, i) => {
+                logger.info(`[DEBUG][ADD]   ${i + 1}. repo=${m.repo} date=${m.ghDate} msg=${m.ghMsg}`);
+            });
+        }
+        if (githubSessionStats.commits_tracked_to_be_added.length > 0 && githubSessionStats.commits_tracked_to_be_added.length <= 10) {
+            logger.info(`[DEBUG][ADD] commits to add details:`);
+            githubSessionStats.commits_tracked_to_be_added.forEach((c, i) => {
+                logger.info(`[DEBUG][ADD]   ${i + 1}. ${c.extendedProperties.private.repository} - ${c.extendedProperties.private.commitDate.slice(0, 10)} - ${c.extendedProperties.private.commitMessage.slice(0, 50)}`);
+            });
+        }
         const commitIdsToAdd = githubSessionStats.commits_tracked_to_be_added.map((item) => item.extendedProperties.private.commitId);
         const currentHash = computeHash(commitIdsToAdd);
+        logger.info(`[DEBUG][ADD] computed hash for ${commitIdsToAdd.length} commitIds: ${currentHash.slice(0, 16)}...`);
         if (currentGithubSyncIndex === 1) {
             logger.info(`storing hash for ${commitIdsToAdd.length} commits to track for addition`);
             updateGASProperty('github_commits_tracked_to_be_added_hash', currentHash);
             return githubSessionStats;
         }
         const lastHash = getGASProperty('github_commits_tracked_to_be_added_hash');
+        logger.info(`[DEBUG][ADD] lastHash from storage: ${lastHash ? lastHash.slice(0, 16) + '...' : 'null'}`);
         if (!lastHash) {
             logger.info(`no stored hash found, resetting to step 1`);
             resetGithubSyncProperties();
@@ -752,6 +937,7 @@ function getGcalSyncDev(){
         logger.info(`comparing hashes: stored=${lastHash.slice(0, 8)}... current=${currentHash.slice(0, 8)}...`);
         if (lastHash !== currentHash) {
             logger.info(`reset github commit properties due hash mismatch in added commits`);
+            logger.info(`[DEBUG][ADD] hash mismatch: stored=${lastHash}, current=${currentHash}`);
             resetGithubSyncProperties();
             return githubSessionStats;
         }
@@ -768,31 +954,70 @@ function getGcalSyncDev(){
                     Utilities.sleep(CONFIGS.BATCH_DELAY_MS);
                 }
             }
+            logger.info(`[DEBUG][ADD] finished adding commits, resetting properties`);
             resetGithubSyncProperties();
         }
         return githubSessionStats;
     }
     function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, filteredRepos }) {
+        logger.info(`[DEBUG][DEL] starting syncGithubCommitsToDelete`);
+        logger.info(`[DEBUG][DEL] gcalCommits: ${githubGcalCommits.length}, filteredRepos: ${filteredRepos.length}`);
         const githubSessionStats = {
             commits_deleted: [],
             commits_tracked_to_be_deleted: []
         };
+        let matchedCount = 0;
+        let noMatchReasonStats = { noSameRepo: 0, noDateMatch: 0, noMessageMatch: 0 };
         githubGcalCommits.forEach((gcalItem) => {
-            const gcalProperties = gcalItem.extendedProperties.private;
+            var _a;
+            const gcalProperties = (_a = gcalItem.extendedProperties) === null || _a === void 0 ? void 0 : _a.private;
+            if (!gcalProperties) {
+                logger.info(`[DEBUG][DEL] skipping gcal item without private properties: ${gcalItem.id}`);
+                return;
+            }
             const onlySameRepoCommits = filteredRepos.filter((item) => item.repository === gcalProperties.repository);
-            const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => item.commitDate === gcalProperties.commitDate && parseGithubEmojisString(item.commitMessage) === parseGithubEmojisString(gcalProperties.commitMessage));
-            if (!commitStillExistsOnGithub) {
+            if (onlySameRepoCommits.length === 0) {
+                noMatchReasonStats.noSameRepo++;
+            }
+            const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => {
+                const dateMatch = item.commitDate === gcalProperties.commitDate;
+                const ghMsg = parseGithubEmojisString(item.commitMessage);
+                const gcalMsg = parseGithubEmojisString(gcalProperties.commitMessage || '');
+                const msgMatch = ghMsg === gcalMsg;
+                if (!dateMatch && onlySameRepoCommits.length > 0)
+                    noMatchReasonStats.noDateMatch++;
+                if (dateMatch && !msgMatch)
+                    noMatchReasonStats.noMessageMatch++;
+                return dateMatch && msgMatch;
+            });
+            if (commitStillExistsOnGithub) {
+                matchedCount++;
+            }
+            else {
                 githubSessionStats.commits_tracked_to_be_deleted.push(gcalItem);
             }
         });
+        logger.info(`[DEBUG][DEL] matched ${matchedCount}/${githubGcalCommits.length} gcal commits still exist on github`);
+        logger.info(`[DEBUG][DEL] commits to delete: ${githubSessionStats.commits_tracked_to_be_deleted.length}`);
+        logger.info(`[DEBUG][DEL] no match reasons: noSameRepo=${noMatchReasonStats.noSameRepo}, noDateMatch=${noMatchReasonStats.noDateMatch}, noMessageMatch=${noMatchReasonStats.noMessageMatch}`);
+        if (githubSessionStats.commits_tracked_to_be_deleted.length > 0 && githubSessionStats.commits_tracked_to_be_deleted.length <= 10) {
+            logger.info(`[DEBUG][DEL] commits to delete details:`);
+            githubSessionStats.commits_tracked_to_be_deleted.forEach((c, i) => {
+                var _a, _b, _c;
+                const priv = (_a = c.extendedProperties) === null || _a === void 0 ? void 0 : _a.private;
+                logger.info(`[DEBUG][DEL]   ${i + 1}. ${priv === null || priv === void 0 ? void 0 : priv.repository} - ${(_b = priv === null || priv === void 0 ? void 0 : priv.commitDate) === null || _b === void 0 ? void 0 : _b.slice(0, 10)} - ${(_c = priv === null || priv === void 0 ? void 0 : priv.commitMessage) === null || _c === void 0 ? void 0 : _c.slice(0, 50)}`);
+            });
+        }
         const commitIdsToDelete = githubSessionStats.commits_tracked_to_be_deleted.map((item) => item.extendedProperties.private.commitId);
         const currentHash = computeHash(commitIdsToDelete);
+        logger.info(`[DEBUG][DEL] computed hash for ${commitIdsToDelete.length} commitIds: ${currentHash.slice(0, 16)}...`);
         if (currentGithubSyncIndex === 1) {
             logger.info(`storing hash for ${commitIdsToDelete.length} commits to track for deletion`);
             updateGASProperty('github_commits_tracked_to_be_deleted_hash', currentHash);
             return githubSessionStats;
         }
         const lastHash = getGASProperty('github_commits_tracked_to_be_deleted_hash');
+        logger.info(`[DEBUG][DEL] lastHash from storage: ${lastHash ? lastHash.slice(0, 16) + '...' : 'null'}`);
         if (!lastHash) {
             logger.info(`no stored delete hash found, resetting to step 1`);
             resetGithubSyncProperties();
@@ -802,6 +1027,7 @@ function getGcalSyncDev(){
         logger.info(`comparing delete hashes: stored=${lastHash.slice(0, 8)}... current=${currentHash.slice(0, 8)}...`);
         if (lastHash !== currentHash) {
             logger.info(`reset github commit properties due hash mismatch in deleted commits`);
+            logger.info(`[DEBUG][DEL] hash mismatch: stored=${lastHash}, current=${currentHash}`);
             resetGithubSyncProperties();
             return githubSessionStats;
         }
@@ -815,6 +1041,7 @@ function getGcalSyncDev(){
                     logger.info(`${x + 1}/${githubSessionStats.commits_tracked_to_be_deleted.length} commits deleted from gcal`);
                 }
             }
+            logger.info(`[DEBUG][DEL] finished deleting commits, resetting properties`);
             resetGithubSyncProperties();
         }
         return githubSessionStats;

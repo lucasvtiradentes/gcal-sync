@@ -1,6 +1,6 @@
-import { TParsedGithubCommit, getAllGithubCommits, parseGithubEmojisString } from '../modules/Github';
+import { TParsedGithubCommit, getAllGithubCommits, parseGithubEmojisString, getGithubDateRange } from '../modules/Github';
 import { getGASProperty, updateGASProperty } from '../modules/GoogleAppsScript';
-import { TGcalPrivateGithub, TGoogleCalendar, TParsedGoogleEvent, addEventsToCalendarBatch, getCalendarByName, getTasksFromGoogleCalendars, removeCalendarEvent } from '../modules/GoogleCalendar';
+import { TGcalPrivateGithub, TGoogleCalendar, TParsedGoogleEvent, addEventsToCalendarBatch, getCalendarByName, getTasksFromGoogleCalendarsWithDateRange, removeCalendarEvent } from '../modules/GoogleCalendar';
 import { CONFIGS } from '../consts/configs';
 import { TConfigs, githubConfigsKey } from '../consts/types';
 import { logger } from '../utils/abstractions/logger';
@@ -44,15 +44,30 @@ export function getFilterGithubRepos(configs: TConfigs, commits: TParsedGithubCo
 export function syncGithub(configs: TConfigs) {
   logger.info(`syncing github commits`);
 
+  const dateRange = getGithubDateRange();
+  logger.info(`[DEBUG] github date range: ${dateRange.startDate} to ${dateRange.endDate}`);
+
+  const githubCommits = getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token);
+  logger.info(`[DEBUG] fetched ${githubCommits.length} total commits from github`);
+
+  const githubGcalCommits = getTasksFromGoogleCalendarsWithDateRange<TGcalPrivateGithub>(
+    [configs[githubConfigsKey].commits_configs.commits_calendar],
+    dateRange.startDate,
+    dateRange.endDate
+  );
+  logger.info(`[DEBUG] fetched ${githubGcalCommits.length} events from gcal within date range`);
+
   const info: TInfo = {
-    githubCommits: getAllGithubCommits(configs[githubConfigsKey].username, configs[githubConfigsKey].personal_token),
-    githubGcalCommits: getTasksFromGoogleCalendars([configs[githubConfigsKey].commits_configs.commits_calendar])
+    githubCommits,
+    githubGcalCommits
   };
 
   const oldGithubSyncIndex = getGASProperty('github_commit_changes_count');
   const currentGithubSyncIndex = Number(oldGithubSyncIndex) + 1;
+  logger.info(`[DEBUG] sync index: ${oldGithubSyncIndex} -> ${currentGithubSyncIndex}`);
 
   if (oldGithubSyncIndex === null) {
+    logger.info(`[DEBUG] oldGithubSyncIndex is null, resetting properties`);
     resetGithubSyncProperties();
   }
 
@@ -68,6 +83,7 @@ export function syncGithub(configs: TConfigs) {
 
   const filteredRepos = getFilterGithubRepos(configs, info.githubCommits);
   logger.info(`found ${filteredRepos.length} commits after filtering`);
+  logger.info(`[DEBUG] filtering removed ${info.githubCommits.length - filteredRepos.length} commits`);
 
   const githubCalendar = getCalendarByName(configs[githubConfigsKey].commits_configs.commits_calendar);
   logger.info(`github calendar "${configs[githubConfigsKey].commits_configs.commits_calendar}" found: ${!!githubCalendar}, id: ${githubCalendar?.id ?? 'N/A'}`);
@@ -95,16 +111,103 @@ type TSyncGithubCommitsToAdd = {
 };
 
 function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubCalendar, githubGcalCommits, parseCommitEmojis }: TSyncGithubCommitsToAdd) {
+  logger.info(`[DEBUG][ADD] starting syncGithubCommitsToAdd`);
+  logger.info(`[DEBUG][ADD] filteredRepos: ${filteredRepos.length}, gcalCommits: ${githubGcalCommits.length}, parseEmojis: ${parseCommitEmojis}`);
+
   const githubSessionStats: TResultInfoAdded = {
     commits_tracked_to_be_added: [],
     commits_added: []
   };
 
-  for (const githubCommitItem of filteredRepos) {
-    const sameRepoCommits = githubGcalCommits.filter((gcalItem) => gcalItem.extendedProperties.private.repository === githubCommitItem.repository);
-    const hasEquivalentGcalTask = sameRepoCommits.find((gcalItem) => gcalItem.extendedProperties.private.commitDate === githubCommitItem.commitDate && parseGithubEmojisString(gcalItem.extendedProperties.private.commitMessage) === parseGithubEmojisString(githubCommitItem.commitMessage));
+  const uniqueRepos = new Set(filteredRepos.map((c) => c.repository));
+  const gcalRepos = new Set(githubGcalCommits.map((c) => c.extendedProperties?.private?.repository).filter(Boolean));
+  logger.info(`[DEBUG][ADD] unique github repos: ${uniqueRepos.size}, unique gcal repos: ${gcalRepos.size}`);
 
-    if (!hasEquivalentGcalTask) {
+  const missingRepos = [...uniqueRepos].filter((r) => !gcalRepos.has(r));
+  if (missingRepos.length > 0) {
+    logger.info(`[DEBUG][ADD] repos in github but NOT in gcal: ${missingRepos.join(', ')}`);
+  }
+
+  const gcalCommitsByRepo = new Map<string, typeof githubGcalCommits>();
+  for (const gcalItem of githubGcalCommits) {
+    const repo = gcalItem.extendedProperties?.private?.repository;
+    if (repo) {
+      if (!gcalCommitsByRepo.has(repo)) {
+        gcalCommitsByRepo.set(repo, []);
+      }
+      gcalCommitsByRepo.get(repo)!.push(gcalItem);
+    }
+  }
+
+  let matchedCount = 0;
+  let noMatchReasonStats = { noSameRepo: 0, noDateMatch: 0, noMessageMatch: 0 };
+  const sampleMismatches: { repo: string; ghDate: string; ghMsg: string }[] = [];
+
+  for (const githubCommitItem of filteredRepos) {
+    const sameRepoCommits = gcalCommitsByRepo.get(githubCommitItem.repository) ?? [];
+
+    if (sameRepoCommits.length === 0) {
+      noMatchReasonStats.noSameRepo++;
+
+      const commitMessage = parseCommitEmojis ? parseGithubEmojisString(githubCommitItem.commitMessage) : githubCommitItem.commitMessage;
+      const extendProps: TGcalPrivateGithub = {
+        private: {
+          commitMessage,
+          commitDate: githubCommitItem.commitDate,
+          repository: githubCommitItem.repository,
+          repositoryName: githubCommitItem.repositoryName,
+          repositoryLink: githubCommitItem.repositoryLink,
+          commitId: githubCommitItem.commitId
+        }
+      };
+      const taskEvent: TParsedGoogleEvent<TGcalPrivateGithub> = {
+        summary: `${githubCommitItem.repositoryName} - ${commitMessage}`,
+        description: `repository: https://github.com/${githubCommitItem.repository}\ncommit: ${githubCommitItem.commitUrl}`,
+        start: { dateTime: githubCommitItem.commitDate },
+        end: { dateTime: githubCommitItem.commitDate },
+        reminders: { useDefault: false, overrides: [] },
+        extendedProperties: extendProps
+      };
+      githubSessionStats.commits_tracked_to_be_added.push(taskEvent);
+
+      if (sampleMismatches.length < 5) {
+        sampleMismatches.push({ repo: githubCommitItem.repository, ghDate: githubCommitItem.commitDate, ghMsg: githubCommitItem.commitMessage.slice(0, 50) });
+      }
+      continue;
+    }
+
+    let foundMatch = false;
+    let hadDateMismatch = false;
+    let hadMessageMismatch = false;
+
+    for (const gcalItem of sameRepoCommits) {
+      const gcalPrivate = gcalItem.extendedProperties?.private;
+      if (!gcalPrivate) continue;
+
+      const dateMatch = gcalPrivate.commitDate === githubCommitItem.commitDate;
+      const gcalMsg = parseGithubEmojisString(gcalPrivate.commitMessage || '');
+      const ghMsg = parseGithubEmojisString(githubCommitItem.commitMessage);
+      const msgMatch = gcalMsg === ghMsg;
+
+      if (dateMatch && msgMatch) {
+        foundMatch = true;
+        break;
+      }
+
+      if (!dateMatch) hadDateMismatch = true;
+      if (dateMatch && !msgMatch) hadMessageMismatch = true;
+    }
+
+    if (foundMatch) {
+      matchedCount++;
+    } else {
+      if (hadMessageMismatch) noMatchReasonStats.noMessageMatch++;
+      else if (hadDateMismatch) noMatchReasonStats.noDateMatch++;
+
+      if (sampleMismatches.length < 5) {
+        sampleMismatches.push({ repo: githubCommitItem.repository, ghDate: githubCommitItem.commitDate, ghMsg: githubCommitItem.commitMessage.slice(0, 50) });
+      }
+
       const commitMessage = parseCommitEmojis ? parseGithubEmojisString(githubCommitItem.commitMessage) : githubCommitItem.commitMessage;
 
       const extendProps: TGcalPrivateGithub = {
@@ -134,8 +237,27 @@ function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubC
     }
   }
 
+  logger.info(`[DEBUG][ADD] matched ${matchedCount}/${filteredRepos.length} commits`);
+  logger.info(`[DEBUG][ADD] commits to add: ${githubSessionStats.commits_tracked_to_be_added.length}`);
+  logger.info(`[DEBUG][ADD] no match reasons: noSameRepo=${noMatchReasonStats.noSameRepo}, noDateMatch=${noMatchReasonStats.noDateMatch}, noMessageMatch=${noMatchReasonStats.noMessageMatch}`);
+
+  if (sampleMismatches.length > 0) {
+    logger.info(`[DEBUG][ADD] sample commits that didn't match (first ${sampleMismatches.length}):`);
+    sampleMismatches.forEach((m, i) => {
+      logger.info(`[DEBUG][ADD]   ${i + 1}. repo=${m.repo} date=${m.ghDate} msg=${m.ghMsg}`);
+    });
+  }
+
+  if (githubSessionStats.commits_tracked_to_be_added.length > 0 && githubSessionStats.commits_tracked_to_be_added.length <= 10) {
+    logger.info(`[DEBUG][ADD] commits to add details:`);
+    githubSessionStats.commits_tracked_to_be_added.forEach((c, i) => {
+      logger.info(`[DEBUG][ADD]   ${i + 1}. ${c.extendedProperties.private.repository} - ${c.extendedProperties.private.commitDate.slice(0, 10)} - ${c.extendedProperties.private.commitMessage.slice(0, 50)}`);
+    });
+  }
+
   const commitIdsToAdd = githubSessionStats.commits_tracked_to_be_added.map((item) => item.extendedProperties.private.commitId);
   const currentHash = computeHash(commitIdsToAdd);
+  logger.info(`[DEBUG][ADD] computed hash for ${commitIdsToAdd.length} commitIds: ${currentHash.slice(0, 16)}...`);
 
   if (currentGithubSyncIndex === 1) {
     logger.info(`storing hash for ${commitIdsToAdd.length} commits to track for addition`);
@@ -144,6 +266,7 @@ function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubC
   }
 
   const lastHash = getGASProperty('github_commits_tracked_to_be_added_hash');
+  logger.info(`[DEBUG][ADD] lastHash from storage: ${lastHash ? lastHash.slice(0, 16) + '...' : 'null'}`);
 
   if (!lastHash) {
     logger.info(`no stored hash found, resetting to step 1`);
@@ -156,6 +279,7 @@ function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubC
 
   if (lastHash !== currentHash) {
     logger.info(`reset github commit properties due hash mismatch in added commits`);
+    logger.info(`[DEBUG][ADD] hash mismatch: stored=${lastHash}, current=${currentHash}`);
     resetGithubSyncProperties();
     return githubSessionStats;
   }
@@ -177,6 +301,7 @@ function syncGithubCommitsToAdd({ filteredRepos, currentGithubSyncIndex, githubC
       }
     }
 
+    logger.info(`[DEBUG][ADD] finished adding commits, resetting properties`);
     resetGithubSyncProperties();
   }
 
@@ -191,24 +316,64 @@ type TSyncGithubCommitsToDelete = {
 };
 
 function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentGithubSyncIndex, filteredRepos }: TSyncGithubCommitsToDelete) {
+  logger.info(`[DEBUG][DEL] starting syncGithubCommitsToDelete`);
+  logger.info(`[DEBUG][DEL] gcalCommits: ${githubGcalCommits.length}, filteredRepos: ${filteredRepos.length}`);
+
   const githubSessionStats: TResultInfoDeleted = {
     commits_deleted: [],
     commits_tracked_to_be_deleted: []
   };
 
+  let matchedCount = 0;
+  let noMatchReasonStats = { noSameRepo: 0, noDateMatch: 0, noMessageMatch: 0 };
+
   githubGcalCommits.forEach((gcalItem) => {
-    const gcalProperties = gcalItem.extendedProperties.private;
+    const gcalProperties = gcalItem.extendedProperties?.private;
+    if (!gcalProperties) {
+      logger.info(`[DEBUG][DEL] skipping gcal item without private properties: ${gcalItem.id}`);
+      return;
+    }
+
     const onlySameRepoCommits = filteredRepos.filter((item) => item.repository === gcalProperties.repository);
 
-    const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => item.commitDate === gcalProperties.commitDate && parseGithubEmojisString(item.commitMessage) === parseGithubEmojisString(gcalProperties.commitMessage));
+    if (onlySameRepoCommits.length === 0) {
+      noMatchReasonStats.noSameRepo++;
+    }
 
-    if (!commitStillExistsOnGithub) {
+    const commitStillExistsOnGithub = onlySameRepoCommits.find((item) => {
+      const dateMatch = item.commitDate === gcalProperties.commitDate;
+      const ghMsg = parseGithubEmojisString(item.commitMessage);
+      const gcalMsg = parseGithubEmojisString(gcalProperties.commitMessage || '');
+      const msgMatch = ghMsg === gcalMsg;
+
+      if (!dateMatch && onlySameRepoCommits.length > 0) noMatchReasonStats.noDateMatch++;
+      if (dateMatch && !msgMatch) noMatchReasonStats.noMessageMatch++;
+
+      return dateMatch && msgMatch;
+    });
+
+    if (commitStillExistsOnGithub) {
+      matchedCount++;
+    } else {
       githubSessionStats.commits_tracked_to_be_deleted.push(gcalItem);
     }
   });
 
+  logger.info(`[DEBUG][DEL] matched ${matchedCount}/${githubGcalCommits.length} gcal commits still exist on github`);
+  logger.info(`[DEBUG][DEL] commits to delete: ${githubSessionStats.commits_tracked_to_be_deleted.length}`);
+  logger.info(`[DEBUG][DEL] no match reasons: noSameRepo=${noMatchReasonStats.noSameRepo}, noDateMatch=${noMatchReasonStats.noDateMatch}, noMessageMatch=${noMatchReasonStats.noMessageMatch}`);
+
+  if (githubSessionStats.commits_tracked_to_be_deleted.length > 0 && githubSessionStats.commits_tracked_to_be_deleted.length <= 10) {
+    logger.info(`[DEBUG][DEL] commits to delete details:`);
+    githubSessionStats.commits_tracked_to_be_deleted.forEach((c, i) => {
+      const priv = c.extendedProperties?.private;
+      logger.info(`[DEBUG][DEL]   ${i + 1}. ${priv?.repository} - ${priv?.commitDate?.slice(0, 10)} - ${priv?.commitMessage?.slice(0, 50)}`);
+    });
+  }
+
   const commitIdsToDelete = githubSessionStats.commits_tracked_to_be_deleted.map((item) => item.extendedProperties.private.commitId);
   const currentHash = computeHash(commitIdsToDelete);
+  logger.info(`[DEBUG][DEL] computed hash for ${commitIdsToDelete.length} commitIds: ${currentHash.slice(0, 16)}...`);
 
   if (currentGithubSyncIndex === 1) {
     logger.info(`storing hash for ${commitIdsToDelete.length} commits to track for deletion`);
@@ -217,6 +382,7 @@ function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentG
   }
 
   const lastHash = getGASProperty('github_commits_tracked_to_be_deleted_hash');
+  logger.info(`[DEBUG][DEL] lastHash from storage: ${lastHash ? lastHash.slice(0, 16) + '...' : 'null'}`);
 
   if (!lastHash) {
     logger.info(`no stored delete hash found, resetting to step 1`);
@@ -229,6 +395,7 @@ function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentG
 
   if (lastHash !== currentHash) {
     logger.info(`reset github commit properties due hash mismatch in deleted commits`);
+    logger.info(`[DEBUG][DEL] hash mismatch: stored=${lastHash}, current=${currentHash}`);
     resetGithubSyncProperties();
     return githubSessionStats;
   }
@@ -244,6 +411,7 @@ function syncGithubCommitsToDelete({ githubGcalCommits, githubCalendar, currentG
         logger.info(`${x + 1}/${githubSessionStats.commits_tracked_to_be_deleted.length} commits deleted from gcal`);
       }
     }
+    logger.info(`[DEBUG][DEL] finished deleting commits, resetting properties`);
     resetGithubSyncProperties();
   }
 
