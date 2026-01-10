@@ -7,6 +7,33 @@ import { sendEmail } from '../modules/GoogleEmail';
 import { logger } from '../utils/abstractions/logger';
 import { isCurrentTimeAfter } from '../utils/javascript/date_utils';
 import { getDailySummaryEmail, getNewReleaseEmail, getSessionEmail } from './generate_emails';
+import { TGcalPrivateGithub, TParsedGoogleEvent } from '../modules/GoogleCalendar';
+
+type TMinimalCommit = {
+  htmlLink: string;
+  start: { dateTime?: string; date?: string };
+  extendedProperties: {
+    private: {
+      repositoryLink: string;
+      repositoryName: string;
+      commitMessage: string;
+    };
+  };
+};
+
+function toMinimalCommit(commit: TParsedGoogleEvent<TGcalPrivateGithub>): TMinimalCommit {
+  return {
+    htmlLink: commit.htmlLink,
+    start: commit.start,
+    extendedProperties: {
+      private: {
+        repositoryLink: commit.extendedProperties.private.repositoryLink,
+        repositoryName: commit.extendedProperties.private.repositoryName,
+        commitMessage: commit.extendedProperties.private.commitMessage
+      }
+    }
+  };
+}
 
 function getTodayStats() {
   const todayStats: TSessionStats = {
@@ -31,8 +58,11 @@ export function handleSessionData(extendedConfigs: TExtendedConfigs, sessionData
     const todayAddedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits);
     const todayDeletedCommits = getGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits);
 
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [...todayAddedCommits, ...sessionData.commits_added]);
-    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [...todayDeletedCommits, ...sessionData.commits_deleted]);
+    const minimalAdded = sessionData.commits_added.map(toMinimalCommit);
+    const minimalDeleted = sessionData.commits_deleted.map(toMinimalCommit);
+
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_added_commits, [...todayAddedCommits, ...minimalAdded] as any);
+    updateGASProperty(GAS_PROPERTIES_ENUM.today_github_deleted_commits, [...todayDeletedCommits, ...minimalDeleted] as any);
 
     logger.info(`added ${githubNewItems} new github items to today's stats`);
   }
