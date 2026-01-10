@@ -1,5 +1,11 @@
 # gcal-sync
 
+## 2.1.2
+
+### Patch Changes
+
+- [`4ec8d4d`](https://github.com/lucasvtiradentes/gcal-sync/commit/4ec8d4d860e5b0a409852f054328c2bdfb50adb7) Thanks [@lucasvtiradentes](https://github.com/lucasvtiradentes)! - fix current date commits
+
 ## 2.1.1
 
 ### Patch Changes
