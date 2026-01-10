@@ -1,0 +1,48 @@
+name: 'Callable CI'
+
+on:
+  workflow_call:
+    inputs:
+      run_lint:
+        description: 'Run lint checks'
+        type: boolean
+        required: true
+      run_tests:
+        description: 'Run tests'
+        type: boolean
+        required: true
+      run_build:
+        description: 'Run build'
+        type: boolean
+        required: true
+
+jobs:
+  build:
+    if: inputs.run_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-and-install
+
+      - name: Build package
+        run: pnpm run build
+
+  lint:
+    if: inputs.run_lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-and-install
+
+      - name: Run typecheck
+        run: pnpm run build_type_check
+
+  test:
+    if: inputs.run_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-and-install
+
+      - name: Run tests
+        run: pnpm run test

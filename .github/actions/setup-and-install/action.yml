@@ -1,0 +1,46 @@
+name: Setup Node and install dependencies
+
+description: Setup Node.js, install pnpm packages, and use the cache if possible
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+        cache-dependency-path: pnpm-lock.yaml
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Verify PNPM Cache Directory
+      shell: sh
+      run: |
+        pnpm config set store-dir "$PNPM_CACHE_FOLDER"
+        PNPM_STORE_PATH="$( pnpm store path --silent )"
+        if [ ! -d "$PNPM_STORE_PATH" ]; then
+          echo "PNPM store directory does not exist, creating it."
+          mkdir -p "$PNPM_STORE_PATH"
+        else
+          echo "PNPM store directory exists."
+        fi
+
+    - name: Cache node_modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          node_modules
+          */node_modules
+          */*/node_modules
+        key: node_modules-${{ hashFiles('pnpm-lock.yaml') }}
+      id: pnpm-cache
+
+    - name: Install dependencies
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      shell: sh
+      run: pnpm install --frozen-lockfile
