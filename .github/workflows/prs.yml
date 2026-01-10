@@ -1,0 +1,22 @@
+name: 'PR Validation'
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  pr_ci:
+    name: 'PR CI'
+    uses: ./.github/workflows/callable-ci.yml
+    with:
+      run_lint: true
+      run_build: true
+      run_tests: ${{ contains(github.event.pull_request.labels.*.name, 'run_tests') }}
