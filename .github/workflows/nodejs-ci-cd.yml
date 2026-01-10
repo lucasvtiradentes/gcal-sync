@@ -5,39 +5,80 @@ on:
     branches:
       - main
   pull_request:
-    types: [opened]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-  MOVE_TO_PROJEC_TOKEN: ${{ secrets.MOVE_TO_PROJEC_TOKEN }}
+  HUSKY: 0
 
 jobs:
-  nodejs-ci:
+  ci:
     runs-on: ubuntu-latest
     steps:
-    - name: 1 - checkout the repository
-      uses: actions/checkout@v3
+    - name: checkout repository
+      uses: actions/checkout@v4
 
-    - name: 2 - Use Node.js 20.8.1
-      uses: actions/setup-node@v3
+    - name: install pnpm
+      uses: pnpm/action-setup@v4
       with:
-        node-version: 20.8.1
+        version: 10
 
-    - name: 3 - install dependencies
-      run: npm install
+    - name: setup node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+        registry-url: 'https://registry.npmjs.org'
 
-    - name: 4 - build package
-      run: npm run build
+    - name: install dependencies
+      run: pnpm install
 
-    - name: 5 - run tests
-      run: npm run test
+    - name: build package
+      run: pnpm run build
 
-    - name: 6 - deploy package to npm
-      if: ${{ github.ref == 'refs/heads/main' }}
-      run: HUSKY=0 npm run pub
+    - name: run tests
+      run: pnpm run test
+
+  release:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v4
+
+    - name: install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: setup node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: install dependencies
+      run: pnpm install
+
+    - name: create release PR or publish
+      uses: changesets/action@v1
+      with:
+        publish: pnpm run release
+        title: 'chore: version packages'
+        commit: 'chore: version packages'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
