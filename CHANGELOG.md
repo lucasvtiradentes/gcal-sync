@@ -1,5 +1,11 @@
 # gcal-sync
 
+## 2.1.1
+
+### Patch Changes
+
+- [`a78782a`](https://github.com/lucasvtiradentes/gcal-sync/commit/a78782a53479b3c64b0ec790b5756c5f5c1c3d02) Thanks [@lucasvtiradentes](https://github.com/lucasvtiradentes)! - fix npm publish issue
+
 ## 2.1.0
 
 ### Minor Changes
