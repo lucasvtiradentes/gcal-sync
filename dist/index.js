@@ -7,7 +7,7 @@
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '2.1.1'};
+        version: '2.1.2'};
 
     const asConstArrayToObject = (array, keyField, valueField) => {
         return array.reduce((acc, item) => {
