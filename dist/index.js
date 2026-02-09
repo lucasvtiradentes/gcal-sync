@@ -7,7 +7,7 @@
     const APP_INFO = {
         name: 'gcal-sync',
         github_repository: 'lucasvtiradentes/gcal-sync',
-        version: '2.1.2'};
+        version: '2.1.3'};
 
     const asConstArrayToObject = (array, keyField, valueField) => {
         return array.reduce((acc, item) => {
@@ -397,9 +397,11 @@
         }
         const isNowTimeAfterDailyEmails = isCurrentTimeAfter(extendedConfigs.configs.settings.per_day_emails.time_to_send, extendedConfigs.timezone_offset);
         const alreadySentTodaySummaryEmail = extendedConfigs.today_date === getGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date);
-        if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_daily_summary && !alreadySentTodaySummaryEmail) {
+        const todayStats = getTodayStats();
+        const totalTodayChanges = todayStats.commits_added.length + todayStats.commits_deleted.length;
+        if (isNowTimeAfterDailyEmails && extendedConfigs.configs.settings.per_day_emails.email_daily_summary && !alreadySentTodaySummaryEmail && totalTodayChanges > 0) {
             updateGASProperty(GAS_PROPERTIES_ENUM.last_daily_email_sent_date, extendedConfigs.today_date);
-            const dailySummaryEmail = getDailySummaryEmail(userEmail, getTodayStats(), extendedConfigs.today_date);
+            const dailySummaryEmail = getDailySummaryEmail(userEmail, todayStats, extendedConfigs.today_date);
             sendEmail(dailySummaryEmail);
             clearTodayEvents();
         }
