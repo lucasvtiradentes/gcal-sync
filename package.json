@@ -1,7 +1,7 @@
 {
   "name": "gcal-sync",
   "description": "🔄 add an one way synchronization from github commits to google calendar and track your progress effortlessly.",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "keywords": [
     "google-calendar",
     "github",

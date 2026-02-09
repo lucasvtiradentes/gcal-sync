@@ -1,5 +1,11 @@
 # gcal-sync
 
+## 2.1.3
+
+### Patch Changes
+
+- [#124](https://github.com/lucasvtiradentes/gcal-sync/pull/124) [`6c63fbd`](https://github.com/lucasvtiradentes/gcal-sync/commit/6c63fbdf1263b671e2eb8f8fb5495550733abb3c) Thanks [@lucasvtiradentes](https://github.com/lucasvtiradentes)! - fix: prevent sending daily summary email when there are no changes
+
 ## 2.1.2
 
 ### Patch Changes
